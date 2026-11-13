@@ -3,7 +3,9 @@ name: Quality checks
 on:
   push:
     branches: ['**']
+    paths-ignore: ['**/*.md']
   pull_request:
+    paths-ignore: ['**/*.md']
   workflow_call:
   workflow_dispatch:
 
