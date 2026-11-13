@@ -1,0 +1,269 @@
+use crate::{
+    error::{ApiError, ApiResult},
+    models::*,
+};
+use anyhow::{Context, Result};
+use serde::{Serialize, de::DeserializeOwned};
+use sqlx::{
+    Row, SqlitePool,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
+};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+use uuid::Uuid;
+
+pub async fn connect(root: &Path) -> Result<SqlitePool> {
+    tokio::fs::create_dir_all(root).await?;
+    let options = SqliteConnectOptions::from_str(&format!(
+        "sqlite://{}",
+        root.join("studio.sqlite").display()
+    ))?
+    .create_if_missing(true)
+    .foreign_keys(true)
+    .journal_mode(SqliteJournalMode::Wal)
+    .busy_timeout(std::time::Duration::from_secs(10));
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect_with(options)
+        .await?;
+    sqlx::migrate!("./migrations").run(&pool).await?;
+    Ok(pool)
+}
+
+fn decode<T: DeserializeOwned>(data: String) -> Result<T> {
+    serde_json::from_str(&data).context("Stored document could not be read")
+}
+
+fn encode<T: Serialize>(data: &T) -> Result<String> {
+    Ok(serde_json::to_string(data)?)
+}
+
+pub async fn projects(pool: &SqlitePool) -> Result<Vec<Project>> {
+    let rows: Vec<(String,)> = sqlx::query_as("SELECT data FROM projects ORDER BY created_at DESC")
+        .fetch_all(pool)
+        .await?;
+    rows.into_iter().map(|row| decode(row.0)).collect()
+}
+
+pub async fn project(pool: &SqlitePool, id: &str) -> ApiResult<Project> {
+    let row: Option<(String,)> = sqlx::query_as("SELECT data FROM projects WHERE id = ?")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+    decode(row.ok_or_else(ApiError::not_found)?.0).map_err(Into::into)
+}
+
+pub async fn save_project(pool: &SqlitePool, project: &Project) -> Result<()> {
+    sqlx::query("INSERT INTO projects(id, data, created_at) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data=excluded.data")
+        .bind(&project.id).bind(encode(project)?).bind(project.created_at).execute(pool).await?;
+    Ok(())
+}
+
+pub async fn clips(pool: &SqlitePool, project_id: &str) -> Result<Vec<Clip>> {
+    let rows: Vec<(String,)> =
+        sqlx::query_as("SELECT data FROM clips WHERE project_id = ? ORDER BY created_at, id")
+            .bind(project_id)
+            .fetch_all(pool)
+            .await?;
+    rows.into_iter().map(|row| decode(row.0)).collect()
+}
+
+pub async fn clip(pool: &SqlitePool, id: &str) -> ApiResult<Clip> {
+    let row: Option<(String,)> = sqlx::query_as("SELECT data FROM clips WHERE id = ?")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+    decode(row.ok_or_else(ApiError::not_found)?.0).map_err(Into::into)
+}
+
+pub async fn insert_clip(pool: &SqlitePool, clip: &Clip) -> Result<()> {
+    sqlx::query(
+        "INSERT INTO clips(id, project_id, revision, data, created_at) VALUES (?, ?, ?, ?, ?)",
+    )
+    .bind(&clip.id)
+    .bind(&clip.project_id)
+    .bind(clip.revision)
+    .bind(encode(clip)?)
+    .bind(clip.created_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn update_clip(pool: &SqlitePool, clip: &Clip, expected_revision: i64) -> ApiResult<()> {
+    let result =
+        sqlx::query("UPDATE clips SET revision = ?, data = ? WHERE id = ? AND revision = ?")
+            .bind(clip.revision)
+            .bind(encode(clip)?)
+            .bind(&clip.id)
+            .bind(expected_revision)
+            .execute(pool)
+            .await?;
+    if result.rows_affected() != 1 {
+        return Err(ApiError::conflict());
+    }
+    Ok(())
+}
+
+pub async fn jobs(pool: &SqlitePool) -> Result<Vec<Job>> {
+    let rows: Vec<(String,)> =
+        sqlx::query_as("SELECT data FROM jobs ORDER BY created_at DESC LIMIT 200")
+            .fetch_all(pool)
+            .await?;
+    rows.into_iter().map(|row| decode(row.0)).collect()
+}
+
+pub async fn active_jobs(pool: &SqlitePool) -> Result<Vec<Job>> {
+    let rows: Vec<(String,)> = sqlx::query_as(
+        "SELECT data FROM jobs WHERE status IN ('queued', 'running', 'cancelling') ORDER BY created_at",
+    )
+    .fetch_all(pool)
+    .await?;
+    rows.into_iter().map(|row| decode(row.0)).collect()
+}
+
+pub async fn job(pool: &SqlitePool, id: &str) -> ApiResult<Job> {
+    let row: Option<(String,)> = sqlx::query_as("SELECT data FROM jobs WHERE id = ?")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+    decode(row.ok_or_else(ApiError::not_found)?.0).map_err(Into::into)
+}
+
+pub async fn save_job(pool: &SqlitePool, job: &Job) -> Result<()> {
+    sqlx::query("INSERT INTO jobs(id, project_id, status, data, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET status=excluded.status, data=excluded.data")
+        .bind(&job.id).bind(&job.project_id).bind(&job.status).bind(encode(job)?).bind(job.created_at)
+        .execute(pool).await?;
+    Ok(())
+}
+
+pub async fn next_job(pool: &SqlitePool) -> Result<Option<Job>> {
+    let row: Option<(String,)> =
+        sqlx::query_as("SELECT data FROM jobs WHERE status = 'queued' ORDER BY created_at LIMIT 1")
+            .fetch_optional(pool)
+            .await?;
+    row.map(|row| decode(row.0)).transpose()
+}
+
+pub async fn register_asset(
+    pool: &SqlitePool,
+    relative_path: &str,
+    name: &str,
+    kind: &str,
+) -> Result<String> {
+    let id = Uuid::new_v4().to_string();
+    sqlx::query("INSERT INTO assets(id, relative_path, name, kind, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(relative_path) DO NOTHING")
+        .bind(&id).bind(relative_path).bind(name).bind(kind).bind(now_ms()).execute(pool).await?;
+    let row: (String,) = sqlx::query_as("SELECT id FROM assets WHERE relative_path = ?")
+        .bind(relative_path)
+        .fetch_one(pool)
+        .await?;
+    Ok(row.0)
+}
+
+pub async fn asset(
+    pool: &SqlitePool,
+    root: &Path,
+    id: &str,
+) -> ApiResult<(PathBuf, String, String)> {
+    let row = sqlx::query("SELECT relative_path, name, kind FROM assets WHERE id = ?")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(ApiError::not_found)?;
+    let relative: String = row.get(0);
+    let path = root.join(relative);
+    let canonical = tokio::fs::canonicalize(&path).await?;
+    let canonical_root = tokio::fs::canonicalize(root).await?;
+    if !canonical.starts_with(canonical_root) {
+        return Err(ApiError::bad_request(
+            "Asset path is outside managed storage.",
+        ));
+    }
+    Ok((path, row.get(1), row.get(2)))
+}
+
+pub async fn exports(pool: &SqlitePool) -> Result<Vec<Export>> {
+    let rows: Vec<(String,)> = sqlx::query_as("SELECT data FROM exports ORDER BY created_at DESC")
+        .fetch_all(pool)
+        .await?;
+    rows.into_iter().map(|row| decode(row.0)).collect()
+}
+
+pub async fn save_export(pool: &SqlitePool, export: &Export) -> Result<()> {
+    sqlx::query(
+        "INSERT INTO exports(id, project_id, clip_id, data, created_at) VALUES (?, ?, ?, ?, ?)",
+    )
+    .bind(&export.id)
+    .bind(&export.project_id)
+    .bind(&export.clip_id)
+    .bind(encode(export)?)
+    .bind(export.created_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn settings(pool: &SqlitePool) -> Result<Settings> {
+    let row: Option<(String,)> =
+        sqlx::query_as("SELECT data FROM settings WHERE key = 'preferences'")
+            .fetch_optional(pool)
+            .await?;
+    row.map(|row| decode(row.0))
+        .transpose()
+        .map(|value| value.unwrap_or_default())
+}
+
+pub async fn save_settings(pool: &SqlitePool, settings: &Settings) -> Result<()> {
+    sqlx::query("INSERT INTO settings(key, data) VALUES ('preferences', ?) ON CONFLICT(key) DO UPDATE SET data=excluded.data")
+        .bind(encode(settings)?).execute(pool).await?;
+    Ok(())
+}
+
+pub async fn remove_unused_assets(
+    pool: &SqlitePool,
+    root: &Path,
+    candidates: Vec<String>,
+) -> Result<()> {
+    let mut referenced = std::collections::HashSet::new();
+    for project in projects(pool).await? {
+        referenced.insert(project.asset_id);
+        referenced.extend(project.preview_asset_id);
+        referenced.extend(project.thumbnail_id);
+        for clip in clips(pool, &project.id).await? {
+            referenced.extend(clip.document.watermark.asset_id);
+        }
+    }
+    for export in exports(pool).await? {
+        referenced.extend([export.asset_id, export.ass_asset_id, export.srt_asset_id]);
+    }
+    let canonical_root = tokio::fs::canonicalize(root).await?;
+    for id in candidates {
+        if referenced.contains(&id) {
+            continue;
+        }
+        let row: Option<(String,)> =
+            sqlx::query_as("SELECT relative_path FROM assets WHERE id = ?")
+                .bind(&id)
+                .fetch_optional(pool)
+                .await?;
+        if let Some((relative,)) = row {
+            let path = root.join(relative);
+            if path.exists() {
+                let canonical = tokio::fs::canonicalize(&path).await?;
+                anyhow::ensure!(
+                    canonical.starts_with(&canonical_root) && canonical.is_file(),
+                    "Asset cleanup escaped managed storage."
+                );
+                tokio::fs::remove_file(canonical).await?;
+            }
+            sqlx::query("DELETE FROM assets WHERE id = ?")
+                .bind(id)
+                .execute(pool)
+                .await?;
+        }
+    }
+    Ok(())
+}
