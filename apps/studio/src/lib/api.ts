@@ -3,6 +3,7 @@ import type {
   EditDocument,
   Export,
   Health,
+  CaptionPreset,
   Job,
   ModelStatus,
   Project,
@@ -42,6 +43,7 @@ export const api = {
   project: (id: string) => request<ProjectDetail>('/projects/' + id),
   jobs: () => request<Job[]>('/jobs'),
   models: () => request<ModelStatus[]>('/models'),
+  captionPresets: () => request<CaptionPreset[]>('/caption-presets'),
   settings: () => request<Settings>('/settings'),
   exports: () => request<Export[]>('/exports'),
   saveSettings: (settings: Settings) =>
@@ -60,10 +62,28 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ revision: clip.revision, name: clip.name, document: clip.document }),
     }),
-  generate: (id: string, clip_count: number, duration_ms: number, language: string) =>
+  generate: (
+    id: string,
+    clip_count: number,
+    duration_ms: number,
+    language: string,
+    focus = '',
+    minimum_score = 85,
+  ) =>
     request<Job>('/projects/' + id + '/generate', {
       method: 'POST',
-      body: JSON.stringify({ clip_count, duration_ms, language }),
+      body: JSON.stringify({ clip_count, duration_ms, language, focus, minimum_score }),
+    }),
+  refineCaptions: (
+    id: string,
+    revision: number,
+    speech_model: string,
+    language: string,
+    vocabulary: string,
+  ) =>
+    request<Job>('/clips/' + id + '/captions', {
+      method: 'POST',
+      body: JSON.stringify({ revision, speech_model, language, vocabulary }),
     }),
   clipAction: (id: string, action: 'export' | 'title' | 'track') =>
     request<Job>('/clips/' + id + '/' + action, { method: 'POST' }),

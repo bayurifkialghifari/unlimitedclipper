@@ -11,6 +11,8 @@ pub struct Word {
     pub emphasis: bool,
     #[serde(default)]
     pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -100,6 +102,10 @@ pub struct CaptionStyle {
     pub position_y: f64,
     pub words_per_line: usize,
     pub animation: String,
+    #[serde(default)]
+    pub bold: bool,
+    #[serde(default)]
+    pub uppercase: bool,
 }
 
 impl Default for CaptionStyle {
@@ -107,15 +113,17 @@ impl Default for CaptionStyle {
         Self {
             enabled: true,
             preset: "highlight".into(),
-            font: "Noto Sans".into(),
-            size: 64,
+            font: "DM Sans".into(),
+            size: 84,
             color: "#FFFFFF".into(),
             highlight_color: "#D9FA63".into(),
             outline_color: "#000000".into(),
-            outline: 3.0,
-            position_y: 0.78,
-            words_per_line: 4,
+            outline: 4.0,
+            position_y: 0.70,
+            words_per_line: 3,
             animation: "none".into(),
+            bold: true,
+            uppercase: false,
         }
     }
 }
@@ -187,6 +195,8 @@ pub struct EditDocument {
     pub captions: CaptionStyle,
     pub title: TitleStyle,
     pub watermark: Watermark,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub caption_model: Option<String>,
     pub words: Vec<Word>,
 }
 
@@ -217,6 +227,7 @@ impl EditDocument {
             captions: CaptionStyle::default(),
             title: TitleStyle::default(),
             watermark: Watermark::default(),
+            caption_model: project.transcript_configuration.clone(),
             words: project
                 .words
                 .iter()
@@ -283,6 +294,12 @@ impl EditDocument {
             }
             if let Some(color) = &word.color {
                 validate_color(color)?;
+            }
+            if word
+                .confidence
+                .is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value))
+            {
+                return Err("Caption confidence must be between zero and one.".into());
             }
             previous = word.start_ms;
         }

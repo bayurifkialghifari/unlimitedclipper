@@ -12,3 +12,5 @@ export type Export = components['schemas']['Export'];
 export type Settings = components['schemas']['Settings'];
 export type ModelStatus = components['schemas']['ModelStatus'];
 export type Health = components['schemas']['Health'];
+export type CaptionPreset = components['schemas']['CaptionPreset'];
+export type CaptionStyle = components['schemas']['CaptionStyle'];

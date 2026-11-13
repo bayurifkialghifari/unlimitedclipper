@@ -62,6 +62,27 @@
         }
       }
     },
+    "/api/v1/caption-presets": {
+      "get": {
+        "tags": [],
+        "operationId": "caption_presets",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CaptionPreset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/clips/{id}": {
       "get": {
         "tags": [],
@@ -143,6 +164,47 @@
         ],
         "responses": {
           "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/clips/{id}/captions": {
+      "post": {
+        "tags": [],
+        "operationId": "caption_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefineCaptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "409": {
             "description": ""
           }
         }
@@ -968,6 +1030,18 @@
           }
         }
       },
+      "CaptionPreset": {
+        "type": "object",
+        "required": ["id", "style"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/CaptionStyle"
+          }
+        }
+      },
       "CaptionStyle": {
         "type": "object",
         "required": [
@@ -986,6 +1060,9 @@
         "properties": {
           "animation": {
             "type": "string"
+          },
+          "bold": {
+            "type": "boolean"
           },
           "color": {
             "type": "string"
@@ -1017,6 +1094,9 @@
             "type": "integer",
             "format": "int32",
             "minimum": 0
+          },
+          "uppercase": {
+            "type": "boolean"
           },
           "words_per_line": {
             "type": "integer",
@@ -1124,6 +1204,9 @@
           "words"
         ],
         "properties": {
+          "caption_model": {
+            "type": ["string", "null"]
+          },
           "captions": {
             "$ref": "#/components/schemas/CaptionStyle"
           },
@@ -1238,8 +1321,16 @@
             "type": "integer",
             "format": "int64"
           },
+          "focus": {
+            "type": "string"
+          },
           "language": {
             "type": "string"
+          },
+          "minimum_score": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           }
         }
       },
@@ -1493,6 +1584,25 @@
           }
         }
       },
+      "RefineCaptionsRequest": {
+        "type": "object",
+        "required": ["revision", "speech_model", "language"],
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "speech_model": {
+            "type": "string"
+          },
+          "vocabulary": {
+            "type": "string"
+          }
+        }
+      },
       "SessionRequest": {
         "type": "object",
         "required": ["token"],
@@ -1660,6 +1770,10 @@
         "properties": {
           "color": {
             "type": ["string", "null"]
+          },
+          "confidence": {
+            "type": ["number", "null"],
+            "format": "double"
           },
           "emphasis": {
             "type": "boolean"

@@ -1,10 +1,12 @@
 pub mod api;
+pub mod caption_presets;
 pub mod db;
 pub mod error;
 pub mod model_manager;
 pub mod models;
 pub mod pipeline;
 pub mod render;
+pub mod speech;
 pub mod state;
 pub mod subtitles;
 pub mod tools;

@@ -40,6 +40,23 @@ pub struct GenerateRequest {
     pub clip_count: usize,
     pub duration_ms: i64,
     pub language: String,
+    #[serde(default)]
+    pub focus: String,
+    #[serde(default = "default_interest")]
+    pub minimum_score: u32,
+}
+
+fn default_interest() -> u32 {
+    85
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct RefineCaptionsRequest {
+    pub revision: i64,
+    pub speech_model: String,
+    pub language: String,
+    #[serde(default)]
+    pub vocabulary: String,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -90,6 +107,8 @@ pub struct Health {
         list_exports,
         title_job,
         track_job,
+        caption_job,
+        caption_presets,
         update_status,
         check_updates,
         install_updates,
@@ -130,6 +149,8 @@ pub struct Health {
         YoutubeRequest,
         LocalImportRequest,
         GenerateRequest,
+        RefineCaptionsRequest,
+        crate::caption_presets::CaptionPreset,
         CreateClipRequest,
         UpdateClipRequest,
         Health
@@ -234,6 +255,8 @@ pub fn router(state: AppState) -> Router {
         .route("/clips/{id}/export", post(export_clip))
         .route("/clips/{id}/title", post(title_job))
         .route("/clips/{id}/track", post(track_job))
+        .route("/clips/{id}/captions", post(caption_job))
+        .route("/caption-presets", get(caption_presets))
         .route("/clips/{id}/subtitles", get(clip_subtitles))
         .route("/clips/{id}/preview", post(preview_subtitles))
         .route("/jobs", get(list_jobs))
@@ -608,6 +631,8 @@ async fn generate(
         || request.clip_count > 1000
         || request.duration_ms < 0
         || request.duration_ms > 3_600_000
+        || request.minimum_score > 100
+        || request.focus.chars().count() > 400
     {
         return Err(ApiError::bad_request(
             "Choose a valid clip count and duration.",
@@ -630,7 +655,23 @@ async fn generate(
             "This project already has a generation job.",
         ));
     }
-    Ok(Json(state.enqueue_locked("generate", Some(id), None, json!({"clip_count": request.clip_count, "duration_ms": request.duration_ms, "language": request.language})).await?))
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "generate",
+                Some(id),
+                None,
+                json!({
+                    "clip_count": request.clip_count,
+                    "duration_ms": request.duration_ms,
+                    "language": request.language,
+                    "focus": request.focus,
+                    "minimum_score": request.minimum_score,
+                    "selection_version": 2
+                }),
+            )
+            .await?,
+    ))
 }
 
 #[utoipa::path(post, path = "/api/v1/projects/{id}/clips", request_body = CreateClipRequest, responses((status = 200, body = Clip)))]
@@ -766,13 +807,62 @@ async fn track_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
 
 async fn ensure_no_clip_edit_job(state: &AppState, clip_id: &str) -> ApiResult<()> {
     if db::active_jobs(&state.db).await?.iter().any(|job| {
-        job.clip_id.as_deref() == Some(clip_id) && ["title", "track"].contains(&job.kind.as_str())
+        job.clip_id.as_deref() == Some(clip_id)
+            && ["title", "track", "captions"].contains(&job.kind.as_str())
     }) {
         return Err(ApiError::bad_request(
             "This clip already has an editing job. Wait for it to finish.",
         ));
     }
     Ok(())
+}
+
+#[utoipa::path(get, path = "/api/v1/caption-presets", responses((status = 200, body = [crate::caption_presets::CaptionPreset])))]
+async fn caption_presets() -> Json<Vec<crate::caption_presets::CaptionPreset>> {
+    Json(crate::caption_presets::presets())
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/captions", request_body = RefineCaptionsRequest, responses((status = 200, body = Job), (status = 409)))]
+async fn caption_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<RefineCaptionsRequest>,
+) -> ApiResult<Json<Job>> {
+    let _gate = state.operation_gate.lock().await;
+    let clip = db::clip(&state.db, &id).await?;
+    if clip.revision != request.revision {
+        return Err(ApiError::conflict());
+    }
+    ensure_no_clip_edit_job(&state, &id).await?;
+    if !["whisper-small", "whisper-medium"].contains(&request.speech_model.as_str())
+        || request.vocabulary.chars().count() > 400
+        || request.language.is_empty()
+        || request.language.len() > 12
+        || !request
+            .language
+            .bytes()
+            .all(|byte| byte.is_ascii_alphabetic() || byte == b'-')
+    {
+        return Err(ApiError::bad_request(
+            "Choose a speech model, language, and vocabulary of at most 400 characters.",
+        ));
+    }
+    model_manager::model_path(&state, &request.speech_model).await?;
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "captions",
+                Some(clip.project_id.clone()),
+                Some(id),
+                json!({
+                    "revision": request.revision,
+                    "speech_model": request.speech_model,
+                    "language": request.language,
+                    "vocabulary": request.vocabulary
+                }),
+            )
+            .await?,
+    ))
 }
 
 #[utoipa::path(get, path = "/api/v1/jobs", responses((status = 200, body = [Job])))]
@@ -822,7 +912,7 @@ async fn retry_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
     if let Some(project_id) = &job.project_id {
         db::project(&state.db, project_id).await?;
     }
-    if ["title", "track"].contains(&job.kind.as_str()) {
+    if ["title", "track", "captions"].contains(&job.kind.as_str()) {
         let clip_id = job.clip_id.as_deref().ok_or_else(ApiError::not_found)?;
         ensure_no_clip_edit_job(&state, clip_id).await?;
         job.payload["revision"] = json!(db::clip(&state.db, clip_id).await?.revision);

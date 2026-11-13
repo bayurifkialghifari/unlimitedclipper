@@ -1,5 +1,23 @@
 use crate::models::{EditDocument, Word};
 
+pub fn caption_groups(document: &EditDocument) -> Vec<&[Word]> {
+    let mut groups = Vec::new();
+    let mut start = 0;
+    let maximum = document.captions.words_per_line.max(1);
+    for index in 0..document.words.len() {
+        let word = &document.words[index];
+        let next = document.words.get(index + 1);
+        let ends_sentence = word.text.ends_with(['.', '!', '?', ';', ':']);
+        let gap = next.is_some_and(|next| next.start_ms - word.end_ms > 450);
+        let long = word.end_ms - document.words[start].start_ms >= 2200;
+        if index - start + 1 >= maximum || ends_sentence || gap || long || next.is_none() {
+            groups.push(&document.words[start..=index]);
+            start = index + 1;
+        }
+    }
+    groups
+}
+
 fn clock(milliseconds: i64, ass: bool) -> String {
     let time = milliseconds.max(0);
     let hours = time / 3_600_000;
@@ -29,9 +47,8 @@ fn override_color(value: &str) -> String {
 }
 
 pub fn srt(document: &EditDocument) -> String {
-    document
-        .words
-        .chunks(document.captions.words_per_line.max(1))
+    caption_groups(document)
+        .into_iter()
         .enumerate()
         .map(|(index, words)| {
             let text = words
@@ -67,11 +84,35 @@ fn styled_word(word: &Word, active: bool, document: &EditDocument) -> String {
     } else {
         &document.captions.color
     });
-    let bold = if word.emphasis || active { 1 } else { 0 };
+    let bold = if word.emphasis || document.captions.bold {
+        700
+    } else {
+        400
+    };
+    let text = if document.captions.uppercase {
+        word.text.to_uppercase()
+    } else {
+        word.text.clone()
+    };
+    let box_tags = if document.captions.preset == "box" {
+        if active {
+            let (width, height) = document.layout.dimensions(document.resolution);
+            let padding = 8.0 * width.min(height) as f64 / 1080.0;
+            format!(
+                "\\3a&H00&\\3c{}\\bord{padding}\\1c{}",
+                override_color(&document.captions.highlight_color),
+                override_color(&document.captions.color)
+            )
+        } else {
+            "\\3a&HFF&\\bord0".into()
+        }
+    } else {
+        String::new()
+    };
     format!(
-        "{{\\1c{}\\b{bold}}}{}",
+        "{{\\1c{}\\b{bold}{box_tags}}}{}",
         override_color(chosen_color),
-        escape_ass(&word.text)
+        escape_ass(&text)
     )
 }
 
@@ -79,11 +120,14 @@ pub fn ass(document: &EditDocument) -> String {
     let (width, height) = document.layout.dimensions(document.resolution);
     let caption = &document.captions;
     let title = &document.title;
-    let size_scale = width as f64 / 1080.0;
+    let size_scale = width.min(height) as f64 / 1080.0;
     let caption_size = (caption.size as f64 * size_scale).round() as u32;
     let title_size = (title.size as f64 * size_scale).round() as u32;
     let outline = caption.outline * size_scale;
     let border_style = if caption.preset == "box" { 3 } else { 1 };
+    let caption_bold = if caption.bold { 1 } else { 0 };
+    let caption_shadow = if caption.preset == "box" { 0.0 } else { 1.5 };
+    let margin = (width as f64 * 0.09).round() as u32;
     let watermark_x = (document.watermark.x * width as f64)
         .round()
         .clamp(8.0, width as f64 - 8.0);
@@ -123,7 +167,7 @@ pub fn ass(document: &EditDocument) -> String {
         .max(1.0)
         .round() as u32;
     let mut result = format!(
-        "[Script Info]\nScriptType: v4.00+\nPlayResX: {width}\nPlayResY: {height}\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Caption,{},{} ,{},{},{},&H80000000,0,0,0,0,100,100,0,0,{border_style},{outline},0,5,20,20,20,1\nStyle: Title,{},{} ,{},&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,{},3,0,5,30,30,30,1\nStyle: Watermark,Noto Sans,{},{} ,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,1,0,7,0,0,0,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
+        "[Script Info]\nScriptType: v4.00+\nPlayResX: {width}\nPlayResY: {height}\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Caption,{},{} ,{},{},{},&H80000000,{caption_bold},0,0,0,100,100,0,0,{border_style},{outline},{caption_shadow},5,{margin},{margin},20,1\nStyle: Title,{},{} ,{},&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,{},3,0,5,{margin},{margin},30,1\nStyle: Watermark,Noto Sans,{},{} ,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,1,0,7,0,0,0,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
         caption.font,
         caption_size,
         color(&caption.color),
@@ -142,7 +186,7 @@ pub fn ass(document: &EditDocument) -> String {
         (height as f64 * caption.position_y).round()
     );
     if caption.enabled {
-        for words in document.words.chunks(caption.words_per_line.max(1)) {
+        for words in caption_groups(document) {
             if caption.preset == "plain" {
                 let content = words
                     .iter()
@@ -158,7 +202,7 @@ pub fn ass(document: &EditDocument) -> String {
                 ));
             } else {
                 for (index, word) in words.iter().enumerate() {
-                    let content = if caption.preset == "word" || caption.preset == "box" {
+                    let content = if caption.preset == "word" {
                         styled_word(word, true, document)
                     } else {
                         words
@@ -168,16 +212,17 @@ pub fn ass(document: &EditDocument) -> String {
                             .collect::<Vec<_>>()
                             .join(" ")
                     };
-                    let animation = match caption.animation.as_str() {
-                        "fade" => "\\fad(70,50)",
-                        "pop" => "\\fscx90\\fscy90\\t(0,80,\\fscx100\\fscy100)",
+                    let animate = caption.preset == "word" || index == 0;
+                    let animation = match (caption.animation.as_str(), animate) {
+                        ("fade", true) => "\\fad(70,50)",
+                        ("pop", true) => "\\fscx94\\fscy94\\t(0,80,\\fscx100\\fscy100)",
                         _ => "",
                     };
                     let end = words
                         .get(index + 1)
-                        .map(|next| next.start_ms)
+                        .map(|next| next.start_ms.min(word.end_ms + 120))
                         .unwrap_or(word.end_ms)
-                        .max(word.end_ms);
+                        .max(word.start_ms + 1);
                     result.push_str(&dialogue(
                         1,
                         word.start_ms,
@@ -232,7 +277,7 @@ pub fn vtt(document: &EditDocument) -> String {
         )
     };
     let mut content = String::from("WEBVTT\n\n");
-    for words in document.words.chunks(document.captions.words_per_line) {
+    for words in caption_groups(document) {
         let start = document.start_ms + words[0].start_ms;
         let end = document.start_ms + words.last().expect("Nonempty word group").end_ms;
         let text = words

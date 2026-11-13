@@ -120,6 +120,105 @@ fn caption_exports_preserve_clip_time_and_browser_tracks_preserve_source_time() 
     assert!(invalid.validate(project.duration_ms).is_err());
 }
 
+#[test]
+fn caption_phrases_stop_at_punctuation_and_silence() {
+    let mut document = EditDocument::new(&project(), 0, 10_000);
+    document.captions.words_per_line = 4;
+    document.words = serde_json::from_value(json!([
+        {"id":"a","text":"Dia","start_ms":1000,"end_ms":1300,"emphasis":false,"color":null},
+        {"id":"b","text":"jahat!","start_ms":1300,"end_ms":1700,"emphasis":false,"color":null},
+        {"id":"c","text":"Lari","start_ms":1900,"end_ms":2200,"emphasis":false,"color":null},
+        {"id":"d","text":"guys","start_ms":4000,"end_ms":4300,"emphasis":false,"color":null}
+    ]))
+    .unwrap();
+    let groups = subtitles::caption_groups(&document);
+    assert_eq!(
+        groups.iter().map(|group| group.len()).collect::<Vec<_>>(),
+        [2, 1, 1]
+    );
+    let srt = subtitles::srt(&document);
+    assert!(srt.contains("00:00:01,000 --> 00:00:01,700\nDia jahat!"));
+    let ass = subtitles::ass(&document);
+    assert!(!ass.contains("0:00:02.20,0:00:04.00"));
+    assert!(ass.contains("0:00:01.90,0:00:02.20"));
+    document.captions.preset = "box".into();
+    let ass = subtitles::ass(&document);
+    assert!(ass.contains("Dia") && ass.contains("jahat!"));
+    assert!(ass.contains("\\3a&H00&") && ass.contains("\\3a&HFF&"));
+}
+
+#[tokio::test]
+async fn caption_recovery_reuses_recognition_and_does_not_apply_twice() {
+    use unlimitedclipper_engine::pipeline;
+    let root = tempfile::tempdir().unwrap();
+    let state = AppState::new(root.path().to_path_buf(), root.path().join("tools"))
+        .await
+        .unwrap();
+    let project = project();
+    db::save_project(&state.db, &project).await.unwrap();
+    let clip = Clip {
+        id: "clip".into(),
+        project_id: project.id.clone(),
+        name: "Recovered".into(),
+        explanation: String::new(),
+        score: None,
+        revision: 1,
+        document: EditDocument::new(&project, 2000, 5000),
+        created_at: 1,
+    };
+    db::insert_clip(&state.db, &clip).await.unwrap();
+    let mut job = state
+        .enqueue(
+            "captions",
+            Some(project.id.clone()),
+            Some(clip.id.clone()),
+            json!({"revision":1,"speech_model":"whisper-medium","language":"en"}),
+        )
+        .await
+        .unwrap();
+    let directory = root.path().join("temporary").join(&job.id);
+    tokio::fs::create_dir_all(&directory).await.unwrap();
+    tokio::fs::write(
+        directory.join("captions-0-7000.json"),
+        json!({"transcription":[{
+            "text":" Hello!", "offsets":{"from":3000,"to":3500},
+            "tokens":[{"text":" Hello!","t_dtw":300,"p":0.9,"offsets":{"to":3500}}]
+        }]})
+        .to_string(),
+    )
+    .await
+    .unwrap();
+    let cancellation = tokio_util::sync::CancellationToken::new();
+    pipeline::refine_captions(&state, &mut job, &cancellation)
+        .await
+        .unwrap();
+    let saved = db::clip(&state.db, "clip").await.unwrap();
+    assert_eq!(saved.revision, 2);
+    assert_eq!(saved.document.words[0].start_ms, 1000);
+    assert_eq!(saved.document.words[0].text, "Hello!");
+    assert_eq!(
+        db::project(&state.db, "fixture").await.unwrap().words[0].text,
+        "Hello"
+    );
+    pipeline::refine_captions(&state, &mut job, &cancellation)
+        .await
+        .unwrap();
+    assert_eq!(db::clip(&state.db, "clip").await.unwrap().revision, 2);
+    let mut edited = saved;
+    edited.revision = 3;
+    edited.document.words[0].text = "Manual correction".into();
+    db::update_clip(&state.db, &edited, 2).await.unwrap();
+    assert!(
+        pipeline::refine_captions(&state, &mut job, &cancellation)
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        db::clip(&state.db, "clip").await.unwrap().document.words[0].text,
+        "Manual correction"
+    );
+}
+
 #[tokio::test]
 async fn a_second_engine_cannot_own_the_same_database() {
     let root = tempfile::tempdir().unwrap();

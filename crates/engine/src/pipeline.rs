@@ -227,57 +227,7 @@ pub async fn import_youtube(
 }
 
 fn parse_transcript(value: &serde_json::Value, duration: i64) -> Vec<Word> {
-    let mut result = Vec::new();
-    let mut annotation_end = None;
-    if let Some(segments) = value["transcription"].as_array() {
-        for segment in segments {
-            let mut speech = String::new();
-            for character in segment["text"].as_str().unwrap_or_default().chars() {
-                if let Some(end) = annotation_end {
-                    if character == end {
-                        annotation_end = None;
-                    }
-                } else {
-                    match character {
-                        '[' => annotation_end = Some(']'),
-                        '(' => annotation_end = Some(')'),
-                        '*' => annotation_end = Some('*'),
-                        _ => speech.push(character),
-                    }
-                }
-            }
-            let text = speech.trim();
-            if text.is_empty() {
-                continue;
-            }
-            let start = segment["offsets"]["from"]
-                .as_i64()
-                .unwrap_or_default()
-                .max(0);
-            let end = segment["offsets"]["to"]
-                .as_i64()
-                .unwrap_or(start + 100)
-                .min(duration);
-            let words = text.split_whitespace().collect::<Vec<_>>();
-            for (index, text) in words.iter().enumerate() {
-                let word_start = start + (end - start) * index as i64 / words.len().max(1) as i64;
-                let word_end =
-                    start + (end - start) * (index + 1) as i64 / words.len().max(1) as i64;
-                if word_end > word_start {
-                    result.push(Word {
-                        id: Uuid::new_v4().to_string(),
-                        text: text.to_string(),
-                        start_ms: word_start,
-                        end_ms: word_end,
-                        emphasis: false,
-                        color: None,
-                    });
-                }
-            }
-        }
-    }
-    result.sort_by_key(|word| word.start_ms);
-    result
+    crate::speech::parse_transcript(value, duration)
 }
 
 pub async fn transcribe(
@@ -345,6 +295,11 @@ pub async fn transcribe(
     let language = job.payload["language"]
         .as_str()
         .unwrap_or(&settings.transcription_language);
+    let alignment = if speech_model == "whisper-medium" {
+        "medium"
+    } else {
+        "small"
+    };
     tools::capture(
         &tools::executable(state, "whisper", "whisper-cli")?,
         &[
@@ -363,6 +318,10 @@ pub async fn transcribe(
             "-ng".into(),
             "-t".into(),
             "6".into(),
+            "--dtw".into(),
+            alignment.into(),
+            "-nfa".into(),
+            "-sns".into(),
         ],
         cancellation,
     )
@@ -380,6 +339,181 @@ pub async fn transcribe(
     Ok(())
 }
 
+pub async fn refine_captions(
+    state: &AppState,
+    job: &mut Job,
+    cancellation: &CancellationToken,
+) -> Result<()> {
+    let clip_id = job.clip_id.as_deref().context("Missing clip")?.to_string();
+    let mut clip = db::clip(&state.db, &clip_id)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.message))?;
+    // A crash after the edit transaction must not apply the same recognition twice.
+    if job.payload["caption_applied_revision"].as_i64() == Some(clip.revision)
+        && job.payload["caption_applied_document"] == serde_json::to_value(&clip.document)?
+    {
+        return Ok(());
+    }
+    let revision = job.payload["revision"]
+        .as_i64()
+        .context("Missing edit revision")?;
+    anyhow::ensure!(
+        clip.revision == revision,
+        "The clip changed. Retry after saving your edit."
+    );
+    let project = db::project(&state.db, &clip.project_id)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.message))?;
+    anyhow::ensure!(project.has_audio, "This source has no audio to transcribe.");
+    let model_id = job.payload["speech_model"]
+        .as_str()
+        .context("Missing speech model")?
+        .to_string();
+    let language = job.payload["language"]
+        .as_str()
+        .unwrap_or("auto")
+        .to_string();
+    let vocabulary = job.payload["vocabulary"].as_str().unwrap_or("").to_string();
+    let input_start = (clip.document.start_ms - 2000).max(0);
+    let input_end = (clip.document.end_ms + 2000).min(project.duration_ms);
+    let input_duration = input_end - input_start;
+    let directory = state.root.join("temporary").join(&job.id);
+    tokio::fs::create_dir_all(&directory).await?;
+    let prefix = directory.join(format!("captions-{input_start}-{input_end}"));
+    let transcript_path = prefix.with_extension("json");
+    if !transcript_path.is_file() {
+        let model = model_manager::model_path(state, &model_id).await?;
+        let (source, _, _) = db::asset(&state.db, &state.root, &project.asset_id)
+            .await
+            .map_err(|error| anyhow::anyhow!(error.message))?;
+        let audio = directory.join("speech.wav");
+        state
+            .progress(
+                job,
+                "audio",
+                0.1,
+                "Preparing the original clip audio with context.",
+            )
+            .await?;
+        tools::capture(
+            &tools::executable(state, "ffmpeg", "ffmpeg")?,
+            &[
+                "-hide_banner".into(),
+                "-loglevel".into(),
+                "error".into(),
+                "-y".into(),
+                "-ss".into(),
+                format!("{:.3}", input_start as f64 / 1000.0),
+                "-i".into(),
+                source.to_string_lossy().into_owned(),
+                "-t".into(),
+                format!("{:.3}", input_duration as f64 / 1000.0),
+                "-vn".into(),
+                "-ar".into(),
+                "16000".into(),
+                "-ac".into(),
+                "1".into(),
+                "-c:a".into(),
+                "pcm_s16le".into(),
+                audio.to_string_lossy().into_owned(),
+            ],
+            cancellation,
+        )
+        .await?;
+        let alignment = if model_id == "whisper-medium" {
+            "medium"
+        } else {
+            "small"
+        };
+        let temporary_prefix = directory.join("recognition-part");
+        let mut args = vec![
+            "-m".into(),
+            model.to_string_lossy().into_owned(),
+            "-f".into(),
+            audio.to_string_lossy().into_owned(),
+            "-l".into(),
+            language.clone(),
+            "-ojf".into(),
+            "-of".into(),
+            temporary_prefix.to_string_lossy().into_owned(),
+            "-ml".into(),
+            "1".into(),
+            "-sow".into(),
+            "-ng".into(),
+            "-t".into(),
+            "6".into(),
+            "--dtw".into(),
+            alignment.into(),
+            "-nfa".into(),
+            "-sns".into(),
+        ];
+        if !vocabulary.trim().is_empty() {
+            args.extend(["--prompt".into(), vocabulary.trim().into()]);
+        }
+        state
+            .progress(
+                job,
+                "transcription",
+                0.25,
+                "Recognizing words and aligning them to the original audio.",
+            )
+            .await?;
+        tools::capture(
+            &tools::executable(state, "whisper", "whisper-cli")?,
+            &args,
+            cancellation,
+        )
+        .await?;
+        let bytes = tokio::fs::read(temporary_prefix.with_extension("json")).await?;
+        serde_json::from_slice::<serde_json::Value>(&bytes)?;
+        tokio::fs::rename(temporary_prefix.with_extension("json"), &transcript_path).await?;
+    }
+    let data = serde_json::from_slice(&tokio::fs::read(&transcript_path).await?)?;
+    anyhow::ensure!(!cancellation.is_cancelled(), "Job cancelled.");
+    let clip_start = clip.document.start_ms - input_start;
+    let clip_end = clip.document.end_ms - input_start;
+    let words = parse_transcript(&data, input_duration)
+        .into_iter()
+        .filter(|word| word.start_ms >= clip_start && word.start_ms < clip_end)
+        .map(|mut word| {
+            word.start_ms -= clip_start;
+            word.end_ms = (word.end_ms - clip_start).min(clip_end - clip_start);
+            word
+        })
+        .collect::<Vec<_>>();
+    anyhow::ensure!(
+        !words.is_empty(),
+        "No speech was found in this clip. Existing captions were preserved."
+    );
+    job.payload["recognized_words"] = json!(words.len());
+    job.payload["review_words"] = json!(
+        words
+            .iter()
+            .filter(|word| word.confidence.is_some_and(|value| value < 0.65))
+            .count()
+    );
+    clip.document.words = words;
+    clip.document.caption_model = Some(format!("{model_id}:{language}:dtw"));
+    clip.document
+        .validate(project.duration_ms)
+        .map_err(anyhow::Error::msg)?;
+    job.payload["caption_applied_revision"] = json!(revision + 1);
+    job.payload["caption_applied_document"] = serde_json::to_value(&clip.document)?;
+    state
+        .progress(
+            job,
+            "captions",
+            0.9,
+            "Saving aligned captions without changing the source transcript.",
+        )
+        .await?;
+    clip.revision += 1;
+    db::update_clip(&state.db, &clip, revision)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.message))?;
+    Ok(())
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct Suggestion {
     start_ms: i64,
@@ -389,6 +523,78 @@ struct Suggestion {
     explanation: String,
     #[serde(default)]
     score: u32,
+    #[serde(default)]
+    hook: String,
+    #[serde(default)]
+    payoff: String,
+}
+
+fn normalized_quote(text: &str) -> String {
+    text.chars()
+        .flat_map(char::to_lowercase)
+        .map(|character| {
+            if character.is_alphanumeric() {
+                character
+            } else {
+                ' '
+            }
+        })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn grounded(suggestion: &Suggestion, words: &[Word]) -> bool {
+    let transcript = words
+        .iter()
+        .filter(|word| word.end_ms > suggestion.start_ms && word.start_ms < suggestion.end_ms)
+        .map(|word| word.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let transcript = normalized_quote(&transcript);
+    [&suggestion.hook, &suggestion.payoff].iter().all(|quote| {
+        let quote = normalized_quote(quote);
+        quote.chars().count() >= 3 && format!(" {transcript} ").contains(&format!(" {quote} "))
+    })
+}
+
+fn fit_suggestion(mut suggestion: Suggestion, project: &Project) -> Option<Suggestion> {
+    let words = &project.words;
+    let first = words
+        .iter()
+        .position(|word| word.end_ms > suggestion.start_ms)?;
+    let last = words
+        .iter()
+        .rposition(|word| word.start_ms < suggestion.end_ms)?;
+    if last < first {
+        return None;
+    }
+    let mut start_index = first;
+    while start_index > 0 && words[first].start_ms - words[start_index - 1].start_ms <= 1600 {
+        let previous = &words[start_index - 1];
+        if previous.text.ends_with(['.', '!', '?'])
+            || words[start_index].start_ms - previous.end_ms > 650
+        {
+            break;
+        }
+        start_index -= 1;
+    }
+    let mut end_index = last;
+    while end_index + 1 < words.len() && words[end_index + 1].end_ms - words[last].end_ms <= 1600 {
+        let word = &words[end_index];
+        if word.text.ends_with(['.', '!', '?']) || words[end_index + 1].start_ms - word.end_ms > 650
+        {
+            break;
+        }
+        end_index += 1;
+    }
+    suggestion.start_ms = (words[start_index].start_ms - 120).max(0);
+    suggestion.end_ms = (words[end_index].end_ms + 180).min(project.duration_ms);
+    if suggestion.end_ms - suggestion.start_ms > 60000 {
+        return None;
+    }
+    (suggestion.end_ms > suggestion.start_ms).then_some(suggestion)
 }
 
 pub async fn infer(
@@ -460,7 +666,7 @@ struct Selection {
     clips: Vec<Suggestion>,
 }
 
-const TRANSCRIPT_WINDOW_BYTES: usize = 5000;
+const TRANSCRIPT_WINDOW_BYTES: usize = 4000;
 const INFERENCE_CONTEXT_TOKENS: usize = 8192;
 const INFERENCE_OUTPUT_TOKENS: usize = 2048;
 
@@ -527,6 +733,117 @@ fn output_language(project: &Project) -> &str {
     }
 }
 
+async fn review_suggestions(
+    state: &AppState,
+    job: &mut Job,
+    project: &Project,
+    suggestions: Vec<Suggestion>,
+    cancellation: &CancellationToken,
+) -> Result<Vec<Suggestion>> {
+    #[derive(Deserialize)]
+    struct ReviewItem {
+        index: usize,
+        score: u32,
+        explanation: String,
+    }
+    #[derive(Deserialize)]
+    struct Review {
+        clips: Vec<ReviewItem>,
+    }
+    let candidates: Vec<Suggestion> = if job.payload["review_candidates"].is_array() {
+        serde_json::from_value(job.payload["review_candidates"].clone())?
+    } else {
+        job.payload["review_candidates"] = json!(suggestions);
+        db::save_job(&state.db, job).await?;
+        suggestions
+    };
+    let minimum = job.payload["minimum_score"].as_u64().unwrap_or(70) as u32;
+    let focus = job.payload["focus"].as_str().unwrap_or("").to_string();
+    let mut reviewed: Vec<Suggestion> =
+        serde_json::from_value(job.payload["reviewed_suggestions"].clone()).unwrap_or_default();
+    let mut offset = job.payload["review_offset"].as_u64().unwrap_or(0) as usize;
+    while offset < candidates.len() {
+        let mut brief = Vec::new();
+        let mut end = offset;
+        while end < candidates.len() && end - offset < 16 {
+            let suggestion = &candidates[end];
+            let transcript = project
+                .words
+                .iter()
+                .filter(|word| {
+                    word.end_ms > suggestion.start_ms && word.start_ms < suggestion.end_ms
+                })
+                .map(|word| word.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" ");
+            let mut bytes = 0;
+            let excerpt = transcript
+                .chars()
+                .take_while(|character| {
+                    bytes += character.len_utf8();
+                    bytes <= 1000
+                })
+                .collect::<String>();
+            let value = json!({
+                "index": end, "score": suggestion.score,
+                "start_ms": suggestion.start_ms, "end_ms": suggestion.end_ms,
+                "title": suggestion.title.chars().take(40).collect::<String>(),
+                "hook": suggestion.hook.chars().take(40).collect::<String>(),
+                "payoff": suggestion.payoff.chars().take(40).collect::<String>(),
+                "transcript": excerpt
+            });
+            brief.push(value);
+            if serde_json::to_string(&brief)?.len() > 4000 {
+                brief.pop();
+                break;
+            }
+            end += 1;
+        }
+        anyhow::ensure!(
+            end > offset,
+            "A highlight review exceeded the local context budget."
+        );
+        state
+            .progress(
+                job,
+                "review",
+                0.9 + 0.05 * offset as f64 / candidates.len().max(1) as f64,
+                "Comparing hooks and payoffs; rejecting filler and weak moments.",
+            )
+            .await?;
+        let prompt = format!(
+            "Act as a strict short-video editor. Review these proposed moments against the same scale: 0-49 routine actions, reading without a reaction, or incomplete context; 50-69 mildly useful but ordinary; 70-84 a clear standalone hook and payoff; 85-100 an unusually compelling surprise, funny reaction, or tense outcome. Reject repeated topics and candidates that end before the payoff. Do not fill a quota. Return only candidates scoring at least {minimum}, or an empty array. Viewer preference: {focus}. Explanations must be concise and in {}. Use the exact candidate index. Candidates: {}",
+            output_language(project),
+            serde_json::to_string(&brief)?
+        );
+        let indices = (offset..end).collect::<Vec<_>>();
+        let schema = json!({"type":"object","properties":{"clips":{"type":"array","maxItems":indices.len(),"items":{"type":"object","properties":{
+            "index":{"type":"integer","enum":indices},"score":{"type":"integer","minimum":0,"maximum":100},"explanation":{"type":"string"}},
+            "required":["index","score","explanation"],"additionalProperties":false}}},"required":["clips"],"additionalProperties":false});
+        let output = infer(state, &prompt, &schema.to_string(), cancellation).await?;
+        let result: Review = extract_json(&output)?;
+        let mut seen = std::collections::HashSet::new();
+        for item in result.clips {
+            if item.index < offset
+                || item.index >= end
+                || item.score < minimum
+                || !seen.insert(item.index)
+            {
+                continue;
+            }
+            let mut suggestion = candidates[item.index].clone();
+            suggestion.score = item.score;
+            suggestion.explanation = item.explanation;
+            reviewed.push(suggestion);
+        }
+        offset = end;
+        job.payload["review_offset"] = json!(offset);
+        job.payload["reviewed_suggestions"] = json!(reviewed);
+        db::save_job(&state.db, job).await?;
+    }
+    Ok(reviewed)
+}
+
 pub async fn generate(
     state: &AppState,
     job: &mut Job,
@@ -564,6 +881,8 @@ pub async fn generate(
         transcribe(state, job, &mut project, cancellation).await?;
     }
     let count = job.payload["clip_count"].as_u64().unwrap_or(4) as usize;
+    let minimum_score = job.payload["minimum_score"].as_u64().unwrap_or(70) as u32;
+    let focus = job.payload["focus"].as_str().unwrap_or("").to_string();
     let requested_duration = job.payload["duration_ms"].as_i64().unwrap_or(0);
     let mut suggestions: Vec<Suggestion> =
         serde_json::from_value(job.payload["suggestions"].clone()).unwrap_or_default();
@@ -597,20 +916,20 @@ pub async fn generate(
         let transcript = &window.text;
         let duration_instruction = if requested_duration > 0 {
             format!(
-                "Each clip must last {requested_duration} milliseconds. Include multiple phrases to build a complete moment, not just one short sentence."
+                "Aim near {requested_duration} milliseconds, but end after the payoff and never add filler merely to reach that duration."
             )
         } else {
-            "Aim for complete moments lasting 15000 to 60000 milliseconds.".into()
+            "Prefer complete moments lasting 8000 to 60000 milliseconds.".into()
         };
         let prompt = format!(
-            "Select up to {} highlights from this timed transcript: surprising reactions, funny exchanges, tension with a payoff, or a complete useful explanation. Skip greetings and routine introductions. {duration_instruction} All timestamps are integer source milliseconds, not seconds. Rate interest from 0 to 100. Output language: {}. Write concise hook titles and explanations in this language, grounded in what was said. Do not translate to another language. Return a JSON object with a clips array. Transcript:\n{transcript}",
+            "Select zero to {} standalone highlights: a surprising reaction, funny exchange, tense outcome, or useful insight with a payoff. Skip greetings, routine actions, repetitive passages, and reading with no reaction. Do not fill a quota. Viewer preference: {focus}. {duration_instruction} Begin at a complete phrase and finish after its payoff. Timestamps are integer SOURCE milliseconds. Score ordinary content below 60; require at least {minimum_score} for a clear hook and payoff. Output language: {}. Return short grounded titles and explanations in this language. Include hook and payoff as exact short quotes from WITHIN each selected range. An empty clips array is valid. Transcript:\n{transcript}",
             count.min(3),
             output_language(&project)
         );
         let schema = json!({"type":"object","properties":{"clips":{"type":"array","maxItems":8,"items":{"type":"object","properties":{
             "start_ms":{"type":"integer"},"end_ms":{"type":"integer"},"title":{"type":"string"},
-            "explanation":{"type":"string"},"score":{"type":"integer","minimum":0,"maximum":100}},
-            "required":["start_ms","end_ms","title","explanation","score"],"additionalProperties":false}}},"required":["clips"],"additionalProperties":false});
+            "explanation":{"type":"string"},"score":{"type":"integer","minimum":0,"maximum":100},"hook":{"type":"string"},"payoff":{"type":"string"}},
+            "required":["start_ms","end_ms","title","explanation","score","hook","payoff"],"additionalProperties":false}}},"required":["clips"],"additionalProperties":false});
         let output = infer(state, &prompt, &schema.to_string(), cancellation).await?;
         let window: Selection = extract_json(&output)?;
         for suggestion in window.clips {
@@ -618,6 +937,8 @@ pub async fn generate(
                 && suggestion.end_ms <= words.last().context("Transcript window is empty")?.end_ms
                 && suggestion.end_ms > suggestion.start_ms
                 && !suggestion.title.trim().is_empty()
+                && suggestion.score >= minimum_score
+                && grounded(&suggestion, words)
             {
                 suggestions.push(suggestion);
             }
@@ -627,17 +948,14 @@ pub async fn generate(
         job.payload["selection_word_offset"] = json!(word_offset);
         db::save_job(&state.db, job).await?;
     }
+    let mut suggestions =
+        review_suggestions(state, job, &project, suggestions, cancellation).await?;
     suggestions.sort_by_key(|suggestion| std::cmp::Reverse(suggestion.score));
     let mut accepted = Vec::<Suggestion>::new();
-    for mut suggestion in suggestions {
-        let duration = if requested_duration > 0 {
-            requested_duration.min(project.duration_ms)
-        } else {
-            (suggestion.end_ms - suggestion.start_ms).clamp(15_000, 60_000)
+    for suggestion in suggestions {
+        let Some(suggestion) = fit_suggestion(suggestion, &project) else {
+            continue;
         };
-        let center = suggestion.start_ms + (suggestion.end_ms - suggestion.start_ms) / 2;
-        suggestion.start_ms = (center - duration / 2).clamp(0, project.duration_ms - duration);
-        suggestion.end_ms = suggestion.start_ms + duration;
         if accepted
             .iter()
             .any(|other| suggestion.start_ms < other.end_ms && suggestion.end_ms > other.start_ms)
@@ -651,7 +969,7 @@ pub async fn generate(
     }
     anyhow::ensure!(
         !accepted.is_empty(),
-        "No valid moments were returned. Create a clip manually or retry."
+        "No moments passed the interest filter. Try another focus or lower the threshold, or create a clip manually."
     );
     let mut plan = Vec::new();
     for suggestion in accepted {
@@ -780,6 +1098,64 @@ mod tests {
     use super::*;
 
     #[test]
+    fn highlight_evidence_must_quote_words_inside_the_selected_range() {
+        let words = parse_transcript(
+            &json!({"transcription":[
+                {"text":"Hadiah biasa.","offsets":{"from":0,"to":1000}},
+                {"text":"Dia jahat! Lari guys!","offsets":{"from":2000,"to":4000}}
+            ]}),
+            5000,
+        );
+        let mut suggestion = Suggestion {
+            start_ms: 2000,
+            end_ms: 4000,
+            title: "Escape".into(),
+            explanation: String::new(),
+            score: 85,
+            hook: "Dia jahat".into(),
+            payoff: "Lari guys".into(),
+        };
+        assert!(grounded(&suggestion, &words));
+        suggestion.payoff = "Hadiah biasa".into();
+        assert!(!grounded(&suggestion, &words));
+        suggestion.start_ms = 0;
+        suggestion.end_ms = 1000;
+        suggestion.hook = "Dia".into();
+        assert!(!grounded(&suggestion, &words));
+    }
+
+    #[test]
+    fn cut_boundaries_complete_the_phrase_without_forcing_thirty_seconds() {
+        let words = parse_transcript(
+            &json!({"transcription":[
+                {"text":"Introduction.","offsets":{"from":0,"to":1000}},
+                {"text":"Dia jahat!","offsets":{"from":2000,"to":3000}},
+                {"text":"Lari guys!","offsets":{"from":3200,"to":4300}},
+                {"text":"Next topic.","offsets":{"from":9000,"to":10000}}
+            ]}),
+            30_000,
+        );
+        let project = serde_json::from_value(json!({
+            "id":"fixture","name":"Fixture","source_kind":"file","source_url":null,
+            "asset_id":"source","thumbnail_id":null,"duration_ms":30000,
+            "width":1920,"height":1080,"has_audio":true,"language":"id","created_at":1,"words":words
+        }))
+        .unwrap();
+        let suggestion = Suggestion {
+            start_ms: 2500,
+            end_ms: 3900,
+            title: "Escape".into(),
+            explanation: String::new(),
+            score: 85,
+            hook: "Dia jahat".into(),
+            payoff: "Lari guys".into(),
+        };
+        let fitted = fit_suggestion(suggestion, &project).unwrap();
+        assert_eq!(fitted.start_ms, 1880);
+        assert_eq!(fitted.end_ms, 4480);
+    }
+
+    #[test]
     fn speech_annotations_split_across_segments_do_not_become_caption_words() {
         let segments = ["[Suara", "pesawat", "terbang]", "Lari,", "kocak!"];
         let transcription = segments
@@ -814,6 +1190,7 @@ mod tests {
                 end_ms: index as i64 * 750 + 500,
                 emphasis: false,
                 color: None,
+                confidence: None,
             })
             .collect::<Vec<_>>();
         let windows = transcript_windows(&words).unwrap();

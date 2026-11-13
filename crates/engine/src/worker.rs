@@ -39,6 +39,7 @@ pub async fn run(state: AppState) -> Result<()> {
             "model" => model_manager::download(&state, &mut job, &cancellation).await,
             "generate" => pipeline::generate(&state, &mut job, &cancellation).await,
             "title" => pipeline::title(&state, &mut job, &cancellation).await,
+            "captions" => pipeline::refine_captions(&state, &mut job, &cancellation).await,
             "track" => crate::tracking::track(&state, &mut job, &cancellation).await,
             "component_update" => crate::updates::download(&state, &mut job, &cancellation).await,
             "export" => pipeline::render_batch(&state, &mut job, &cancellation).await,

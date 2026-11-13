@@ -47,6 +47,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/caption-presets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['caption_presets'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clips/{id}': {
     parameters: {
       query?: never;
@@ -58,6 +74,22 @@ export interface paths {
     put: operations['update_clip'];
     post?: never;
     delete: operations['delete_clip'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clips/{id}/captions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['caption_job'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -599,8 +631,13 @@ export interface components {
       client_id: string;
       dirty: boolean;
     };
+    CaptionPreset: {
+      id: string;
+      style: components['schemas']['CaptionStyle'];
+    };
     CaptionStyle: {
       animation: string;
+      bold?: boolean;
       color: string;
       enabled: boolean;
       font: string;
@@ -613,6 +650,7 @@ export interface components {
       preset: string;
       /** Format: int32 */
       size: number;
+      uppercase?: boolean;
       words_per_line: number;
     };
     Clip: {
@@ -646,6 +684,7 @@ export interface components {
       y: number;
     };
     EditDocument: {
+      caption_model?: string | null;
       captions: components['schemas']['CaptionStyle'];
       crop: components['schemas']['CropRect'];
       /** Format: int64 */
@@ -683,7 +722,10 @@ export interface components {
       clip_count: number;
       /** Format: int64 */
       duration_ms: number;
+      focus?: string;
       language: string;
+      /** Format: int32 */
+      minimum_score?: number;
     };
     Health: {
       models: components['schemas']['ModelStatus'][];
@@ -764,6 +806,13 @@ export interface components {
       clips: components['schemas']['Clip'][];
       project: components['schemas']['Project'];
     };
+    RefineCaptionsRequest: {
+      language: string;
+      /** Format: int64 */
+      revision: number;
+      speech_model: string;
+      vocabulary?: string;
+    };
     SessionRequest: {
       token: string;
     };
@@ -822,6 +871,8 @@ export interface components {
     };
     Word: {
       color?: string | null;
+      /** Format: double */
+      confidence?: number | null;
       emphasis?: boolean;
       /** Format: int64 */
       end_ms: number;
@@ -899,6 +950,25 @@ export interface operations {
       };
     };
   };
+  caption_presets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CaptionPreset'][];
+        };
+      };
+    };
+  };
   get_clip: {
     parameters: {
       query?: never;
@@ -963,6 +1033,37 @@ export interface operations {
     requestBody?: never;
     responses: {
       200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  caption_job: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefineCaptionsRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
+      };
+      409: {
         headers: {
           [name: string]: unknown;
         };
