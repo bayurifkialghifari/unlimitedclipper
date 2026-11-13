@@ -80,6 +80,29 @@ Ignored evidence: .cache/caption-ui-validation.json, .cache/caption-studio-deskt
 
 The anti-slop gate for changed controls uses DESIGN.md as direction, actual transcript samples in look buttons, visible focus/pressed states, Indonesian/English dictionaries, bounded typography, and real interactions. The position-reset and review-seek failures found during interaction testing were fixed and retested. The project-wide delivery gate below remains partial where broader checks are unrun.
 
+## README presentation
+
+The README now contains three screenshots captured from the actual native ARM64 application, two
+reviewed clip exports, and frame-derived poster images. Media lives in committed `docs/media/`, so a
+fresh checkout can resolve it. Both README MP4 copies passed 720 × 1280 geometry, audio presence,
+duration, and complete FFmpeg decoding checks. Chromium played both files from a local documentation
+preview.
+
+GitHub's Markdown API rendered the source successfully. Thirty local link/image references resolved,
+and all navigation anchors matched real headings. A local preview of that rendered HTML, with
+GitHub-style image/table sizing and heading anchors, was exercised at 1100 and 390 pixels: images
+loaded, the library disclosure opened, the setup anchor navigated, and the page had no horizontal
+overflow. This local preview is not a claim of testing the authenticated GitHub page on a phone.
+
+`npm run check` passed after the documentation/media changes. The README anti-slop gate is scoped to
+this deliverable: original product imagery, real source attribution, explicit manual-review and
+experimental status, named links, image alternatives/dimensions, and static previews with optional
+video playback. No invented statistics, endorsements, release readiness, or platform certification
+were added. The broader application gate below retains its existing pending checks.
+
+Ignored evidence: `.cache/readme-capture-evidence.json`, `.cache/readme-media-evidence.json`,
+`.cache/readme-validation.json`, `.cache/readme-github.html`, and the local preview screenshots.
+
 ## Required scenarios
 
 - ARM64 and x64 imports, local speech inference, clip selection, and rendering.

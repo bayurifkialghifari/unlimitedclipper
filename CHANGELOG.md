@@ -4,6 +4,8 @@
 
 ### Added
 
+- A visual README with real native screenshots, two clip examples, subtitle downloads, and an
+  explicit experimental side-project status.
 - Four caption looks, bold/uppercase controls, phrase-aware subtitles, and stable active-word boxes.
 - Per-clip local speech refinement with DTW alignment, vocabulary hints, uncertainty review, and revision-safe recovery.
 - Moment focus, interest filters, grounded hook/payoff evidence, and a durable second selection review.
