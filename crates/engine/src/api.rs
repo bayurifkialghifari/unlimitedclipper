@@ -77,6 +77,7 @@ pub struct UpdateClipRequest {
 pub struct Health {
     pub version: String,
     pub platform: String,
+    pub native: bool,
     pub tools: HashMap<String, bool>,
     pub models: Vec<ModelStatus>,
 }
@@ -356,15 +357,14 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Health>> {
         ("deno", "deno"),
         ("whisper", "whisper-cli"),
         ("llama", "llama-cli"),
+        ("llama", "llama-completion"),
     ] {
-        tools.insert(
-            name.into(),
-            crate::tools::executable(&state, family, name).is_ok(),
-        );
+        tools.insert(name.into(), crate::tools::available(&state, family, name));
     }
     Ok(Json(Health {
         version: env!("CARGO_PKG_VERSION").into(),
         platform: std::env::consts::ARCH.into(),
+        native: state.native_tools.is_some(),
         tools,
         models: model_manager::statuses(&state).await?,
     }))
@@ -897,6 +897,7 @@ async fn cancel_job(State(state): State<AppState>, Path(id): Path<String>) -> Ap
 async fn retry_job(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Json<Job>> {
     let _gate = state.operation_gate.lock().await;
     let mut job = db::job(&state.db, &id).await?;
+    crate::tools::require_native_job(&state, &job.kind)?;
     if !["failed", "cancelled"].contains(&job.status.as_str())
         || state.cancellations.lock().await.contains_key(&id)
     {
@@ -960,6 +961,7 @@ async fn import_model(
     Path(id): Path<String>,
     mut multipart: Multipart,
 ) -> ApiResult<Json<serde_json::Value>> {
+    crate::tools::require_native_job(&state, "model")?;
     let _gate = state.operation_gate.lock().await;
     if !db::active_jobs(&state.db).await?.is_empty() {
         return Err(ApiError::bad_request(

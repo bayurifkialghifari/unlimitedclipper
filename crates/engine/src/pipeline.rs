@@ -88,8 +88,10 @@ pub async fn import_file(
         Some(db::register_asset(&state.db, &proxy_relative, "preview.mp4", "video").await?);
     let thumbnail_path = format!("thumbnails/{id}.jpg");
     let thumbnail = state.root.join(&thumbnail_path);
-    let thumbnail_result = tools::capture(
-        &tools::executable(state, "ffmpeg", "ffmpeg")?,
+    let thumbnail_result = tools::capture_managed(
+        state,
+        "ffmpeg",
+        "ffmpeg",
         &[
             "-hide_banner".into(),
             "-loglevel".into(),
@@ -262,8 +264,10 @@ pub async fn transcribe(
         .await?;
     if !audio.is_file() {
         let temporary_audio = audio.with_extension("part.wav");
-        tools::capture(
-            &tools::executable(state, "ffmpeg", "ffmpeg")?,
+        tools::capture_managed(
+            state,
+            "ffmpeg",
+            "ffmpeg",
             &[
                 "-hide_banner".into(),
                 "-loglevel".into(),
@@ -300,8 +304,10 @@ pub async fn transcribe(
     } else {
         "small"
     };
-    tools::capture(
-        &tools::executable(state, "whisper", "whisper-cli")?,
+    tools::capture_managed(
+        state,
+        "whisper",
+        "whisper-cli",
         &[
             "-m".into(),
             model.to_string_lossy().into_owned(),
@@ -395,8 +401,10 @@ pub async fn refine_captions(
                 "Preparing the original clip audio with context.",
             )
             .await?;
-        tools::capture(
-            &tools::executable(state, "ffmpeg", "ffmpeg")?,
+        tools::capture_managed(
+            state,
+            "ffmpeg",
+            "ffmpeg",
             &[
                 "-hide_banner".into(),
                 "-loglevel".into(),
@@ -458,12 +466,7 @@ pub async fn refine_captions(
                 "Recognizing words and aligning them to the original audio.",
             )
             .await?;
-        tools::capture(
-            &tools::executable(state, "whisper", "whisper-cli")?,
-            &args,
-            cancellation,
-        )
-        .await?;
+        tools::capture_managed(state, "whisper", "whisper-cli", &args, cancellation).await?;
         let bytes = tokio::fs::read(temporary_prefix.with_extension("json")).await?;
         serde_json::from_slice::<serde_json::Value>(&bytes)?;
         tokio::fs::rename(temporary_prefix.with_extension("json"), &transcript_path).await?;
@@ -617,8 +620,10 @@ pub async fn infer(
         "The transcript is too large for this model's context. Use a shorter clip or edit manually."
     );
     tokio::fs::write(&filename, prompt).await?;
-    let result = tools::capture(
-        &tools::executable(state, "llama", "llama-completion")?,
+    let result = tools::capture_managed(
+        state,
+        "llama",
+        "llama-completion",
         &[
             "-m".into(),
             model.to_string_lossy().into_owned(),

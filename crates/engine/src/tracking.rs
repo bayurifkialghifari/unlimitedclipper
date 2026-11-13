@@ -104,8 +104,10 @@ pub async fn track(
             "Sampling video frames for local face tracking.",
         )
         .await?;
-    let frames = tools::capture(
-        &tools::executable(state, "ffmpeg", "ffmpeg")?,
+    let frames = tools::capture_managed(
+        state,
+        "ffmpeg",
+        "ffmpeg",
         &[
             "-hide_banner".into(),
             "-loglevel".into(),

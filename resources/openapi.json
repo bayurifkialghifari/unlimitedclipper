@@ -1336,13 +1336,16 @@
       },
       "Health": {
         "type": "object",
-        "required": ["version", "platform", "tools", "models"],
+        "required": ["version", "platform", "native", "tools", "models"],
         "properties": {
           "models": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ModelStatus"
             }
+          },
+          "native": {
+            "type": "boolean"
           },
           "platform": {
             "type": "string"

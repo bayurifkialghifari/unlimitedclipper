@@ -4,6 +4,7 @@ pub mod db;
 pub mod error;
 pub mod model_manager;
 pub mod models;
+pub mod native;
 pub mod pipeline;
 pub mod render;
 pub mod speech;
@@ -76,7 +77,22 @@ pub async fn start_configured(
 }
 
 pub async fn start_with_config(config: EngineConfig) -> anyhow::Result<Engine> {
-    let state = state::AppState::new(config.data_dir, config.tools_dir).await?;
+    start_host(config, None).await
+}
+
+pub async fn start_with_native_tools(
+    config: EngineConfig,
+    tools: std::sync::Arc<dyn native::NativeTools>,
+) -> anyhow::Result<Engine> {
+    start_host(config, Some(tools)).await
+}
+
+async fn start_host(
+    config: EngineConfig,
+    native_tools: Option<std::sync::Arc<dyn native::NativeTools>>,
+) -> anyhow::Result<Engine> {
+    let mut state = state::AppState::new(config.data_dir, config.tools_dir).await?;
+    state.native_tools = native_tools;
     updates::restore(&state).await?;
     let token = state.bootstrap.lock().await.clone().unwrap_or_default();
     let listener =

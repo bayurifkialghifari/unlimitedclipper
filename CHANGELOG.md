@@ -4,6 +4,9 @@
 
 ### Added
 
+- A native execution-provider contract with capability-based job admission, durable progress, and
+  cancellation that waits for completion; the existing desktop subprocess backend is preserved.
+
 - A pinned, source-built Android media workflow with native architecture, 16 KB alignment, and
   archive-checksum gates; APK and runtime validation remain pending.
 - Explicit native engine configuration for application data, resources, studio files, and loopback

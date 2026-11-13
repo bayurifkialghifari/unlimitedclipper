@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import openapiTS, { astToString } from 'openapi-typescript';
+import { format, resolveConfig } from 'prettier';
 import { cargoEnvironment, root } from './cargo.mjs';
 
 const schema = await new Promise((resolve, reject) => {
@@ -26,5 +27,12 @@ const schema = await new Promise((resolve, reject) => {
 
 const directory = path.join(root, 'apps/studio/src/generated');
 await mkdir(directory, { recursive: true });
-await writeFile(path.join(root, 'resources/openapi.json'), JSON.stringify(schema, null, 2) + '\n');
-await writeFile(path.join(directory, 'api.ts'), astToString(await openapiTS(schema)));
+const options = await resolveConfig(path.join(root, 'package.json'));
+await writeFile(
+  path.join(root, 'resources/openapi.json'),
+  await format(JSON.stringify(schema), { ...options, parser: 'json' }),
+);
+await writeFile(
+  path.join(directory, 'api.ts'),
+  await format(astToString(await openapiTS(schema)), { ...options, parser: 'typescript' }),
+);

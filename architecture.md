@@ -31,6 +31,13 @@ through EngineConfig and start_with_config. The existing desktop/standalone star
 environment and OS-data-directory behavior. Android will supply its private application directory
 explicitly; native media and inference adapters remain in development. See docs/features/android.md.
 
+NativeTools supplies argument-array execution, media progress, tool capabilities, and cancellation
+completion to the engine. Managed capture and rendering retain the existing desktop subprocess
+backend when no native provider is supplied. Native admission rejects unsupported jobs before
+persistence and applies the same guard to retries. Progress-write failures cancel and await native
+completion before releasing the scheduler. The Android media provider selects MediaCodec H.264
+instead of desktop x264; export timing and immutable revisions stay in the engine.
+
 ## Updates
 
 Tauri verifies application update signatures and their signed version. Component updates use a separately signed manifest, architecture checks, immutable staged directories, executable health checks, and a persistent previous-version pointer. An idle restart applies DLL changes; rollback persists across another restart. Native application updates create a consistent SQLite backup with VACUUM INTO. Active jobs, including older jobs outside the recent-history view, and uncommitted editor leases prevent installation.

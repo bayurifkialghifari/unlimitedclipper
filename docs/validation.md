@@ -126,6 +126,21 @@ That run predates the native configuration changes.
 
 ## Required scenarios
 
+### Native execution contract
+
+The Windows ARM64 host suite passed seven unit tests, eleven reliability tests, and two native
+provider orchestration tests. The latter use a controlled provider to prove unsupported jobs never
+enter persistent state and cancellation remains pending until completion. These are host contract
+tests, not Android media runtime evidence. Engine Clippy and Android-target application/plugin
+Clippy passed with warnings denied. npm run check passed after regenerating the health contract.
+Android UI interaction and native media decoding remain pending.
+
+A fresh Windows engine also imported the real escape.mp4 example through the managed subprocess
+boundary, saved a manual caption at revision 2, and rendered a three-second 720×1280 clip with audio.
+FFprobe confirmed its duration and dimensions; FFmpeg decoded the complete export without errors.
+Evidence: .cache/desktop-native-boundary.json. This verifies the desktop engine path, not the Android
+media library or a newly packaged desktop shell.
+
 - ARM64 and x64 imports, local speech inference, clip selection, and rendering.
 - Indonesian/English speech fixtures and multilingual glyph rendering.
 - Caption timing, crop interpolation, split composition, watermarks, and preview/export agreement.

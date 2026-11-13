@@ -236,6 +236,7 @@ pub async fn download(
 }
 
 pub async fn activate(state: &AppState) -> Result<UpdateState> {
+    tools::require_native_job(state, "component_update")?;
     let _gate = state.operation_gate.lock().await;
     anyhow::ensure!(
         state.idle().await?,
@@ -299,6 +300,7 @@ pub async fn restore(state: &AppState) -> Result<()> {
 }
 
 pub async fn rollback(state: &AppState) -> Result<UpdateState> {
+    tools::require_native_job(state, "component_update")?;
     let _gate = state.operation_gate.lock().await;
     anyhow::ensure!(
         state.idle().await?,

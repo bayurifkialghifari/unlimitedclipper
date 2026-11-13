@@ -17,6 +17,7 @@ pub struct AppState {
     pub db: SqlitePool,
     pub root: PathBuf,
     pub tools: PathBuf,
+    pub native_tools: Option<Arc<dyn crate::native::NativeTools>>,
     pub active_tools: Arc<std::sync::RwLock<Option<PathBuf>>>,
     pub activity: Arc<Mutex<HashMap<String, i64>>>,
     pub operation_gate: Arc<Mutex<()>>,
@@ -82,6 +83,7 @@ impl AppState {
             db,
             root,
             tools,
+            native_tools: None,
             active_tools: Arc::new(std::sync::RwLock::new(None)),
             activity: Arc::new(Mutex::new(HashMap::new())),
             operation_gate: Arc::new(Mutex::new(())),
@@ -173,6 +175,7 @@ impl AppState {
         clip_id: Option<String>,
         payload: serde_json::Value,
     ) -> Result<Job> {
+        crate::tools::require_native_job(self, kind)?;
         anyhow::ensure!(
             !self.restart_required.load(Ordering::SeqCst),
             "Restart the application to finish its toolchain update before starting another job."

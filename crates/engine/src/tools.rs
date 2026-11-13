@@ -26,6 +26,61 @@ pub fn executable(state: &AppState, family: &str, name: &str) -> Result<PathBuf>
     bail!("{name} is missing. Run the toolchain setup or repair the application installation.")
 }
 
+pub fn available(state: &AppState, family: &str, name: &str) -> bool {
+    match &state.native_tools {
+        Some(tools) => tools.supports(name),
+        None => executable(state, family, name).is_ok(),
+    }
+}
+
+pub fn require_native_job(state: &AppState, kind: &str) -> Result<()> {
+    let Some(tools) = &state.native_tools else {
+        return Ok(());
+    };
+    let required: &[&str] = match kind {
+        "import" | "export" => &["ffmpeg", "ffprobe"],
+        "generate" => &["ffmpeg", "whisper-cli", "llama-completion"],
+        "captions" => &["ffmpeg", "whisper-cli"],
+        "title" => &["llama-completion"],
+        "youtube" => &["yt-dlp", "deno", "ffmpeg", "ffprobe"],
+        "track" | "model" | "component_update" => {
+            bail!("This operation is unavailable in the current Android build.");
+        }
+        _ => &[],
+    };
+    for name in required {
+        anyhow::ensure!(
+            tools.supports(name),
+            "{name} is unavailable in this Android build."
+        );
+    }
+    Ok(())
+}
+
+pub async fn capture_managed(
+    state: &AppState,
+    family: &str,
+    name: &str,
+    args: &[String],
+    cancellation: &CancellationToken,
+) -> Result<Vec<u8>> {
+    if let Some(tools) = &state.native_tools {
+        anyhow::ensure!(
+            tools.supports(name),
+            "{name} is unavailable in this native build."
+        );
+        let arguments = if name == "ffmpeg" {
+            crate::native::media_arguments(args)
+        } else {
+            args.to_vec()
+        };
+        return tools
+            .execute(name.into(), arguments, None, cancellation.clone())
+            .await;
+    }
+    capture(&executable(state, family, name)?, args, cancellation).await
+}
+
 pub async fn capture(
     executable: &Path,
     args: &[String],
@@ -104,6 +159,9 @@ pub async fn ffmpeg_progress(
     duration_ms: i64,
     cancellation: &CancellationToken,
 ) -> Result<()> {
+    if state.native_tools.is_some() {
+        return native_ffmpeg_progress(state, job, args, duration_ms, cancellation).await;
+    }
     let binary = executable(state, "ffmpeg", "ffmpeg")?;
     let mut command = Command::new(&binary);
     command
@@ -255,6 +313,57 @@ pub async fn downloader_progress(
     Ok(output)
 }
 
+async fn native_ffmpeg_progress(
+    state: &AppState,
+    job: &mut Job,
+    args: &[String],
+    duration_ms: i64,
+    cancellation: &CancellationToken,
+) -> Result<()> {
+    let tools = state
+        .native_tools
+        .as_ref()
+        .context("Native media is unavailable")?;
+    anyhow::ensure!(tools.supports("ffmpeg"), "Native FFmpeg is unavailable.");
+    let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
+    let mut execution = tools.execute(
+        "ffmpeg".into(),
+        crate::native::media_arguments(args),
+        Some(sender),
+        cancellation.clone(),
+    );
+    let mut last_progress = 0.0;
+    let mut receiving = true;
+    loop {
+        tokio::select! {
+            result = &mut execution => return result.map(|_| ()),
+            update = receiver.recv(), if receiving => {
+                let Some(update) = update else {
+                    receiving = false;
+                    continue;
+                };
+                let progress = (update.elapsed_ms as f64 / duration_ms.max(1) as f64).clamp(0.0, 0.99);
+                if progress - last_progress < 0.01 {
+                    continue;
+                }
+                last_progress = progress;
+                let progress_result = if job.kind == "export" {
+                    let count = job.payload["snapshots"].as_array().map_or(1, Vec::len).max(1) as f64;
+                    let index = job.payload["render_index"].as_u64().unwrap_or(0) as f64;
+                    state.progress(job, "render", 0.03 + (index + progress) / count * 0.95, "Rendering the saved clip revision.").await
+                } else {
+                    state.progress(job, "proxy", 0.5 + progress * 0.45, "Preparing a browser-compatible video preview.").await
+                };
+                if let Err(error) = progress_result {
+                    cancellation.cancel();
+                    let _ = execution.await;
+                    return Err(error);
+                }
+            }
+        }
+    }
+}
+
 #[cfg(windows)]
 struct ProcessJob(usize);
 
@@ -320,8 +429,10 @@ pub async fn probe(
     path: &Path,
     cancellation: &CancellationToken,
 ) -> Result<Probe> {
-    let output = capture(
-        &executable(state, "ffmpeg", "ffprobe")?,
+    let output = capture_managed(
+        state,
+        "ffmpeg",
+        "ffprobe",
         &[
             "-v".into(),
             "error".into(),

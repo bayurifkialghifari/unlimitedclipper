@@ -15,6 +15,12 @@ see ../android.md for provisional requirements.
 
 ## Native boundaries
 
+The Rust execution-provider contract is implemented. Hosts expose supported tools, receive argument
+arrays, and return only after native completion. The health contract distinguishes native providers
+and reports each supported tool. Unsupported generation, speech refinement, title inference,
+tracking, downloader, model installation, and component-update jobs are rejected before admission
+in the initial media-only configuration. Desktop capture keeps its previous executable backend.
+
 - Supply data, media resources, compiled studio files, and a loopback port through explicit engine
   configuration. Do not guess an Android data directory through desktop environment variables.
 - Use Android's document picker and content resolver. Copy selected media into managed private

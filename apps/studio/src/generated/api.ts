@@ -729,6 +729,7 @@ export interface components {
     };
     Health: {
       models: components['schemas']['ModelStatus'][];
+      native: boolean;
       platform: string;
       tools: {
         [key: string]: boolean;
