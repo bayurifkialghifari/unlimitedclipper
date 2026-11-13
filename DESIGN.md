@@ -1,0 +1,19 @@
+# Studio design direction
+
+Reading this as a video editing studio for independent creators, using a matte creative workspace with a restrained lime accent. Dials: ENERGY 2 / RHYTHM 2 / MOTION 1.
+
+| Decision           | Direction                                                                 | Purpose                                                                     |
+| ------------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Workspace          | Source toolbar, large preview, right inspector, clip rail, process status | Keep source, edits, and results visible together.                           |
+| Theme              | Graphite surfaces, warm white text, muted gray secondary text             | Let the footage remain the visual focal point during long editing sessions. |
+| Accent             | Lime for the primary action, selected clip, and playhead                  | Make the current decision visible without coloring every surface.           |
+| UI typography      | Self-hosted DM Sans                                                       | Keep dense settings and bilingual labels readable.                          |
+| Display typography | Self-hosted Oswald                                                        | Give workspace titles a compact editorial voice.                            |
+| Caption fonts      | Bundled Noto Sans and licensed selectable fonts                           | Keep preview and exports consistent and render multilingual text.           |
+| Radius             | 8px controls, 14px panels, 20px preview                                   | Distinguish controls, groups, and the footage.                              |
+| Motion             | Short state transitions, no decorative loops                              | Show selection and processing changes without distracting from playback.    |
+| Branding           | UnlimitedClipper text wordmark                                            | Identify the product honestly without inventing a final logo.               |
+
+Desktop layouts keep the preview beside the inspector. Narrow layouts use a stacked preview and tabbed settings without horizontal overflow. Use native controls where possible, minimum 44px touch targets, meaningful labels, and visible focus rings. Project galleries show real thumbnails and records, never invented usage statistics.
+
+The editorial reference workspace is the functional reference. Its assets, logo, promotional claims, and screenshots are not product assets.

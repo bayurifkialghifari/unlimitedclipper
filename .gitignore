@@ -1,0 +1,16 @@
+node_modules/
+dist/
+target/
+.tools/
+.cache/
+.data/
+test-results/
+playwright-report/
+coverage/
+apps/desktop/src-tauri/gen/
+*.log
+*.part
+.env
+*.key
+*.pem
+!*.example
