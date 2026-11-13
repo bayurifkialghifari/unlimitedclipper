@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/engine", "apps/desktop/src-tauri"]
+members = ["crates/engine", "crates/native-media", "apps/desktop/src-tauri"]
 default-members = ["crates/engine"]
 resolver = "2"
 

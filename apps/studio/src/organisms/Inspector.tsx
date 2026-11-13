@@ -5,6 +5,7 @@ import { ScissorsIcon, CropIcon, UploadSimpleIcon } from '@phosphor-icons/react'
 import { api, uploadFile } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
+import { isAndroidHost } from '../lib/native';
 import { languages } from '../lib/format';
 import { CaptionPresetPicker } from '../molecules/CaptionPresetPicker';
 import { QueryState } from '../molecules/QueryState';
@@ -271,6 +272,7 @@ export function Inspector({
               variant="primary"
               icon={<ScissorsIcon />}
               disabled={
+                isAndroidHost() ||
                 !project ||
                 pending ||
                 generating ||
@@ -528,7 +530,7 @@ export function Inspector({
             <CaptionRefinement
               models={models.data ?? []}
               language={language}
-              disabled={editing || pending || saving}
+              disabled={isAndroidHost() || editing || pending || saving}
               running={Boolean(
                 activeJobs?.some((job) => job.kind === 'captions' && job.clip_id === draft?.id),
               )}
@@ -673,7 +675,7 @@ export function Inspector({
             <h2>{text.crop}</h2>
             <Button
               icon={<CropIcon />}
-              disabled={pending || editing || dirty || saving}
+              disabled={isAndroidHost() || pending || editing || dirty || saving}
               onClick={() => void action(() => api.clipAction(draft!.id, 'track'))}
             >
               {editing ? text.running : text.autoCrop}
@@ -766,6 +768,7 @@ export function Inspector({
             <h2>{text.title}</h2>
             <Button
               disabled={
+                isAndroidHost() ||
                 pending ||
                 editing ||
                 dirty ||

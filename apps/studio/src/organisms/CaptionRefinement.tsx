@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useText } from '../lib/i18n';
 import { useEditor } from '../lib/editor-store';
 import { flushEditor } from '../lib/save';
+import { isAndroidHost } from '../lib/native';
 import type { ModelStatus } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -61,6 +62,7 @@ export function CaptionRefinement({
     <section className={styles.captionRefinement} aria-label={text.captionQuality}>
       <h3>{text.captionQuality}</h3>
       <p className={styles.hint}>{text.captionRefineDetail}</p>
+      {isAndroidHost() && <p className={styles.hint}>{text.androidUnavailable}</p>}
       <Select label={text.speechModel} value={model} onChange={setModel}>
         {speechModels.map((item) => (
           <option key={item.id} value={item.id}>

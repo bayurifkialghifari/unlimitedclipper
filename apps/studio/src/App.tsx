@@ -11,6 +11,7 @@ import { Exports } from './pages/Exports';
 import { Jobs } from './pages/Jobs';
 import { SettingsPage } from './pages/Settings';
 import styles from './styles/Studio.module.css';
+import { isAndroidHost } from './lib/native';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
   state = { error: null as string | null };
@@ -45,7 +46,13 @@ async function bootstrap() {
 
 export function App() {
   const text = useText();
-  const session = useQuery({ queryKey: ['session'], queryFn: bootstrap, retry: false });
+  const nativeStarting = isAndroidHost() && location.hostname !== '127.0.0.1';
+  const session = useQuery({
+    queryKey: ['session'],
+    queryFn: bootstrap,
+    retry: false,
+    enabled: !nativeStarting,
+  });
   useEffect(() => {
     document.title = 'UnlimitedClipper';
   }, []);

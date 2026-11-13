@@ -19,4 +19,14 @@ UnlimitedClipper uses original application source. It does not incorporate SupoC
 
 Native archives and upstream notice/source files are retained under .tools/windows-ARCH/licenses-and-source. The final distributable must contain the required materials for the exact binaries it ships. Review omissions before publishing; a source URL alone does not replace every corresponding-source obligation.
 
+The Android preview uses [FFmpegKit Next v9.0.2](https://github.com/arthenica/ffmpeg-kit-next/tree/v9.0.2)
+under LGPL-3.0-or-later, built from commit 9f04bf1e3c97def70b98e198cb80a57b43ef5b45. Its configuration
+enables libass and Android media codecs without GPL/x264 linkage. Retain the native media archive,
+build evidence, LGPL text, dependency notices, and exact corresponding source with distributions.
+The project's Android build sources allow rebuilding the APK with replacement native libraries;
+production signing and distribution still require a complete corresponding-source/notice bundle.
+Caption fonts keep their OFL files in the embedded studio resources. The checked-in Android shell
+and Gradle glue derive from official Tauri framework templates, using the project's existing UC
+text icon rather than Tauri branding.
+
 Validation fixtures use the Whisper repository's JFK sample and scikit-image's NASA astronaut photograph. They remain in ignored test storage and are not product imagery or endorsements.

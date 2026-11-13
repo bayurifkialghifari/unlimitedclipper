@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { api, assetUrl } from '../lib/api';
+import { api } from '../lib/api';
+import { ExportDownload } from '../organisms/ExportDownload';
 import { useText } from '../lib/i18n';
 import { date } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
@@ -32,15 +33,9 @@ export function Exports() {
               {date(item.created_at)} · rev. {item.revision}
             </p>
             <div className={styles.headerActions}>
-              <a className={styles.downloadLink} href={assetUrl(item.asset_id, true)} download>
-                MP4
-              </a>
-              <a className={styles.downloadLink} href={assetUrl(item.srt_asset_id, true)} download>
-                SRT
-              </a>
-              <a className={styles.downloadLink} href={assetUrl(item.ass_asset_id, true)} download>
-                ASS
-              </a>
+              <ExportDownload assetId={item.asset_id} label="MP4" />
+              <ExportDownload assetId={item.srt_asset_id} label="SRT" />
+              <ExportDownload assetId={item.ass_asset_id} label="ASS" />
             </div>
           </article>
         ))}

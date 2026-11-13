@@ -6,6 +6,7 @@ import { Button } from '@unlimitedclipper/ui';
 import { UploadSimpleIcon } from '@phosphor-icons/react';
 import { api, uploadFile } from '../lib/api';
 import { useText } from '../lib/i18n';
+import { importAndroidVideo, isAndroidHost } from '../lib/native';
 import type { Job } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -55,17 +56,19 @@ export function ImportControls({
             placeholder={text.pasteLink}
             required
             value={url}
-            disabled={pending}
+            disabled={pending || isAndroidHost()}
             onChange={(event) => setUrl(event.target.value)}
           />
-          <Button type="submit" disabled={pending || !url}>
+          <Button type="submit" disabled={pending || !url || isAndroidHost()}>
             {text.importVideo}
           </Button>
         </form>
         <Button
           disabled={pending}
           onClick={() => {
-            if (isTauri()) {
+            if (isAndroidHost()) {
+              void run(importAndroidVideo);
+            } else if (isTauri()) {
               void run(async () => {
                 const path = await open({
                   multiple: false,
@@ -86,7 +89,7 @@ export function ImportControls({
           }}
         >
           <UploadSimpleIcon size={18} aria-hidden="true" />
-          {text.importFile}
+          {pending && isAndroidHost() ? text.waiting : text.importFile}
         </Button>
         <input
           ref={inputRef}
@@ -102,6 +105,7 @@ export function ImportControls({
           }}
         />
       </div>
+      {isAndroidHost() && <p className={styles.hint}>{text.androidYoutubeUnavailable}</p>}
       {progress !== null && <progress aria-label={text.importFile} max={1} value={progress} />}
       {error && (
         <p className={styles.error} role="alert">

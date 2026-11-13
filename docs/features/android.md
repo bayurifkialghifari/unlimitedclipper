@@ -1,6 +1,6 @@
 # Android application
 
-Status: in development. No Android package or processing workflow has passed runtime validation yet.
+Status: experimental media-only APK integration. Android runtime validation has not been performed.
 
 ## Goal
 
@@ -37,6 +37,12 @@ in the initial media-only configuration. Desktop capture keeps its previous exec
   a package that cannot import and export a real clip is not a completed Android delivery.
 
 ## Implementation sequence
+
+The current host includes the shared studio, private Rust engine/SQLite state, native media
+argument execution, foreground processing, scoped local import, and scoped export saving. Android
+controls for AI, YouTube, and automatic updates are disabled with visible status. Native AI and
+downloader adapters remain subsequent work. See ../android.md for the preview build instructions
+and signing limitations.
 
 1. Explicit engine configuration and Android cross-compilation, preserving the desktop startup path.
 2. Native media execution with probing, source import, preview generation, and captioned rendering.

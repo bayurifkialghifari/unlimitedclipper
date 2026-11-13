@@ -16,6 +16,8 @@
     "build": "npm run build --workspace @unlimitedclipper/studio",
     "build:engine": "node scripts/cargo.mjs build --release -p unlimitedclipper-engine",
     "build:desktop": "node scripts/desktop.mjs build",
+    "build:android": "node scripts/android.mjs build --debug --target aarch64",
+    "inspect:android": "node scripts/android.mjs inspect",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

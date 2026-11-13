@@ -1,0 +1,2 @@
+-keep class app.unlimitedclipper.media.** { *; }
+-keep class com.arthenica.ffmpegkit.** { *; }

@@ -124,9 +124,20 @@ The README/media commit ccb5173 passed all five jobs in
 [quality run 43440150500](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43440150500).
 That run predates the native configuration changes.
 
-## Required scenarios
+## Android host and studio
 
-### Native execution contract
+The Tauri application and native plugin cross-compiled and passed Android-target Clippy. The
+Windows desktop shell passed Clippy after extracting its startup into a shared library entry point.
+The Android source includes scoped picker copying, registered-asset saving, native completion
+callbacks, foreground processing, and disabled unsupported controls in both dictionaries. Kotlin
+compilation and APK inspection are pending until the source-built media artifact is available.
+
+Anti-slop direction follows DESIGN.md. The existing UC text icon is reused; the generated Tauri
+logo was removed. Loading, cancellation, unsupported-state copy, and export feedback are implemented
+in source. Android interaction, accessibility, breakpoint, keyboard/touch, reduced-motion, and
+native media checks remain pending. None of these Android delivery gates is marked PASS.
+
+## Native execution contract
 
 The Windows ARM64 host suite passed seven unit tests, eleven reliability tests, and two native
 provider orchestration tests. The latter use a controlled provider to prove unsupported jobs never
@@ -140,6 +151,12 @@ boundary, saved a manual caption at revision 2, and rendered a three-second 720Ã
 FFprobe confirmed its duration and dimensions; FFmpeg decoded the complete export without errors.
 Evidence: .cache/desktop-native-boundary.json. This verifies the desktop engine path, not the Android
 media library or a newly packaged desktop shell.
+
+The two Chromium browser regressions passed against the fresh engine: real upload, caption edits,
+autosave/reopening, export/download, English settings, and a narrow layout without horizontal
+overflow. These checks use the desktop/browser backend; Android document interactions are unrun.
+
+## Required scenarios
 
 - ARM64 and x64 imports, local speech inference, clip selection, and rendering.
 - Indonesian/English speech fixtures and multilingual glyph rendering.

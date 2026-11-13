@@ -1,0 +1,4 @@
+<resources>
+    <string name="processing_title">UnlimitedClipper sedang memproses</string>
+    <string name="processing_detail">Menyiapkan video lokal. Buka studio untuk melihat progres atau membatalkan.</string>
+</resources>

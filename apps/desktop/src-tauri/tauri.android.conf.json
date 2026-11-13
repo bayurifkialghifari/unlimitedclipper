@@ -1,0 +1,9 @@
+{
+  "app": {
+    "windows": [{ "label": "studio", "title": "UnlimitedClipper", "url": "index.html" }]
+  },
+  "bundle": {
+    "targets": "all",
+    "android": { "minSdkVersion": 29 }
+  }
+}

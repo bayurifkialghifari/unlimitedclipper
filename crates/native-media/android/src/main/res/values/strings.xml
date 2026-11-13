@@ -1,0 +1,4 @@
+<resources>
+    <string name="processing_title">UnlimitedClipper processing</string>
+    <string name="processing_detail">Preparing local media. Open the studio to view progress or cancel.</string>
+</resources>

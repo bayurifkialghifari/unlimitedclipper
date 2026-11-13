@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 
 const en = {
+  androidUntested: 'Android preview · Not tested on a device',
+  androidScope:
+    'Import a local video, make a manual clip, and export it. Android AI, YouTube imports, and automatic updates are not available in this build.',
+  androidUnavailable: 'Not available in the current Android build.',
+  androidYoutubeUnavailable:
+    'YouTube import is not available on Android yet. Choose a local video file.',
+  saveExport: 'Save export',
+  exportSaved: 'Export saved to the selected destination.',
   captionStudio: 'Studio',
   captionImpact: 'Impact',
   captionBoxed: 'Word box',
@@ -186,6 +194,13 @@ const en = {
 };
 
 const id: typeof en = {
+  androidUntested: 'Pratinjau Android · Belum dites di perangkat',
+  androidScope:
+    'Impor video lokal, buat clip manual, lalu ekspor. AI Android, impor YouTube, dan pembaruan otomatis belum tersedia di build ini.',
+  androidUnavailable: 'Belum tersedia di build Android ini.',
+  androidYoutubeUnavailable: 'Impor YouTube belum tersedia di Android. Pilih file video lokal.',
+  saveExport: 'Simpan hasil ekspor',
+  exportSaved: 'Hasil ekspor tersimpan di lokasi yang dipilih.',
   captionStudio: 'Studio',
   captionImpact: 'Impact',
   captionBoxed: 'Kotak per kata',

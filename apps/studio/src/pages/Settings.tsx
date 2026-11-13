@@ -6,6 +6,7 @@ import { api, request, uploadFile } from '../lib/api';
 import { useLanguage, useText } from '../lib/i18n';
 import { bytes, languages } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
+import { isAndroidHost } from '../lib/native';
 import type { Settings } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -49,6 +50,7 @@ function Preferences({ initial }: { initial: Settings }) {
       </Select>
       <Select
         label={text.speechModel}
+        disabled={isAndroidHost()}
         value={settings.speech_model}
         onChange={(value) => change('speech_model', value)}
       >
@@ -57,6 +59,7 @@ function Preferences({ initial }: { initial: Settings }) {
       </Select>
       <Select
         label={text.language}
+        disabled={isAndroidHost()}
         value={settings.transcription_language}
         onChange={(value) => change('transcription_language', value)}
       >
@@ -79,6 +82,7 @@ function Preferences({ initial }: { initial: Settings }) {
       </Select>
       <Field
         label={text.clipCount}
+        disabled={isAndroidHost()}
         type="number"
         min={1}
         max={1000}
@@ -87,6 +91,7 @@ function Preferences({ initial }: { initial: Settings }) {
       />
       <Field
         label={text.duration + ' (s)'}
+        disabled={isAndroidHost()}
         type="number"
         min={0}
         max={3600}
@@ -96,23 +101,26 @@ function Preferences({ initial }: { initial: Settings }) {
         }
       />
       <h2>{text.updates}</h2>
-      <Toggle
-        label={text.autoUpdate}
-        checked={settings.auto_update}
-        onChange={(value) => change('auto_update', value)}
-      />
-      <Field
-        label={text.updateFeed}
-        type="url"
-        value={settings.update_feed}
-        onChange={(event) => change('update_feed', event.target.value)}
-      />
-      <Field
-        label={text.componentFeed}
-        type="url"
-        value={settings.component_feed}
-        onChange={(event) => change('component_feed', event.target.value)}
-      />
+      {isAndroidHost() && <p className={styles.hint}>{text.androidUnavailable}</p>}
+      <fieldset className={styles.disabledGroup} disabled={isAndroidHost()}>
+        <Toggle
+          label={text.autoUpdate}
+          checked={settings.auto_update}
+          onChange={(value) => change('auto_update', value)}
+        />
+        <Field
+          label={text.updateFeed}
+          type="url"
+          value={settings.update_feed}
+          onChange={(event) => change('update_feed', event.target.value)}
+        />
+        <Field
+          label={text.componentFeed}
+          type="url"
+          value={settings.component_feed}
+          onChange={(event) => change('component_feed', event.target.value)}
+        />
+      </fieldset>
       <Button variant="primary" type="submit" disabled={pending}>
         {text.savePreferences}
       </Button>
@@ -157,7 +165,7 @@ export function SettingsPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1>{text.settings}</h1>
-        {isTauri() && (
+        {isTauri() && !isAndroidHost() && (
           <Button
             disabled={pending !== null}
             onClick={() => void action('browser', () => invoke('open_browser'))}
@@ -165,13 +173,15 @@ export function SettingsPage() {
             {text.openBrowser}
           </Button>
         )}
-        <a
-          className={styles.downloadLink}
-          href="/api/v1/diagnostics"
-          download="unlimitedclipper-diagnostics.json"
-        >
-          {text.diagnostics}
-        </a>
+        {!isAndroidHost() && (
+          <a
+            className={styles.downloadLink}
+            href="/api/v1/diagnostics"
+            download="unlimitedclipper-diagnostics.json"
+          >
+            {text.diagnostics}
+          </a>
+        )}
       </header>
       <QueryState
         pending={settings.isPending || models.isPending}
@@ -187,6 +197,7 @@ export function SettingsPage() {
       <div className={styles.settingsGrid}>
         <section className={styles.settingsSection}>
           <h2>{text.modelSetup}</h2>
+          {isAndroidHost() && <p className={styles.hint}>{text.androidUnavailable}</p>}
           <p className={styles.hint}>{text.modelDetail}</p>
           {models.data?.map((model) => {
             const job = jobs.data?.find(
@@ -211,7 +222,7 @@ export function SettingsPage() {
                 )}
                 <div className={styles.headerActions}>
                   <Button
-                    disabled={pending !== null || Boolean(job)}
+                    disabled={isAndroidHost() || pending !== null || Boolean(job)}
                     onClick={() => void action(model.id, () => api.downloadModel(model.id))}
                   >
                     {model.ready ? text.repair : text.install}
@@ -222,7 +233,7 @@ export function SettingsPage() {
                       className={styles.fileInput}
                       type="file"
                       accept=".bin,.gguf"
-                      disabled={pending !== null || Boolean(job)}
+                      disabled={isAndroidHost() || pending !== null || Boolean(job)}
                       onChange={(event) => {
                         const file = event.target.files?.[0];
                         if (file) {
@@ -241,7 +252,9 @@ export function SettingsPage() {
           <h2>{text.tools}</h2>
           <Button
             disabled={
-              pending !== null || (!settings.data?.component_feed && !settings.data?.update_feed)
+              isAndroidHost() ||
+              pending !== null ||
+              (!settings.data?.component_feed && !settings.data?.update_feed)
             }
             onClick={() => {
               window.dispatchEvent(new Event('uc-check-updates'));
@@ -251,7 +264,9 @@ export function SettingsPage() {
             {text.checkUpdates}
           </Button>
           <Button
-            disabled={pending !== null || !updates.data?.version || updates.data.ready}
+            disabled={
+              isAndroidHost() || pending !== null || !updates.data?.version || updates.data.ready
+            }
             onClick={() =>
               void action('rollback', () => request('/updates/rollback', { method: 'POST' }))
             }

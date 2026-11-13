@@ -4,6 +4,28 @@
   min-height: 100svh;
 }
 
+.platformNotice {
+  margin: 16px 28px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.platformNotice p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.disabledGroup {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  border: 0;
+}
+
 .downloadLink {
   display: inline-flex;
   align-items: center;

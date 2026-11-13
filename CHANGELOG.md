@@ -4,6 +4,9 @@
 
 ### Added
 
+- An Android Tauri host and native media bridge, scoped document import/export, foreground media
+  processing, and a shared studio with visible preview limitations. Android runtime remains untested.
+
 - A native execution-provider contract with capability-based job admission, durable progress, and
   cancellation that waits for completion; the existing desktop subprocess backend is preserved.
 
