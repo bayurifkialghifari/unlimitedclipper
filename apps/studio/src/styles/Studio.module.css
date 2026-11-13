@@ -710,3 +710,85 @@
   outline: 2px solid var(--accent);
   outline-offset: -3px;
 }
+
+.presetFieldset {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.presetFieldset legend {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.captionPresets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.captionPreset {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 100px;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.captionPreset:hover {
+  border-color: var(--muted);
+}
+
+.captionPreset:active {
+  background: var(--surface);
+}
+
+.captionPreset[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.captionPreset:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.captionSample {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 3px;
+  width: 100%;
+  min-height: 44px;
+  font-size: 17px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.captionSample span {
+  max-width: 100%;
+  padding: 2px 3px;
+  border-radius: 3px;
+}
+
+.captionRefinement {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.captionRefinement h3,
+.captionRefinement p {
+  margin: 0;
+}

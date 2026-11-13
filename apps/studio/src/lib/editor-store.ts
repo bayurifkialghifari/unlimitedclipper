@@ -10,6 +10,7 @@ type EditorState = {
   error: string | null;
   selectedWords: string[];
   playhead: number;
+  seekRequest: { clipId: string | null; positionMs: number } | null;
   history: Clip[];
   future: Clip[];
   selectProject: (id: string) => void;
@@ -20,6 +21,7 @@ type EditorState = {
   acknowledge: (saved: Clip, snapshot: Clip) => void;
   setSaving: (saving: boolean, error?: string | null) => void;
   setPlayhead: (playhead: number) => void;
+  seekTo: (positionMs: number) => void;
   selectWords: (ids: string[]) => void;
   undo: () => void;
   redo: () => void;
@@ -34,6 +36,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   error: null,
   selectedWords: [],
   playhead: 0,
+  seekRequest: null,
   history: [],
   future: [],
   selectProject: (id) => {
@@ -41,6 +44,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     set({
       projectId: id,
       clipId: null,
+      seekRequest: null,
       draft: null,
       dirty: false,
       history: [],
@@ -51,6 +55,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   selectClip: (clip) =>
     set({
       clipId: clip.id,
+      seekRequest: null,
       draft: structuredClone(clip),
       dirty: false,
       history: [],
@@ -109,6 +114,9 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
   setSaving: (saving, error = null) => set({ saving, error }),
   setPlayhead: (playhead) => set({ playhead }),
+  seekTo: (positionMs) => {
+    set({ seekRequest: { clipId: get().clipId, positionMs }, playhead: positionMs });
+  },
   selectWords: (selectedWords) => set({ selectedWords }),
   undo: () => {
     const current = get();

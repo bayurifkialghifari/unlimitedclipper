@@ -36,6 +36,18 @@ test('imports, edits, saves, reopens, renders captions and exports real media', 
   await page.getByRole('button', { name: 'Tambah kata caption' }).click();
   await page.getByLabel('Teks', { exact: true }).fill('LOCAL');
   await expect(page.getByRole('button', { name: 'LOCAL', exact: true })).toBeVisible();
+  const captionPosition = page.getByLabel('Posisi vertikal (%)', { exact: true });
+  await captionPosition.focus();
+  await page.keyboard.press('ArrowRight');
+  const savedPosition = await captionPosition.inputValue();
+  for (const look of ['Studio', 'Impact', 'Kotak per kata', 'Satu kata']) {
+    const button = page.getByRole('button', { name: look, exact: true });
+    await button.focus();
+    await page.keyboard.press('Space');
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(captionPosition).toHaveValue(savedPosition);
+  }
+  await page.getByRole('button', { name: 'Studio', exact: true }).click();
   await page.getByRole('tab', { name: 'Judul', exact: true }).click();
   await page.getByLabel('Judul pembuka').fill('LOCAL CAPTION TEST');
   await expect(page.getByText('Tersimpan lokal', { exact: true })).toBeVisible();

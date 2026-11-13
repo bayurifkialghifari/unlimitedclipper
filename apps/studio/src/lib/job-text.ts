@@ -11,6 +11,7 @@ export function jobKind(text: Copy, job: Job) {
     generate: text.generate,
     title: text.generateTitle,
     track: text.autoCrop,
+    captions: text.refineCaptions,
     component_update: text.updates,
     export: text.exports,
   };
@@ -44,6 +45,8 @@ export function jobMessage(text: Copy, job: Job) {
     audio: text.phaseAudio,
     transcription: text.phaseTranscription,
     selection: text.phaseSelection,
+    review: text.phaseReview,
+    captions: text.phaseCaptions,
     tracking: text.phaseTracking,
     render: text.phaseRender,
   };

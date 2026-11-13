@@ -6,6 +6,9 @@ import { api, uploadFile } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { languages } from '../lib/format';
+import { CaptionPresetPicker } from '../molecules/CaptionPresetPicker';
+import { QueryState } from '../molecules/QueryState';
+import { CaptionRefinement } from './CaptionRefinement';
 import type { CropRect, Layout, Project } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -24,6 +27,8 @@ export function Inspector({
   const [selectedCount, setCount] = useState<number | null>(null);
   const [selectedDuration, setDuration] = useState<string | null>(null);
   const [selectedLanguage, setLanguage] = useState<string | null>(null);
+  const [focus, setFocus] = useState('');
+  const [minimumScore, setMinimumScore] = useState('85');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const imageInput = useRef<HTMLInputElement>(null);
@@ -35,6 +40,11 @@ export function Inspector({
   const models = useQuery({ queryKey: ['models'], queryFn: api.models });
   const preferences = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const jobs = useQuery({ queryKey: ['jobs'], queryFn: api.jobs });
+  const presets = useQuery({
+    queryKey: ['caption-presets'],
+    queryFn: api.captionPresets,
+    enabled: tab === 'captions',
+  });
   const count = selectedCount ?? preferences.data?.clip_count ?? 4;
   const duration = selectedDuration ?? String(preferences.data?.clip_duration_ms ?? 0);
   const language = selectedLanguage ?? preferences.data?.transcription_language ?? 'auto';
@@ -48,7 +58,9 @@ export function Inspector({
     activeJobs?.some((job) => job.kind === 'generate' && job.project_id === project?.id),
   );
   const editing = Boolean(
-    activeJobs?.some((job) => ['title', 'track'].includes(job.kind) && job.clip_id === draft?.id),
+    activeJobs?.some(
+      (job) => ['title', 'track', 'captions'].includes(job.kind) && job.clip_id === draft?.id,
+    ),
   );
   const selectionReady = Boolean(
     models.data?.some((model) => model.id === 'qwen3-4b' && model.ready),
@@ -242,6 +254,19 @@ export function Inspector({
                 </option>
               ))}
             </Select>
+            <Field
+              label={text.clipFocus}
+              value={focus}
+              maxLength={400}
+              placeholder={text.clipFocusHint}
+              onChange={(event) => setFocus(event.target.value)}
+            />
+            <Select label={text.interestFilter} value={minimumScore} onChange={setMinimumScore}>
+              <option value="85">{text.interestStrict}</option>
+              <option value="70">{text.interestBalanced}</option>
+              <option value="50">{text.interestBroad}</option>
+            </Select>
+            <p className={styles.hint}>{text.clipSelectionDetail}</p>
             <Button
               variant="primary"
               icon={<ScissorsIcon />}
@@ -253,7 +278,16 @@ export function Inspector({
                 (!speechReady && !project.words.length)
               }
               onClick={() =>
-                void action(() => api.generate(project!.id, count, Number(duration), language))
+                void action(() =>
+                  api.generate(
+                    project!.id,
+                    count,
+                    Number(duration),
+                    language,
+                    focus,
+                    Number(minimumScore),
+                  ),
+                )
               }
             >
               {generating ? text.running : text.generate}
@@ -329,6 +363,27 @@ export function Inspector({
         {tab === 'captions' && document && (
           <>
             <h2>{text.captions}</h2>
+            <QueryState
+              pending={presets.isPending}
+              error={presets.error}
+              retry={() => void presets.refetch()}
+            />
+            {presets.data && (
+              <CaptionPresetPicker
+                presets={presets.data}
+                current={document.captions}
+                words={document.words}
+                onChange={(style) =>
+                  change((next) => {
+                    next.captions = {
+                      ...style,
+                      enabled: next.captions.enabled,
+                      position_y: next.captions.position_y,
+                    };
+                  })
+                }
+              />
+            )}
             <Toggle
               label={text.enabled}
               checked={document.captions.enabled}
@@ -365,6 +420,26 @@ export function Inspector({
                 <option key={font}>{font}</option>
               ))}
             </Select>
+            <div className={styles.twoColumns}>
+              <Toggle
+                label={text.bold}
+                checked={document.captions.bold ?? false}
+                onChange={(value) =>
+                  change((next) => {
+                    next.captions.bold = value;
+                  })
+                }
+              />
+              <Toggle
+                label={text.captionUppercase}
+                checked={document.captions.uppercase ?? false}
+                onChange={(value) =>
+                  change((next) => {
+                    next.captions.uppercase = value;
+                  })
+                }
+              />
+            </div>
             <div className={styles.twoColumns}>
               <Field
                 label={text.size}
@@ -450,6 +525,15 @@ export function Inspector({
               <option value="pop">{text.pop}</option>
             </Select>
             <hr className={styles.separator} />
+            <CaptionRefinement
+              models={models.data ?? []}
+              language={language}
+              disabled={editing || pending || saving}
+              running={Boolean(
+                activeJobs?.some((job) => job.kind === 'captions' && job.clip_id === draft?.id),
+              )}
+              hasAudio={project?.has_audio ?? false}
+            />
             <Button
               variant="ghost"
               onClick={() =>
@@ -488,8 +572,9 @@ export function Inspector({
                   value={selectedWord.text}
                   onChange={(event) =>
                     change((next) => {
-                      next.words.find((word) => word.id === selectedWord.id)!.text =
-                        event.target.value;
+                      const word = next.words.find((word) => word.id === selectedWord.id)!;
+                      word.text = event.target.value;
+                      word.confidence = null;
                     })
                   }
                 />

@@ -67,6 +67,7 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
   const text = useText();
   const draft = useEditor((state) => state.draft);
   const playhead = useEditor((state) => state.playhead);
+  const seekRequest = useEditor((state) => state.seekRequest);
   const frame = useRef<HTMLDivElement>(null);
   const primary = useRef<HTMLVideoElement>(null);
   const secondary = useRef<HTMLVideoElement>(null);
@@ -109,6 +110,19 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
       primary.current.currentTime = start / 1000;
     }
   }, [draft?.id, start]);
+
+  useEffect(() => {
+    if (!seekRequest || seekRequest.clipId !== clipId) {
+      return;
+    }
+    const milliseconds = Math.max(start, Math.min(end, start + seekRequest.positionMs));
+    if (primary.current) {
+      primary.current.currentTime = milliseconds / 1000;
+    }
+    if (secondary.current) {
+      secondary.current.currentTime = milliseconds / 1000;
+    }
+  }, [seekRequest, clipId, start, end]);
 
   useEffect(() => {
     if (!canvas.current || !hasDocument || !fonts.data) {

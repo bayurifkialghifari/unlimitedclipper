@@ -17,3 +17,5 @@ Reading this as a video editing studio for independent creators, using a matte c
 Desktop layouts keep the preview beside the inspector. Narrow layouts use a stacked preview and tabbed settings without horizontal overflow. Use native controls where possible, minimum 44px touch targets, meaningful labels, and visible focus rings. Project galleries show real thumbnails and records, never invented usage statistics.
 
 The editorial reference workspace is the functional reference. Its assets, logo, promotional claims, and screenshots are not product assets.
+
+Captions use short stable phrases so viewers can anticipate surrounding words while tracking the spoken word. Bold DM Sans is the default; compact uppercase Oswald provides a stronger reaction style. A red active-word box follows the reference's demonstrated interaction without importing its assets. Preset previews use the current clip's real words. Position and visibility remain separate from the chosen look. Accuracy controls sit next to caption edits because uncertain recognition needs an immediate correction path.
