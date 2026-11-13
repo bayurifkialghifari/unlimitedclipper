@@ -14,7 +14,7 @@ Environment: Windows 11 on Snapdragon X ARM64, eight logical cores, approximatel
 | Real local inference      | PASS                                                      | scripts/validate-media.mjs; Whisper produced 22 timed words, Qwen selected a clip and generated a title, and YuNet wrote eight tracking keyframes.                                                                                                             |
 | Six media compositions    | PASS at 720p                                              | Portrait, square, landscape, contain, blur, and gaming rendered four-second MP4 files. FFprobe checked dimensions, duration, and immutable revision.                                                                                                           |
 | Browser interactions      | PASS, two tests                                           | Real upload, caption/title edit, autosave, crop keyboard movement, playback, reload, export/download, English preference in a fresh browser context, and 390-pixel layout with no overflow.                                                                    |
-| Native ARM64 interactions | PASS on installed resource tree                           | WebView2 bridge, Windows file dialog, import, manual title editing, autosave, and 1080p export. No JavaScript errors. The final rebuilt installer must be checked again after remaining changes.                                                               |
+| Native ARM64 interactions | PASS on final installed package                           | WebView2 bridge, Windows file dialog, import, manual title editing, autosave, 1080p export, single-instance handling, and persisted exports after reopening. No JavaScript errors.                                                                             |
 | Signed component update   | Earlier signature/staging/deferral/rollback checks passed | Expanded architecture, checksum, cancellation, and restart-persistence scenarios are implemented in scripts/validate-updates.mjs and pending rerun.                                                                                                            |
 | Engine and desktop Clippy | PASS                                                      | Both packages and all targets checked with warnings denied after the long-input, annotation, and admission fixes.                                                                                                                                              |
 | Frontend quality gate     | PASS                                                      | ESLint, Prettier, TypeScript, Vitest, and the production Vite build.                                                                                                                                                                                           |
@@ -25,7 +25,21 @@ Ignored local evidence includes .cache/media-validation.json, .cache/desktop-val
 
 ## Pending release evidence
 
-Expanded export resolutions and styling parity, signed application installer update, physical x64 hardware validation, redistribution source inventory, and a controlled end-to-end benchmark remain pending. Cross-platform CI execution and the final rebuilt native installer are tracked separately; configured workflows are not evidence of a passed run.
+Expanded export resolutions and styling parity, signed application installer update, physical x64 hardware validation, redistribution source inventory, and a controlled end-to-end benchmark remain pending. Packaged Linux/macOS runtime validation and release-tag publishing remain separate from the source checks below.
+
+## GitHub quality checks
+
+[Quality run 43419130879](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43419130879) passed on source commit 1db9dfc. The studio passed ESLint, Prettier, TypeScript, Vitest, and its production build. Engine tests and Clippy passed on windows-2025, ubuntu-24.04, macos-15-intel, and macos-15. Each engine runner also passed the workspace Rustfmt check. Windows additionally built the studio and passed desktop Clippy with warnings denied. Ignored evidence: .cache/ci-validation.json.
+
+The first run failed because the Node setup action used a deprecated command and Unix builds bound a unit value from the Windows-only process-supervision helper. Supported action pins and conditional Windows guards fixed those failures without suppressing warnings. These CI checks do not run local inference tools or build Linux/macOS desktop installers.
+
+## Installed application
+
+The final Windows ARM64 NSIS installer is 213.63 MiB. It was installed into an isolated directory and tested using its bundled studio, tools, and WebView2 loader. Reopening retained the fixture export, and a second launch did not create another application instance. Ignored evidence: .cache/desktop-validation.json and .cache/native-studio.png.
+
+The installed application was then opened against the real .data library. The Projects screen restored the Windah recording and all five final edit revisions. Playback used the 1280 by 720 proxy, and every final revision had a corresponding immutable export record. The gaming composition, title, and captions were inspected in the native preview. Ignored evidence: .cache/native-windah-handoff.json and .cache/native-windah-library.png.
+
+Standard NSIS installer messages support Indonesian. Tauri's additional installer messages currently fall back to English because an Indonesian custom-message dictionary is not supplied. The studio's Indonesian and English dictionaries are independent of this installer limitation.
 
 ## Development launcher
 
@@ -56,10 +70,10 @@ Sampled process-tree working sets peaked at approximately 1.34 GiB during transc
 
 ## Anti-slop delivery gate
 
-| Block                         | Status  | Evidence                                                                             |
-| ----------------------------- | ------- | ------------------------------------------------------------------------------------ |
-| Direction and sourced content | Defined | DESIGN.md, docs/research.md, and PRD.md.                                             |
-| Hard gate                     | Pending | Requires running UI, contrast/accessibility checks, and control-by-control evidence. |
-| Purpose gate                  | Defined | One-line design purposes in DESIGN.md; recheck actual implementation.                |
-| Liveliness                    | Pending | Dials are defined; actual screens require inspection.                                |
-| Craftsmanship                 | Pending | Build, native behavior, and recovery tests are required.                             |
+| Block                         | Status  | Evidence                                                                                                                     |
+| ----------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Direction and sourced content | Defined | DESIGN.md, docs/research.md, and PRD.md.                                                                                     |
+| Hard gate                     | Partial | Browser and native clipping interactions passed. Full accessibility, contrast, and control-by-control checks remain pending. |
+| Purpose gate                  | Defined | One-line design purposes in DESIGN.md; recheck actual implementation.                                                        |
+| Liveliness                    | Partial | Browser and native studio screens inspected. The complete screen and motion review remains pending.                          |
+| Craftsmanship                 | Partial | Build, native behavior, and batch recovery passed. Expanded styling parity and release checks remain pending.                |

@@ -16,6 +16,7 @@
 - Signed component staging, idle activation, restart, and persistent rollback; native application updater bridge and database backups.
 - Windows ARM64 installer packaging, native file dialogs, browser opening, and single-instance handling.
 - Real media, browser, native desktop, and reliability validation scripts.
+- GitHub quality workflows for the studio and Windows/Linux/macOS engine builds; signed Windows ARM64/x64 publishing on release tags.
 
 ### Fixed
 
@@ -31,3 +32,5 @@
 - Fitted image/text watermarks to the output and enabled long-line subtitle wrapping.
 - Reported source-video and image-watermark failures separately from subtitle-renderer failures.
 - Removed the desktop development launcher's dependency on an unstarted Vite server.
+- Scoped Windows process-supervision guards to Windows builds so Unix Clippy checks do not bind a unit value.
+- Replaced outdated GitHub Actions pins with supported versions that use environment files and the current Node runtime.
