@@ -4,6 +4,10 @@
 
 ### Added
 
+- A pinned, source-built Android media workflow with native architecture, 16 KB alignment, and
+  archive-checksum gates; APK and runtime validation remain pending.
+- Explicit native engine configuration for application data, resources, studio files, and loopback
+  ports, with an isolated-library and session-origin regression check.
 - A visual README with real native screenshots, two clip examples, subtitle downloads, and an
   explicit experimental side-project status.
 - Four caption looks, bold/uppercase controls, phrase-aware subtitles, and stable active-word boxes.

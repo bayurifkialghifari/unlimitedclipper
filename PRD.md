@@ -38,6 +38,11 @@ Use explicit job states, monotonic progress, durable checkpoints, revision confl
 
 Commercial activation and checkout follow clipping stability. macOS, Linux, and Android require separate native certification. Public internet hosting and browser-only execution of yt-dlp are outside this release.
 
+The Android implementation now follows the Windows clipping workflow. It must process on-device
+through native libraries, retain the shared Rust contracts and SQLite state, and prove real import,
+caption editing, and export before being described as working. See docs/features/android.md for its
+implementation sequence and verification boundary.
+
 ## Release gates
 
 English documentation, clean lint/format/type checks, Rust checks, real media integration tests, browser interaction evidence, native ARM64 and x64 checks, update/recovery scenarios, and a recorded 60-minute 1080p benchmark. See docs/validation.md for actual evidence.

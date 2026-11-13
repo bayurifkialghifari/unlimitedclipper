@@ -26,6 +26,11 @@ The API binds to loopback. Session bootstrap uses a one-time token, followed by 
 
 Tools are separately licensed executables launched without a shell. Their manifests specify platform, version, URL, size, and checksum. CPU inference is the initial portable baseline. The platform/toolchain boundary is replaceable for future macOS, Linux, and Android integrations. Android must use a native library integration rather than assuming desktop subprocess distribution works.
 
+Native hosts can supply data, tool-resource, and compiled studio directories plus a loopback port
+through EngineConfig and start_with_config. The existing desktop/standalone startup keeps its
+environment and OS-data-directory behavior. Android will supply its private application directory
+explicitly; native media and inference adapters remain in development. See docs/features/android.md.
+
 ## Updates
 
 Tauri verifies application update signatures and their signed version. Component updates use a separately signed manifest, architecture checks, immutable staged directories, executable health checks, and a persistent previous-version pointer. An idle restart applies DLL changes; rollback persists across another restart. Native application updates create a consistent SQLite backup with VACUUM INTO. Active jobs, including older jobs outside the recent-history view, and uncommitted editor leases prevent installation.

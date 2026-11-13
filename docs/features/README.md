@@ -13,3 +13,4 @@
 - [Settings and diagnostics](settings-diagnostics.md)
 - [Automatic updates](auto-update.md)
 - [Local browser studio](local-web.md)
+- [Android application](android.md)

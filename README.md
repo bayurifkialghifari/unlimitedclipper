@@ -122,7 +122,7 @@ fewer clips than requested, or none. Review the footage before publishing.
 | Windows x64                 | Source checks in CI; physical hardware and package certification pending.     |
 | macOS Intel / Apple Silicon | Engine checks in CI; desktop packaging and runtime certification pending.     |
 | Linux                       | Engine checks in CI; Debian/Arch packaging and runtime certification pending. |
-| Android                     | Planned native integration; no working Android package is claimed yet.        |
+| Android                     | Native integration in progress; APK and runtime tests pending.                |
 | Local browser               | Real Chromium upload, edit, reopen, and export workflows tested.              |
 
 See [validation evidence](docs/validation.md) and [platform support](docs/platform-support.md) for the
@@ -170,6 +170,7 @@ boundaries.
   [Design](DESIGN.md) · [Contributor rules](AGENTS.md).
 - **Checking progress:** [Changelog](CHANGELOG.md) · [Validation](docs/validation.md) ·
   [Platform support](docs/platform-support.md) · [Release process](docs/release.md).
+  [Android requirements and untested status](docs/android.md).
 - **Sources:** [Research](docs/research.md) · [Demo media notes](docs/media/README.md) ·
   [Third-party notices](docs/third-party-notices.md).
 

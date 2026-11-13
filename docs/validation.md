@@ -103,6 +103,27 @@ were added. The broader application gate below retains its existing pending chec
 Ignored evidence: `.cache/readme-capture-evidence.json`, `.cache/readme-media-evidence.json`,
 `.cache/readme-validation.json`, `.cache/readme-github.html`, and the local preview screenshots.
 
+## Android build foundation
+
+EngineConfig and start_with_config allow a native host to provide private data/resource directories
+and a loopback port without mutating process-wide environment variables. The existing desktop
+startup delegates to the same configuration while preserving its previous defaults. A real loopback
+regression checks resource serving, a private empty library, an assigned port, authorized bootstrap,
+and rejection of another local origin.
+
+Seven Rust unit tests and eleven reliability tests passed on Windows ARM64. Rustfmt, engine Clippy
+with warnings denied, and npm run check passed. The engine cross-build for aarch64-linux-android
+completed with Android NDK r28c. This is not an APK or an Android runtime test.
+
+The intended phone is Snapdragon 8+ Gen 1 with 12 GB RAM. Per the owner's request, initial Android
+work is build-only: no local Android device or emulator processing tests are being run. The native
+media archive and APK are still in progress. Provisional requirements are recorded in android.md;
+memory, speed, heat, and battery claims remain unmeasured.
+
+The README/media commit ccb5173 passed all five jobs in
+[quality run 43440150500](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43440150500).
+That run predates the native configuration changes.
+
 ## Required scenarios
 
 - ARM64 and x64 imports, local speech inference, clip selection, and rendering.

@@ -6,6 +6,87 @@ use serde_json::json;
 use tower::ServiceExt;
 use unlimitedclipper_engine::{api, db, models::*, state::AppState, subtitles};
 
+#[test]
+fn native_configuration_uses_its_own_library_resources_and_session_origin() {
+    let workspace = tempfile::tempdir().unwrap();
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    runtime.block_on(async {
+        let data = workspace.path().join("private-data");
+        let resources = workspace.path().join("resources");
+        let studio = resources.join("studio");
+        tokio::fs::create_dir_all(&studio).await.unwrap();
+        tokio::fs::write(studio.join("index.html"), "Native host fixture")
+            .await
+            .unwrap();
+        let engine =
+            unlimitedclipper_engine::start_with_config(unlimitedclipper_engine::EngineConfig {
+                data_dir: data.clone(),
+                tools_dir: resources.join("tools"),
+                studio_dir: studio,
+                port: 0,
+            })
+            .await
+            .unwrap();
+        let origin = format!("http://127.0.0.1:{}", engine.port);
+        let client = reqwest::Client::new();
+        assert_ne!(engine.port, 0);
+        assert_eq!(engine.state.root, data);
+        assert_eq!(engine.state.tools_root(), resources.join("tools"));
+        assert_eq!(
+            client
+                .get(&origin)
+                .send()
+                .await
+                .unwrap()
+                .text()
+                .await
+                .unwrap(),
+            "Native host fixture"
+        );
+        let token = engine
+            .studio_url()
+            .split("#session=")
+            .nth(1)
+            .unwrap()
+            .to_string();
+        let denied = client
+            .post(format!("{origin}/api/v1/session"))
+            .header("origin", "http://127.0.0.1:9000")
+            .json(&json!({ "token": token }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(denied.status(), StatusCode::FORBIDDEN);
+        let session = client
+            .post(format!("{origin}/api/v1/session"))
+            .header("origin", &origin)
+            .json(&json!({ "token": token }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(session.status(), StatusCode::OK);
+        let cookie = session.headers()["set-cookie"]
+            .to_str()
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap();
+        let projects = client
+            .get(format!("{origin}/api/v1/projects"))
+            .header("cookie", cookie)
+            .header("origin", &origin)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(projects.status(), StatusCode::OK);
+        assert_eq!(
+            projects.json::<serde_json::Value>().await.unwrap(),
+            json!([])
+        );
+    });
+    drop(runtime);
+}
+
 fn project() -> Project {
     serde_json::from_value(json!({
         "id":"fixture", "name":"Fixture", "source_kind":"file", "source_url":null,

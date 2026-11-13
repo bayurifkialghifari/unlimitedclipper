@@ -14,6 +14,13 @@ pub mod tracking;
 pub mod updates;
 pub mod worker;
 
+pub struct EngineConfig {
+    pub data_dir: std::path::PathBuf,
+    pub tools_dir: std::path::PathBuf,
+    pub studio_dir: std::path::PathBuf,
+    pub port: u16,
+}
+
 pub struct Engine {
     pub state: state::AppState,
     pub port: u16,
@@ -52,19 +59,31 @@ pub async fn start_configured(
             };
             std::path::PathBuf::from(format!(".tools/windows-{architecture}"))
         });
-    let state = state::AppState::new(root, tools).await?;
-    updates::restore(&state).await?;
-    let token = state.bootstrap.lock().await.clone().unwrap_or_default();
     let port = std::env::var("UC_PORT")
         .ok()
         .and_then(|value| value.parse().ok())
         .unwrap_or(43179);
-    let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
-    let port = listener.local_addr()?.port();
-    state.port.store(port, std::sync::atomic::Ordering::SeqCst);
     let studio = studio_override
         .or_else(|| std::env::var_os("UC_STUDIO_DIR").map(std::path::PathBuf::from))
         .unwrap_or_else(|| std::path::PathBuf::from("apps/studio/dist"));
+    start_with_config(EngineConfig {
+        data_dir: root,
+        tools_dir: tools,
+        studio_dir: studio,
+        port,
+    })
+    .await
+}
+
+pub async fn start_with_config(config: EngineConfig) -> anyhow::Result<Engine> {
+    let state = state::AppState::new(config.data_dir, config.tools_dir).await?;
+    updates::restore(&state).await?;
+    let token = state.bootstrap.lock().await.clone().unwrap_or_default();
+    let listener =
+        tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, config.port)).await?;
+    let port = listener.local_addr()?.port();
+    state.port.store(port, std::sync::atomic::Ordering::SeqCst);
+    let studio = config.studio_dir;
     let router = api::router(state.clone()).fallback_service(
         tower_http::services::ServeDir::new(&studio).not_found_service(
             tower_http::services::ServeFile::new(studio.join("index.html")),

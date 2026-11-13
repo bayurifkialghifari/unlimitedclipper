@@ -1,0 +1,48 @@
+name: Android native media build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-native-media
+  cancel-in-progress: false
+
+jobs:
+  media:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: arthenica/ffmpeg-kit-next
+          ref: 9f04bf1e3c97def70b98e198cb80a57b43ef5b45
+          path: .cache/android-media-source
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prepare native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y autoconf automake libtool nasm pkg-config texinfo meson ninja-build
+          sdkmanager 'ndk;28.2.13676358' 'platforms;android-34'
+      - name: Build and inspect the ARM64 media archive
+        run: python3 scripts/build-android-media.py --source .cache/android-media-source --output .cache/android-native-tools
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: android-native-media-arm64
+          path: .cache/android-native-tools
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain native build diagnostics
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: android-native-media-logs
+          path: .cache/android-media-source/build.log
+          if-no-files-found: ignore
+          retention-days: 14
