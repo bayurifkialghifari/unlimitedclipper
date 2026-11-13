@@ -75,6 +75,9 @@ def main():
     evidence = {
         "apk": delivered.name,
         "version": version,
+        "source_commit": subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=root, text=True
+        ).strip(),
         "sha256": hashlib.sha256(delivered.read_bytes()).hexdigest(),
         "size_bytes": delivered.stat().st_size,
         "min_sdk": manifest["min_sdk"],

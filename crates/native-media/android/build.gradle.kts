@@ -24,12 +24,6 @@ kotlin {
     }
 }
 
-repositories {
-    maven {
-        url = uri(System.getenv("UC_ANDROID_MEDIA_MAVEN") ?: error("Set UC_ANDROID_MEDIA_MAVEN to the inspected native media Maven directory."))
-    }
-}
-
 dependencies {
     implementation(project(":tauri-android"))
     implementation("androidx.core:core-ktx:1.13.1")

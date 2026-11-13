@@ -11,6 +11,13 @@ buildscript {
 
 allprojects {
     repositories {
+        maven {
+            url = uri(System.getenv("UC_ANDROID_MEDIA_MAVEN")
+                ?: error("Set UC_ANDROID_MEDIA_MAVEN to the inspected native media Maven directory."))
+            content {
+                includeModule("com.arthenica", "ffmpeg-kit-next")
+            }
+        }
         google()
         mavenCentral()
     }
