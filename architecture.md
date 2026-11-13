@@ -10,6 +10,8 @@ Desktop window and local browser -> React studio -> Rust API -> SQLite, managed 
 
 Import streams into managed storage, probes metadata, and creates a project. Generation extracts audio, transcribes words, selects clips, and records completed checkpoints. Editing creates revisioned documents. Rendering snapshots a revision, builds a filter plan and ASS track, writes temporary output, verifies it, then commits the export record.
 
+Discovery persists source-word offsets, transcript-grounded candidate quotes, review candidates, batch offsets, and accepted suggestions before creating an insertion plan. Count and duration are editorial constraints, with complete phrases taking priority over padding. Per-clip caption jobs preserve raw recognition by source range and save an applied-document checkpoint before the optimistic edit transaction. Recovery recognizes that exact committed document instead of creating an extra revision. Preview seek commands are separate from passive playback updates so reviewing a word changes the actual media position.
+
 All persisted times are integer milliseconds. Source word timing remains immutable; clip edits contain local overrides. Crop rectangles are normalized source coordinates, with sorted clip-relative keyframes and linear interpolation. Rendering and preview consume the same document and output geometry.
 
 ## Persistence

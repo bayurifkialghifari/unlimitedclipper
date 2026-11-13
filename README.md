@@ -30,6 +30,8 @@ Models download once during setup. Local video processing then works offline. Yo
 
 The studio includes real imports, manual and AI clip selection, caption and title editing, crop keyframes, gaming composition, image/text watermarks, revisioned autosave, and single/batch MP4 exports with SRT and ASS. Desktop file dialogs and browser uploads use the same Rust API. Each export captures a saved revision.
 
+To improve a cut, open Captions, choose a look, and use Refine captions locally with an installed speech model. Medium is optional. Review uncertain words and correct names/slang before export. Clip discovery accepts a moment focus and interest filter; count is a maximum and duration is a target. Selection analyzes transcripts and may return fewer clips or none. See [caption editing](docs/features/caption-editor.md) and [clip discovery](docs/features/clip-discovery.md) for limitations.
+
 Bundled media tools, caption fonts, and YuNet are pinned in resources/toolchains.json and resources/assets.json. Application and component update feeds must be signed with a trusted release key. Development fixtures use separate ignored keys; no production feed is configured by default.
 
 Development status and native certification are documented explicitly; do not infer release readiness from screenshots.

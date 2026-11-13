@@ -30,6 +30,8 @@ Independent creators working on podcasts, education, interviews, and gaming vide
 
 ## Reliability
 
+Discovery count is a maximum and duration is a target, with complete phrases and payoff taking priority. Users can specify moment focus and an interest threshold. Candidates require transcript-grounded hook/payoff evidence and a second review; zero qualifying moments is valid. Local selection is transcript-based and requires editorial review. Caption refinement can use the optional medium model on an individual cut, expose uncertain words, and save through revision checks.
+
 Use explicit job states, monotonic progress, durable checkpoints, revision conflict detection, immutable render snapshots, and validated temporary exports. Missing speech allows manual clipping. AI scores are suggestions, not guarantees of reach or accuracy. No enabled control may be a placeholder.
 
 ## Release boundary

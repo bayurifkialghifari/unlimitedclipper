@@ -4,6 +4,10 @@
 
 ### Added
 
+- Four caption looks, bold/uppercase controls, phrase-aware subtitles, and stable active-word boxes.
+- Per-clip local speech refinement with DTW alignment, vocabulary hints, uncertainty review, and revision-safe recovery.
+- Moment focus, interest filters, grounded hook/payoff evidence, and a durable second selection review.
+
 - Product requirements and original implementation architecture.
 - Atomic Design direction and contributor readability rules.
 - ESLint, Prettier, EditorConfig, and Rust workspace configuration.
@@ -26,7 +30,7 @@
 - Prevented duplicate export records and shared-watermark deletion during recovery and cleanup.
 - Synchronized the interface language from SQLite when opening another browser tab.
 - Bounded long-video selection prompts and preserved completed sections by source-word offset.
-- Enforced selected clip duration before overlap resolution and named the output language explicitly.
+- Changed selected duration to an editorial target so complete moments are not padded or cut mid-payoff; overlap resolution uses the adjusted source ranges.
 - Removed non-speech annotations split across Whisper segments without shifting spoken-word timing.
 - Prevented duplicate title/tracking admission and refreshed expected revisions on retry.
 - Fitted image/text watermarks to the output and enabled long-line subtitle wrapping.

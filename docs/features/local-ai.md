@@ -6,7 +6,9 @@ Requirement: AI-01 / TXT-01. Status: implemented; validation coverage is recorde
 
 Install hash-verified Whisper and Qwen models. Downloads resume from partial files and remain usable offline. Small speech is default; medium is an optional quality upgrade.
 
-Installed models have a readiness marker bound to their SHA-256 and modification timestamp. Repair rehashes the bytes. Importing replacement models is blocked during active processing. Whisper small and Qwen3 4B have passed real local inference; the optional medium model remains separately unverified.
+Installed models have a readiness marker bound to their SHA-256 and modification timestamp. Repair rehashes the bytes. Importing replacement models is blocked during active processing. Small, medium, and Qwen3 4B have real Windows ARM64 inference evidence in ../validation.md. This does not establish word-perfect recognition or verification on other systems.
+
+Word alignment uses Whisper DTW on the original audio with flash attention disabled. Do not combine CLI VAD with direct DTW token offsets: the tested CLI remaps segment times to the source but leaves token DTW times on a compressed speech timeline. VAD requires an explicit tested mapping before it can be enabled.
 
 ## Interface
 

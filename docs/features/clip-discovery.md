@@ -6,11 +6,15 @@ Requirement: AI-02. Status: implemented; validation coverage is recorded in ../v
 
 Extract audio, transcribe timed words, analyze bounded transcript windows locally, and suggest valid clips with titles and explanations. Users can create and resize clips manually.
 
-Whisper small Q5_1 supplies source-timed words. Qwen3 4B Q4_K_M processes bounded transcript windows with a JSON schema, validates boundaries, ranks non-overlapping suggestions, and saves a durable insertion plan. Inference uses llama-completion with an explicit ChatML prompt. Speech configuration is frozen for retries. Suggestions require editorial review; scores describe model preference.
+Whisper small Q5_1 or medium Q5_0 supplies source-timed words. Qwen3 4B Q4_K_M processes bounded transcript windows with a JSON schema, validates boundaries, ranks non-overlapping suggestions, and saves a durable insertion plan. Inference uses llama-completion with an explicit ChatML prompt. Speech configuration is frozen for retries. Suggestions require editorial review; scores describe model preference.
 
-Selection groups up to twelve words into timed phrases and limits each window to 5,000 UTF-8 bytes. The full prompt reserves 2,048 tokens for JSON within the 8,192-token context. Completed sections persist a source-word offset; retries reuse the transcription and completed suggestions even when an application update changes window sizing. The progress display includes the current section and total.
+Selection groups up to twelve words into timed phrases and limits each window to 4,000 UTF-8 bytes. The full prompt reserves 2,048 tokens for JSON within the 8,192-token context. Completed sections persist a source-word offset; retries reuse the transcription and completed suggestions even when an application update changes window sizing. The progress display includes the current section and total.
 
-A selected duration fixes the final clip length, bounded by the source duration. The engine centers that span on the suggested moment and resolves overlaps after adjusting boundaries. Automatic duration limits suggestions to 15–60 seconds. The title prompt asks for a grounded hook in the transcript language and skips routine introductions.
+Clip count is a maximum; duration is an editorial target. The prompt prefers complete 8–60-second moments and allows shorter complete reactions. It must not pad a cut with filler or fill a quota. The engine adjusts boundaries toward nearby complete phrases, adds 120 ms of lead and 180 ms of tail, rejects spans over 60 seconds, and resolves overlaps after adjustment.
+
+Moment focus accepts up to 400 characters describing desired events. Strict, balanced, and broad interest filters use thresholds of 85, 70, and 50; new requests default to strict. Each candidate must quote a hook and payoff that occur as whole words inside its source range. A second local review receives those quotes and a bounded transcript excerpt, applies a common rubric, and can reject all candidates. Review batches and accepted results persist for retries. A no-result job explains that the user can adjust focus/filter or create a clip manually.
+
+Selection currently analyzes speech transcripts. It does not understand silent gameplay events, facial expressions, or visual action the way a multimodal service may. Scores are editorial model preferences and cannot guarantee an interesting result or predict views. Review the source and refine individual captions before publication.
 
 ## Interface
 

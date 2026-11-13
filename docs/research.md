@@ -2,6 +2,18 @@
 
 Research date: 2026-11-13. Public pages and upstream release metadata were inspected directly. Product behavior beyond public demonstrations is not claimed to have been tested.
 
+## Caption and highlight quality follow-up
+
+The [editorial reference word-box demonstration](editorial reference) keeps a bold phrase visible while moving a colored rectangle to the active word. This informed the original ASS implementation and selectable caption looks. Downloaded reference media stays in ignored research cache and is not bundled.
+
+[OpusClip](https://www.opus.pro/) describes animated captions and multimodal highlight selection. Its public demonstrations establish product direction, not local implementation equivalence or measurable accuracy. The local engine adds transcript-grounded hook/payoff review and focus filters; visual event understanding remains outside this implementation.
+
+The [Whisper.cpp CLI](https://github.com/ggml-org/whisper.cpp/tree/master/examples/cli) exposes DTW alignment, non-speech suppression, and vocabulary prompts. A real Indonesian escape fixture showed why segment timing alone is insufficient: a caption could span long silence. Token alignment is now retained and subwords are joined. Small and medium both still misrecognize some slang and shouted speech, so uncertain words are surfaced rather than silently rewritten by an LLM.
+
+In the tested CLI, VAD remapped segment offsets back to source time while token offsets and DTW anchors remained on compressed speech time. A word around 20 seconds of original audio could receive an anchor near 6 seconds. Directly mixing those timelines would corrupt captions. The shipped path uses original audio, DTW, and disabled flash attention; it does not enable VAD. Any future VAD integration must retain and verify a speech-to-source mapping.
+
+Short-context recognition can omit words or misread English game terms. Increasing context improved the cached loot experiment's spelling, but did not establish a universal accuracy benefit. Preserve editable words, confidence signals, immutable exports, and human review. Timing heuristics and model scores must not be presented as guaranteed accuracy or virality.
+
 | Source                                                                              | Finding                                                                                                                                                | Implementation consequence                                                          |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | [editorial reference](editorial reference)                                         | Public feature groups cover captions, titles, crop/keyframes, gaming split, watermarks, galleries, languages, and orientations.                        | Match the editing workflow and capability coverage with original source and assets. |
