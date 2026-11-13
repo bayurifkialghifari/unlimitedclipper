@@ -42,6 +42,7 @@ pub async fn capture(
     let mut child = command
         .spawn()
         .with_context(|| format!("Could not start {}", executable.display()))?;
+    #[cfg(windows)]
     let _job_object = attach_job(&child)?;
     let stdout = child
         .stdout
@@ -113,6 +114,7 @@ pub async fn ffmpeg_progress(
     #[cfg(windows)]
     command.creation_flags(0x08000000);
     let mut child = command.spawn()?;
+    #[cfg(windows)]
     let _job_object = attach_job(&child)?;
     let mut lines = BufReader::new(child.stdout.take().context("Missing render progress")?).lines();
     let stderr = child.stderr.take().context("Missing render error stream")?;
@@ -177,6 +179,7 @@ pub async fn downloader_progress(
     #[cfg(windows)]
     command.creation_flags(0x08000000);
     let mut child = command.spawn()?;
+    #[cfg(windows)]
     let _job_object = attach_job(&child)?;
     let (sender, mut receiver) = tokio::sync::mpsc::channel(32);
     let stdout = child.stdout.take().context("Missing download output")?;
@@ -302,11 +305,6 @@ fn attach_job(child: &tokio::process::Child) -> Result<ProcessJob> {
         }
         Ok(ProcessJob(job as usize))
     }
-}
-
-#[cfg(not(windows))]
-fn attach_job(_child: &tokio::process::Child) -> Result<()> {
-    Ok(())
 }
 
 #[derive(Debug, Clone)]
