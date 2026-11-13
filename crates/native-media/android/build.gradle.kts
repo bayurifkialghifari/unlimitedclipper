@@ -26,6 +26,7 @@ kotlin {
 
 dependencies {
     implementation(project(":tauri-android"))
+    implementation("androidx.activity:activity-ktx:1.10.1")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("com.arthenica:ffmpeg-kit-next:9.0.2")
 }
