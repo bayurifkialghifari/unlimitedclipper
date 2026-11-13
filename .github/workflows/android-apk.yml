@@ -58,3 +58,13 @@ jobs:
           path: .cache/android-apk
           if-no-files-found: error
           retention-days: 30
+      - name: Preserve failed package inspection diagnostics
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: android-apk-failure-diagnostics
+          path: |
+            apps/desktop/src-tauri/gen/android/app/build/outputs/apk
+            .cache/android-apk
+          if-no-files-found: ignore
+          retention-days: 7

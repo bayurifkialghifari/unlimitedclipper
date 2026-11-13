@@ -55,12 +55,22 @@ def main():
     metadata = subprocess.check_output(
         [str(build_tools / ("aapt2" + executable)), "dump", "badging", str(archive)], text=True
     )
+    print(metadata)
     if "package: name='app.unlimitedclipper.studio'" not in metadata:
         raise ValueError("Unexpected Android application identifier.")
-    for label, expected in [("sdkVersion", manifest["min_sdk"]), ("targetSdkVersion", manifest["target_sdk"])]:
-        value = re.search(label + r":'(\d+)'", metadata)
+    # Current aapt2 uses minSdkVersion; earlier versions use sdkVersion.
+    requirements = [
+        (("minSdkVersion", "sdkVersion"), manifest["min_sdk"]),
+        (("targetSdkVersion",), manifest["target_sdk"]),
+    ]
+    for labels, expected in requirements:
+        pattern = r"^(?:" + "|".join(labels) + r"):'(\d+)'$"
+        value = re.search(pattern, metadata, re.MULTILINE)
         if not value or int(value.group(1)) != expected:
-            raise ValueError("APK SDK requirement does not match " + label)
+            actual = value.group(1) if value else "missing"
+            raise ValueError(
+                "APK " + labels[0] + " must be " + str(expected) + ", found " + actual
+            )
     signature = subprocess.check_output(
         [str(build_tools / ("apksigner.bat" if os.name == "nt" else "apksigner")),
          "verify", "--verbose", "--print-certs", str(archive)], text=True
