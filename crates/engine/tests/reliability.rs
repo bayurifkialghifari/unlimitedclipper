@@ -145,6 +145,9 @@ fn caption_phrases_stop_at_punctuation_and_silence() {
     let ass = subtitles::ass(&document);
     assert!(ass.contains("Dia") && ass.contains("jahat!"));
     assert!(ass.contains("\\3a&H00&") && ass.contains("\\3a&HFF&"));
+    document.words[0].color = Some("#0099FF".into());
+    let ass = subtitles::ass(&document);
+    assert!(ass.contains("\\bord8\\1c&HFF9900&}Dia"));
 }
 
 #[tokio::test]

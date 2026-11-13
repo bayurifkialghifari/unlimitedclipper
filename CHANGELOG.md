@@ -24,6 +24,8 @@
 
 ### Fixed
 
+- Preserved custom word colors when the active-word box is displayed.
+
 - Bundled WebView2Loader.dll and initialized the updater plugin so the installed Windows application starts.
 - Prevented recent-history limits from hiding active jobs during update and cleanup checks.
 - Preserved source timing in browser caption tracks and clip-relative timing in subtitle exports.

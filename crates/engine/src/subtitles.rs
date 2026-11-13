@@ -101,7 +101,7 @@ fn styled_word(word: &Word, active: bool, document: &EditDocument) -> String {
             format!(
                 "\\3a&H00&\\3c{}\\bord{padding}\\1c{}",
                 override_color(&document.captions.highlight_color),
-                override_color(&document.captions.color)
+                override_color(word.color.as_deref().unwrap_or(&document.captions.color))
             )
         } else {
             "\\3a&HFF&\\bord0".into()
