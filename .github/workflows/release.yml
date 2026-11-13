@@ -1,0 +1,89 @@
+name: Tagged Windows release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
+  windows:
+    needs: validate
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+            compiler: amd64
+          - arch: arm64
+            target: aarch64-pc-windows-msvc
+            compiler: amd64_arm64
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_BUILD_TARGET: ${{ matrix.target }}
+      UC_TARGET: ${{ matrix.target }}
+      UC_USE_MSVC: '1'
+    steps:
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/setup-node@60c11408891ef62846c29c28c2374afe5c91fad5
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - uses: ilammy/msvc-dev-cmd@460a772e4cf7358f9f2f23773240813e40e7a894
+        with:
+          arch: ${{ matrix.compiler }}
+      - name: Validate publisher signing configuration
+        env:
+          UC_APP_PUBLIC_KEY: ${{ secrets.APP_UPDATE_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.APP_UPDATE_PRIVATE_KEY }}
+        run: node scripts/set-release-version.mjs
+      - run: npm install --package-lock-only --ignore-scripts
+      - run: npm ci
+      - run: node scripts/setup-tools.mjs --arch=${{ matrix.arch }}
+      - name: Build signed installer
+        env:
+          UC_APP_PUBLIC_KEY: ${{ secrets.APP_UPDATE_PUBLIC_KEY }}
+          UC_COMPONENT_PUBLIC_KEY: ${{ secrets.COMPONENT_UPDATE_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.APP_UPDATE_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.APP_UPDATE_KEY_PASSWORD }}
+        run: npm run build:desktop
+      - name: Stage updater manifest and installer
+        env:
+          UC_RELEASE_ARCH: ${{ matrix.arch }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.APP_UPDATE_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.APP_UPDATE_KEY_PASSWORD }}
+        run: node scripts/stage-release.mjs
+      - uses: actions/upload-artifact@0c366cb4fc8897159c94880f94b55bc716ad6a66
+        with:
+          name: windows-${{ matrix.arch }}
+          path: .cache/release-files/*
+          if-no-files-found: error
+
+  publish:
+    needs: windows
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/setup-node@60c11408891ef62846c29c28c2374afe5c91fad5
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@2a5974104b6d5dbdb2f9468a3e54da3bdd241578
+        with:
+          pattern: windows-*
+          merge-multiple: true
+          path: .cache/release-files
+      - run: node scripts/stage-release.mjs --publish
+        env:
+          GH_TOKEN: ${{ github.token }}
