@@ -5,7 +5,8 @@
 ### Added
 
 - A manual ARM64 APK build workflow and package inspection for SDK metadata, native architecture,
-  signature, checksum, and 16 KB alignment. Artifact delivery remains pending the first full build.
+  signature, checksum, and 16 KB alignment. The first debug-signed 0.1.0 preview APK is built and
+  available from GitHub Actions; Android runtime remains untested.
 
 - An Android Tauri host and native media bridge, scoped document import/export, foreground media
   processing, and a shared studio with visible preview limitations. Android runtime remains untested.
@@ -14,7 +15,8 @@
   cancellation that waits for completion; the existing desktop subprocess backend is preserved.
 
 - A pinned, source-built Android media workflow with native architecture, 16 KB alignment, and
-  archive-checksum gates; APK and runtime validation remain pending.
+  archive-checksum gates; its ARM64 archive and the initial APK passed build inspection. Native
+  media runtime validation remains pending.
 - Explicit native engine configuration for application data, resources, studio files, and loopback
   ports, with an isolated-library and session-origin regression check.
 - A visual README with real native screenshots, two clip examples, subtitle downloads, and an

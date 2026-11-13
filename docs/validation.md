@@ -117,8 +117,8 @@ completed with Android NDK r28c. This is not an APK or an Android runtime test.
 
 The intended phone is Snapdragon 8+ Gen 1 with 12 GB RAM. Per the owner's request, initial Android
 work is build-only: no local Android device or emulator processing tests are being run. The native
-media archive and APK are still in progress. Provisional requirements are recorded in android.md;
-memory, speed, heat, and battery claims remain unmeasured.
+media archive and ARM64 APK have passed compilation and inspection, as recorded below. Provisional
+requirements are recorded in android.md; memory, speed, heat, and battery claims remain unmeasured.
 
 The README/media commit ccb5173 passed all five jobs in
 [quality run 43440150500](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43440150500).
@@ -130,12 +130,12 @@ The Tauri application and native plugin cross-compiled and passed Android-target
 Windows desktop shell passed Clippy after extracting its startup into a shared library entry point.
 The Android source includes scoped picker copying, registered-asset saving, native completion
 callbacks, foreground processing, and disabled unsupported controls in both dictionaries. Kotlin
-compilation and APK inspection are pending until the source-built media artifact is available.
+compilation and APK inspection passed in the ARM64 preview build recorded below.
 
 Anti-slop direction follows DESIGN.md. The existing UC text icon is reused; the generated Tauri
 logo was removed. Loading, cancellation, unsupported-state copy, and export feedback are implemented
 in source. Android interaction, accessibility, breakpoint, keyboard/touch, reduced-motion, and
-native media checks remain pending. None of these Android delivery gates is marked PASS.
+native media checks remain pending. None of these Android interaction gates is marked PASS.
 
 ## Native execution contract
 
@@ -155,6 +155,41 @@ media library or a newly packaged desktop shell.
 The two Chromium browser regressions passed against the fresh engine: real upload, caption edits,
 autosave/reopening, export/download, English settings, and a narrow layout without horizontal
 overflow. These checks use the desktop/browser backend; Android document interactions are unrun.
+
+## Android ARM64 preview package
+
+[Native media run 43450248163](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43450248163)
+passed the pinned FFmpegKit Next source build and ARM64 archive inspection.
+[APK run 43459222590](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43459222590)
+passed application assembly, including Kotlin compilation, and all package inspection gates on
+source commit 910dfe7a9299daf0f345f7f94d7aebe4d03d0bd5.
+
+| Check                             | Status  | Evidence                                                                   |
+| --------------------------------- | ------- | -------------------------------------------------------------------------- |
+| Native media archive              | PASS    | Pinned revision and SHA-256 checked before application assembly.           |
+| APK identity and SDK              | PASS    | app.unlimitedclipper.studio, version 0.1.0, min SDK 29, target SDK 36.     |
+| Native architecture and alignment | PASS    | Eleven ARM64 libraries, 16 KB ELF load alignment, and zipalign -c -P 16 4. |
+| Package signature                 | PASS    | apksigner verify --verbose --print-certs; experimental debug signing.      |
+| Source quality checks             | PASS    | All five jobs in quality run 43459220427 on the same source commit.        |
+| Android runtime and interactions  | Pending | Device/emulator testing explicitly deferred by the owner.                  |
+
+The delivered APK is 134,110,791 bytes, approximately 127.9 MiB. SHA-256:
+
+```text
+b9099015044c9d6b324756cea060ab2347188c515c4ea9fa8291fad4e4a2958b
+```
+
+[Download artifact 14054984987](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43459222590/artifacts/14054984987)
+contains the APK, source revision/checksum evidence, metadata, signature details, and untested-runtime
+notes. Retention is 30 days. The studio and host implement manual media workflows; Android inference,
+YouTube imports, tracking, and automatic updates remain disabled. Import/export playback, touch,
+keyboard, accessibility, backgrounding, cancellation, and recovery on Android are unrun. No memory,
+speed, thermal, battery, or physical-device compatibility claim is made.
+
+The SDK inspector supports both minSdkVersion and the earlier sdkVersion label emitted by aapt2.
+The current label was checked against the
+[AOSP badging implementation](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/tools/aapt2/dump/DumpManifest.cpp).
+Failed package inspection retains a diagnostic artifact instead of discarding the assembled APK.
 
 ## Required scenarios
 

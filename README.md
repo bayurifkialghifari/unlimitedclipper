@@ -122,8 +122,15 @@ fewer clips than requested, or none. Review the footage before publishing.
 | Windows x64                 | Source checks in CI; physical hardware and package certification pending.     |
 | macOS Intel / Apple Silicon | Engine checks in CI; desktop packaging and runtime certification pending.     |
 | Linux                       | Engine checks in CI; Debian/Arch packaging and runtime certification pending. |
-| Android                     | Native integration in progress; APK and runtime tests pending.                |
+| Android                     | ARM64 preview APK built; Android runtime untested.                            |
 | Local browser               | Real Chromium upload, edit, reopen, and export workflows tested.              |
+
+**Android preview:** [Download the debug-signed ARM64 APK](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43459222590/artifacts/14054984987)
+(127.9 MiB). The build requires Android 10+ and 64-bit ARM. The initial target is Snapdragon 8+ Gen 1
+with 12 GB RAM; RAM and storage budgets remain estimates. **Android runtime is untested.** This
+media-only preview implements local-file import, manual editing, and export. Android AI, YouTube
+imports, and automatic updates are disabled. Read the [requirements and limitations](docs/android.md)
+before installing. GitHub retains this artifact for 30 days; the workflow can rebuild it afterward.
 
 See [validation evidence](docs/validation.md) and [platform support](docs/platform-support.md) for the
 scope of those checks. Production update signing and a current verified release installer remain

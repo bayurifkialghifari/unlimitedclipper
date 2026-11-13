@@ -28,8 +28,10 @@ Tools are separately licensed executables launched without a shell. Their manife
 
 Native hosts can supply data, tool-resource, and compiled studio directories plus a loopback port
 through EngineConfig and start_with_config. The existing desktop/standalone startup keeps its
-environment and OS-data-directory behavior. Android will supply its private application directory
-explicitly; native media and inference adapters remain in development. See docs/features/android.md.
+environment and OS-data-directory behavior. The Android host supplies its private application
+directory explicitly and runs the authenticated engine on loopback port 43179. Its media-only
+provider calls packaged FFmpeg/FFprobe libraries; inference and downloader adapters remain pending.
+Android runtime behavior is untested. See docs/features/android.md.
 
 NativeTools supplies argument-array execution, media progress, tool capabilities, and cancellation
 completion to the engine. Managed capture and rendering retain the existing desktop subprocess

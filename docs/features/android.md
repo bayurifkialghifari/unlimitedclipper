@@ -1,6 +1,7 @@
 # Android application
 
-Status: experimental media-only APK integration. Android runtime validation has not been performed.
+Status: experimental media-only ARM64 APK built and inspected. Android runtime validation has not
+been performed.
 
 ## Goal
 
@@ -51,12 +52,15 @@ and signing limitations.
    prompts preserved. Validate model memory and cancellation separately from desktop behavior.
 5. Local yt-dlp integration and a supported embedded JavaScript challenge runtime, verified against
    real sources before enabling YouTube imports.
-6. Signed APK distribution and physical ARM64 validation, followed by measured resource limits.
+6. Stable release signing and physical ARM64 validation, followed by measured resource limits.
 
-FFmpegKit Next is being evaluated as a native media boundary. Its current official release is
-source-only, so the project must build and verify its native libraries instead of pointing at a
-nonexistent Maven download. Prefer an LGPL configuration with Android's media codecs; do not silently
-replace separately executed desktop GPL tools with linked GPL libraries.
+The initial native media boundary uses FFmpegKit Next, built from its pinned official source. The
+ARM64 source build and archive inspection passed in
+[media run 43450248163](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43450248163).
+Its source-only release supplies no prebuilt Maven package. The application resolves the inspected
+archive from the local Maven repository for every Gradle project. The configuration uses libass and
+Android's media codecs without GPL/x264 linkage. This build evidence does not verify media execution
+on a phone.
 
 ## Acceptance evidence
 
@@ -66,7 +70,9 @@ Check source versus clip-relative timing, immutable revisions, cancelled jobs, r
 sharing the completed file. Exercise touch and keyboard navigation, portrait/landscape layouts,
 backgrounding, and interruption during processing.
 
-CI must produce APKs. Device/emulator interaction and media-decoding evidence are deferred for the
+CI produces a debug-signed ARM64 preview APK with SDK, signature, architecture, checksum, and 16 KB
+alignment inspection. See [the build and download evidence](../android.md). Device/emulator
+interaction and media-decoding evidence are deferred for the
 initial build at the owner's request. An ARM64 build alone is not evidence of native ARM64 runtime
 behavior. The current Windows ARM64 development machine is not supported by the official Android
 Emulator; a supported host is required when runtime testing resumes.
