@@ -45,6 +45,7 @@ jobs:
         run: |
           [[ "$MEDIA_RUN_ID" =~ ^[0-9]+$ ]]
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;28.2.13676358' 'platforms;android-36' 'build-tools;36.0.0'
+          gh run watch "$MEDIA_RUN_ID" --exit-status --interval 30
           gh run download "$MEDIA_RUN_ID" -n android-native-media-arm64 -D .cache/android-native-tools
       - run: npm ci
       - run: npm run check
