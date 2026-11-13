@@ -1,0 +1,29 @@
+{
+  "name": "@unlimitedclipper/studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@fontsource/dm-sans": "^5.2.8",
+    "@fontsource/noto-sans": "^5.2.8",
+    "@fontsource/oswald": "^5.2.8",
+    "@phosphor-icons/react": "^2.1.10",
+    "@tanstack/react-query": "^5.90.0",
+    "@unlimitedclipper/ui": "*",
+    "jassub": "^2.4.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.0",
+    "vite": "^7.2.0"
+  }
+}

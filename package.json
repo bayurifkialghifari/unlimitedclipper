@@ -1,0 +1,56 @@
+{
+  "name": "unlimitedclipper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/studio",
+    "apps/desktop",
+    "packages/ui"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "npm run dev --workspace @unlimitedclipper/studio",
+    "dev:engine": "node scripts/cargo.mjs run -p unlimitedclipper-engine",
+    "dev:desktop": "node scripts/desktop.mjs dev",
+    "build": "npm run build --workspace @unlimitedclipper/studio",
+    "build:engine": "node scripts/cargo.mjs build --release -p unlimitedclipper-engine",
+    "build:desktop": "node scripts/desktop.mjs build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p apps/studio/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:rust": "node scripts/cargo.mjs test -p unlimitedclipper-engine",
+    "test:e2e": "playwright test",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
+    "setup:tools": "node scripts/setup-tools.mjs",
+    "setup:compiler": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-compiler.ps1",
+    "generate:api": "node scripts/generate-api.mjs",
+    "release:manifest": "node scripts/release-manifest.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "openapi-typescript": "^7.10.1",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1",
+    "eslint-plugin-jsx-a11y": {
+      "minimatch": "^3.1.5"
+    }
+  }
+}

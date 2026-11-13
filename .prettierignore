@@ -1,0 +1,9 @@
+node_modules
+dist
+target
+.tools
+.cache
+.data
+apps/desktop/src-tauri/gen
+Cargo.lock
+package-lock.json
