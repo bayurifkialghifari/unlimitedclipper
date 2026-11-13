@@ -20,8 +20,8 @@ jobs:
   studio:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions/setup-node@60c11408891ef62846c29c28c2374afe5c91fad5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '24'
           cache: npm
@@ -37,7 +37,7 @@ jobs:
     env:
       CARGO_BUILD_JOBS: '2'
     steps:
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
           toolchain: stable
@@ -45,7 +45,7 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo test --locked -p unlimitedclipper-engine
       - run: cargo clippy --locked -p unlimitedclipper-engine --all-targets -- -D warnings
-      - uses: actions/setup-node@60c11408891ef62846c29c28c2374afe5c91fad5
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         if: runner.os == 'Windows'
         with:
           node-version: '24'

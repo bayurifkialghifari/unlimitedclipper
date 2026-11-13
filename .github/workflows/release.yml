@@ -30,8 +30,8 @@ jobs:
       UC_TARGET: ${{ matrix.target }}
       UC_USE_MSVC: '1'
     steps:
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions/setup-node@60c11408891ef62846c29c28c2374afe5c91fad5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '24'
           cache: npm
@@ -39,7 +39,7 @@ jobs:
         with:
           toolchain: stable
           targets: ${{ matrix.target }}
-      - uses: ilammy/msvc-dev-cmd@460a772e4cf7358f9f2f23773240813e40e7a894
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
         with:
           arch: ${{ matrix.compiler }}
       - name: Validate publisher signing configuration
@@ -63,7 +63,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.APP_UPDATE_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.APP_UPDATE_KEY_PASSWORD }}
         run: node scripts/stage-release.mjs
-      - uses: actions/upload-artifact@0c366cb4fc8897159c94880f94b55bc716ad6a66
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: windows-${{ matrix.arch }}
           path: .cache/release-files/*
@@ -75,11 +75,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions/setup-node@60c11408891ef62846c29c28c2374afe5c91fad5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '24'
-      - uses: actions/download-artifact@2a5974104b6d5dbdb2f9468a3e54da3bdd241578
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
           pattern: windows-*
           merge-multiple: true
