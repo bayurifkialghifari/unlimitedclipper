@@ -28,7 +28,7 @@ jobs:
       - name: Prepare native build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y autoconf automake bison cmake gettext gperf libtool nasm pkg-config texinfo meson ninja-build
+          sudo apt-get install --no-install-recommends -y autoconf automake bison cmake gettext gperf groff libtool nasm pkg-config texinfo meson ninja-build
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;28.2.13676358' 'platforms;android-34'
       - name: Build and inspect the ARM64 media archive
         env:
