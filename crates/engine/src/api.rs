@@ -621,11 +621,11 @@ async fn generate(
     {
         return Err(ApiError::bad_request("Choose a transcription language."));
     }
-    if db::active_jobs(&state.db).await?.iter().any(|job| {
-        job.project_id.as_deref() == Some(&id)
-            && job.kind == "generate"
-            && ["queued", "running"].contains(&job.status.as_str())
-    }) {
+    if db::active_jobs(&state.db)
+        .await?
+        .iter()
+        .any(|job| job.project_id.as_deref() == Some(&id) && job.kind == "generate")
+    {
         return Err(ApiError::bad_request(
             "This project already has a generation job.",
         ));
@@ -734,6 +734,7 @@ async fn export_project(
 async fn title_job(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Json<Job>> {
     let _gate = state.operation_gate.lock().await;
     let clip = db::clip(&state.db, &id).await?;
+    ensure_no_clip_edit_job(&state, &id).await?;
     Ok(Json(
         state
             .enqueue_locked(
@@ -750,6 +751,7 @@ async fn title_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
 async fn track_job(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Json<Job>> {
     let _gate = state.operation_gate.lock().await;
     let clip = db::clip(&state.db, &id).await?;
+    ensure_no_clip_edit_job(&state, &id).await?;
     Ok(Json(
         state
             .enqueue_locked(
@@ -760,6 +762,17 @@ async fn track_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
             )
             .await?,
     ))
+}
+
+async fn ensure_no_clip_edit_job(state: &AppState, clip_id: &str) -> ApiResult<()> {
+    if db::active_jobs(&state.db).await?.iter().any(|job| {
+        job.clip_id.as_deref() == Some(clip_id) && ["title", "track"].contains(&job.kind.as_str())
+    }) {
+        return Err(ApiError::bad_request(
+            "This clip already has an editing job. Wait for it to finish.",
+        ));
+    }
+    Ok(())
 }
 
 #[utoipa::path(get, path = "/api/v1/jobs", responses((status = 200, body = [Job])))]
@@ -808,6 +821,11 @@ async fn retry_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
     }
     if let Some(project_id) = &job.project_id {
         db::project(&state.db, project_id).await?;
+    }
+    if ["title", "track"].contains(&job.kind.as_str()) {
+        let clip_id = job.clip_id.as_deref().ok_or_else(ApiError::not_found)?;
+        ensure_no_clip_edit_job(&state, clip_id).await?;
+        job.payload["revision"] = json!(db::clip(&state.db, clip_id).await?.revision);
     }
     job.status = "queued".into();
     job.error = None;

@@ -176,3 +176,41 @@ async fn interrupted_uploads_are_removed_only_after_acquiring_the_instance_lock(
         .unwrap();
     assert!(!interrupted.exists());
 }
+
+#[tokio::test]
+async fn concurrent_clip_edit_requests_admit_only_one_job() {
+    let root = tempfile::tempdir().unwrap();
+    let mut state = AppState::new(root.path().to_path_buf(), root.path().join("tools"))
+        .await
+        .unwrap();
+    state.development = true;
+    let project = project();
+    db::save_project(&state.db, &project).await.unwrap();
+    let clip = Clip {
+        id: "clip".into(),
+        project_id: project.id.clone(),
+        name: "Fixture".into(),
+        explanation: String::new(),
+        score: None,
+        revision: 1,
+        document: EditDocument::new(&project, 2000, 5000),
+        created_at: 1,
+    };
+    db::insert_clip(&state.db, &clip).await.unwrap();
+    let router = api::router(state.clone());
+    let request = |kind| {
+        Request::builder()
+            .method("POST")
+            .uri(format!("/api/v1/clips/clip/{kind}"))
+            .body(Body::empty())
+            .unwrap()
+    };
+    let (first, second) = tokio::join!(
+        router.clone().oneshot(request("title")),
+        router.oneshot(request("track"))
+    );
+    let mut statuses = [first.unwrap().status(), second.unwrap().status()];
+    statuses.sort();
+    assert_eq!(statuses, [StatusCode::OK, StatusCode::BAD_REQUEST]);
+    assert_eq!(db::active_jobs(&state.db).await.unwrap().len(), 1);
+}

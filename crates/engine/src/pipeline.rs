@@ -228,10 +228,26 @@ pub async fn import_youtube(
 
 fn parse_transcript(value: &serde_json::Value, duration: i64) -> Vec<Word> {
     let mut result = Vec::new();
+    let mut annotation_end = None;
     if let Some(segments) = value["transcription"].as_array() {
         for segment in segments {
-            let text = segment["text"].as_str().unwrap_or_default().trim();
-            if text.is_empty() || text.starts_with('[') || text.starts_with('(') {
+            let mut speech = String::new();
+            for character in segment["text"].as_str().unwrap_or_default().chars() {
+                if let Some(end) = annotation_end {
+                    if character == end {
+                        annotation_end = None;
+                    }
+                } else {
+                    match character {
+                        '[' => annotation_end = Some(']'),
+                        '(' => annotation_end = Some(')'),
+                        '*' => annotation_end = Some('*'),
+                        _ => speech.push(character),
+                    }
+                }
+            }
+            let text = speech.trim();
+            if text.is_empty() {
                 continue;
             }
             let start = segment["offsets"]["from"]
@@ -389,6 +405,11 @@ pub async fn infer(
     let prompt = format!(
         "<|im_start|>system\nYou edit video clips. Follow the requested JSON schema and use only the provided transcript.<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
     );
+    // Qwen's byte fallback bounds tokens by UTF-8 bytes; reserve room for generated JSON.
+    anyhow::ensure!(
+        prompt.len() <= INFERENCE_CONTEXT_TOKENS - INFERENCE_OUTPUT_TOKENS - 32,
+        "The transcript is too large for this model's context. Use a shorter clip or edit manually."
+    );
     tokio::fs::write(&filename, prompt).await?;
     let result = tools::capture(
         &tools::executable(state, "llama", "llama-completion")?,
@@ -398,9 +419,9 @@ pub async fn infer(
             "-f".into(),
             filename.to_string_lossy().into_owned(),
             "-n".into(),
-            "2048".into(),
+            INFERENCE_OUTPUT_TOKENS.to_string(),
             "-c".into(),
-            "8192".into(),
+            INFERENCE_CONTEXT_TOKENS.to_string(),
             "-ngl".into(),
             "0".into(),
             "--no-display-prompt".into(),
@@ -437,6 +458,73 @@ fn extract_json<T: serde::de::DeserializeOwned>(output: &str) -> Result<T> {
 #[derive(Deserialize)]
 struct Selection {
     clips: Vec<Suggestion>,
+}
+
+const TRANSCRIPT_WINDOW_BYTES: usize = 5000;
+const INFERENCE_CONTEXT_TOKENS: usize = 8192;
+const INFERENCE_OUTPUT_TOKENS: usize = 2048;
+
+struct TranscriptWindow<'a> {
+    words: &'a [Word],
+    text: String,
+}
+
+fn transcript_windows(words: &[Word]) -> Result<Vec<TranscriptWindow<'_>>> {
+    let mut windows = Vec::new();
+    let mut window_start = 0;
+    let mut group_start = 0;
+    let mut text = String::new();
+    while group_start < words.len() {
+        let mut group_end = group_start + 1;
+        while group_end < words.len() && group_end - group_start < 12 {
+            let previous = &words[group_end - 1];
+            if words[group_end].start_ms - previous.end_ms > 2000
+                || previous.text.ends_with(['.', '!', '?'])
+            {
+                break;
+            }
+            group_end += 1;
+        }
+        let phrase = words[group_start..group_end]
+            .iter()
+            .map(|word| word.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let line = format!(
+            "[{}-{}] {phrase}\n",
+            words[group_start].start_ms,
+            words[group_end - 1].end_ms
+        );
+        anyhow::ensure!(
+            line.len() <= TRANSCRIPT_WINDOW_BYTES,
+            "A transcript phrase is too large for local selection. Shorten it or create a clip manually."
+        );
+        if text.len() + line.len() > TRANSCRIPT_WINDOW_BYTES {
+            windows.push(TranscriptWindow {
+                words: &words[window_start..group_start],
+                text: std::mem::take(&mut text),
+            });
+            window_start = group_start;
+        }
+        text.push_str(&line);
+        group_start = group_end;
+    }
+    if !text.is_empty() {
+        windows.push(TranscriptWindow {
+            words: &words[window_start..],
+            text,
+        });
+    }
+    Ok(windows)
+}
+
+fn output_language(project: &Project) -> &str {
+    match project.language.as_deref() {
+        Some("id") => "Indonesian (Bahasa Indonesia)",
+        Some("en") => "English",
+        Some(language) => language,
+        None => "the original transcript language",
+    }
 }
 
 pub async fn generate(
@@ -479,38 +567,45 @@ pub async fn generate(
     let requested_duration = job.payload["duration_ms"].as_i64().unwrap_or(0);
     let mut suggestions: Vec<Suggestion> =
         serde_json::from_value(job.payload["suggestions"].clone()).unwrap_or_default();
-    let processed = job.payload["processed_windows"].as_u64().unwrap_or(0) as usize;
-    for (window_index, words) in project.words.chunks(700).enumerate() {
-        if window_index < processed {
-            continue;
-        }
+    // Word offsets preserve completed sections even if window sizing changes after an update.
+    let processed_words = job.payload["selection_word_offset"]
+        .as_u64()
+        .map(|offset| offset as usize)
+        .unwrap_or_else(|| job.payload["processed_windows"].as_u64().unwrap_or(0) as usize * 700)
+        .min(project.words.len());
+    let windows = transcript_windows(&project.words[processed_words..])?;
+    let mut word_offset = processed_words;
+    for (window_index, window) in windows.iter().enumerate() {
+        let words = window.words;
         if cancellation.is_cancelled() {
             bail!("Job cancelled.");
         }
+        job.payload["selection_section"] = json!(window_index + 1);
+        job.payload["selection_sections"] = json!(windows.len());
         state
             .progress(
                 job,
                 "selection",
-                0.45,
+                0.45 + 0.45 * word_offset as f64 / project.words.len().max(1) as f64,
                 &format!(
-                    "Finding moments in transcript section {}.",
-                    window_index + 1
+                    "Finding moments in transcript section {} of {}.",
+                    window_index + 1,
+                    windows.len()
                 ),
             )
             .await?;
-        let transcript = words
-            .iter()
-            .map(|word| format!("[{}-{}] {}", word.start_ms, word.end_ms, word.text))
-            .collect::<Vec<_>>()
-            .join(" ");
+        let transcript = &window.text;
         let duration_instruction = if requested_duration > 0 {
-            format!("Aim for clips lasting {requested_duration} milliseconds.")
+            format!(
+                "Each clip must last {requested_duration} milliseconds. Include multiple phrases to build a complete moment, not just one short sentence."
+            )
         } else {
             "Aim for complete moments lasting 15000 to 60000 milliseconds.".into()
         };
         let prompt = format!(
-            "Select up to {} self-contained interesting moments from this timed transcript. {duration_instruction} Return a JSON object with a clips array. Use transcript language for titles. Never invent dialogue. Transcript:\n{transcript}",
-            count.min(8)
+            "Select up to {} highlights from this timed transcript: surprising reactions, funny exchanges, tension with a payoff, or a complete useful explanation. Skip greetings and routine introductions. {duration_instruction} All timestamps are integer source milliseconds, not seconds. Rate interest from 0 to 100. Output language: {}. Write concise hook titles and explanations in this language, grounded in what was said. Do not translate to another language. Return a JSON object with a clips array. Transcript:\n{transcript}",
+            count.min(3),
+            output_language(&project)
         );
         let schema = json!({"type":"object","properties":{"clips":{"type":"array","maxItems":8,"items":{"type":"object","properties":{
             "start_ms":{"type":"integer"},"end_ms":{"type":"integer"},"title":{"type":"string"},
@@ -528,12 +623,21 @@ pub async fn generate(
             }
         }
         job.payload["suggestions"] = json!(suggestions);
-        job.payload["processed_windows"] = json!(window_index + 1);
+        word_offset += words.len();
+        job.payload["selection_word_offset"] = json!(word_offset);
         db::save_job(&state.db, job).await?;
     }
     suggestions.sort_by_key(|suggestion| std::cmp::Reverse(suggestion.score));
     let mut accepted = Vec::<Suggestion>::new();
-    for suggestion in suggestions {
+    for mut suggestion in suggestions {
+        let duration = if requested_duration > 0 {
+            requested_duration.min(project.duration_ms)
+        } else {
+            (suggestion.end_ms - suggestion.start_ms).clamp(15_000, 60_000)
+        };
+        let center = suggestion.start_ms + (suggestion.end_ms - suggestion.start_ms) / 2;
+        suggestion.start_ms = (center - duration / 2).clamp(0, project.duration_ms - duration);
+        suggestion.end_ms = suggestion.start_ms + duration;
         if accepted
             .iter()
             .any(|other| suggestion.start_ms < other.end_ms && suggestion.end_ms > other.start_ms)
@@ -621,7 +725,14 @@ pub async fn title(
         "Transcribe this clip before generating a title, or enter a title manually."
     );
     let schema = json!({"type":"object","properties":{"title":{"type":"string"}},"required":["title"],"additionalProperties":false});
-    let output = infer(state, &format!("Write one concise, accurate hook title in the transcript language. Return JSON with title. Transcript: {transcript}"), &schema.to_string(), cancellation).await?;
+    let project = db::project(&state.db, &clip.project_id)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.message))?;
+    let prompt = format!(
+        "Write one concise, accurate hook title. Output language: {}. Use this language without translating to another language. Return JSON with title. Transcript: {transcript}",
+        output_language(&project)
+    );
+    let output = infer(state, &prompt, &schema.to_string(), cancellation).await?;
     #[derive(Deserialize)]
     struct Hook {
         title: String,
@@ -662,4 +773,70 @@ pub async fn render_batch(
         state.emit("exports", None);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn speech_annotations_split_across_segments_do_not_become_caption_words() {
+        let segments = ["[Suara", "pesawat", "terbang]", "Lari,", "kocak!"];
+        let transcription = segments
+            .iter()
+            .enumerate()
+            .map(|(index, text)| {
+                json!({
+                    "text": text,
+                    "offsets": {"from": index * 1000, "to": index * 1000 + 500}
+                })
+            })
+            .collect::<Vec<_>>();
+        let words = parse_transcript(&json!({"transcription": transcription}), 5000);
+        assert_eq!(
+            words
+                .iter()
+                .map(|word| word.text.as_str())
+                .collect::<Vec<_>>(),
+            ["Lari,", "kocak!"]
+        );
+        assert_eq!(words[0].start_ms, 3000);
+        assert_eq!(words[1].end_ms, 4500);
+    }
+
+    #[test]
+    fn long_multilingual_transcripts_keep_all_source_words_within_context_budget() {
+        let words = (0..6740)
+            .map(|index| Word {
+                id: index.to_string(),
+                text: ["teman-teman", "これはテストです", "selamat", "नमस्ते"][index % 4].into(),
+                start_ms: index as i64 * 750,
+                end_ms: index as i64 * 750 + 500,
+                emphasis: false,
+                color: None,
+            })
+            .collect::<Vec<_>>();
+        let windows = transcript_windows(&words).unwrap();
+        assert!(windows.len() > 1);
+        assert_eq!(
+            windows
+                .iter()
+                .map(|window| window.words.len())
+                .sum::<usize>(),
+            words.len()
+        );
+        let mut expected = 0;
+        for window in windows {
+            assert!(window.text.len() <= TRANSCRIPT_WINDOW_BYTES);
+            assert_eq!(window.words[0].id, expected.to_string());
+            expected += window.words.len();
+            assert_eq!(window.words.last().unwrap().id, (expected - 1).to_string());
+            assert!(window.text.contains(&window.words[0].start_ms.to_string()));
+            assert!(
+                window
+                    .text
+                    .contains(&window.words.last().unwrap().end_ms.to_string())
+            );
+        }
+    }
 }
