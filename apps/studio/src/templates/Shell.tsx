@@ -1,0 +1,69 @@
+import { useEffect, type ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
+import {
+  FilmStripIcon,
+  FolderIcon,
+  DownloadSimpleIcon,
+  QueueIcon,
+  GearIcon,
+} from '@phosphor-icons/react';
+import { useAutosave, useEngineEvents } from '../hooks/use-engine';
+import { useEditor } from '../lib/editor-store';
+import { useText } from '../lib/i18n';
+import styles from '../styles/Studio.module.css';
+import { UpdateNotice } from '../organisms/UpdateNotice';
+
+export function Shell({ children }: { children: ReactNode }) {
+  const text = useText();
+  useEngineEvents();
+  useAutosave();
+  useEffect(() => {
+    function protect(event: BeforeUnloadEvent) {
+      if (useEditor.getState().dirty || useEditor.getState().saving) {
+        event.preventDefault();
+      }
+    }
+    window.addEventListener('beforeunload', protect);
+    return () => window.removeEventListener('beforeunload', protect);
+  }, []);
+  const links = [
+    { to: '/', label: text.studio, icon: FilmStripIcon },
+    { to: '/projects', label: text.library, icon: FolderIcon },
+    { to: '/exports', label: text.exports, icon: DownloadSimpleIcon },
+    { to: '/jobs', label: text.jobs, icon: QueueIcon },
+    { to: '/settings', label: text.settings, icon: GearIcon },
+  ];
+  return (
+    <div className={styles.shell}>
+      <aside className={styles.sidebar}>
+        <span className={styles.wordmark} aria-label="UnlimitedClipper">
+          UC
+        </span>
+        <nav className={styles.nav} aria-label={text.studio}>
+          {links.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end
+              className={({ isActive }) =>
+                styles.navLink + (isActive ? ' ' + styles.navActive : '')
+              }
+            >
+              <Icon aria-hidden="true" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <span className={styles.localLabel}>
+          UnlimitedClipper
+          <br />
+          {text.offline}
+        </span>
+      </aside>
+      <main className={styles.main}>
+        <UpdateNotice />
+        {children}
+      </main>
+    </div>
+  );
+}

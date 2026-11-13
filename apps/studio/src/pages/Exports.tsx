@@ -1,0 +1,50 @@
+import { useQuery } from '@tanstack/react-query';
+import { api, assetUrl } from '../lib/api';
+import { useText } from '../lib/i18n';
+import { date } from '../lib/format';
+import { QueryState } from '../molecules/QueryState';
+import styles from '../styles/Studio.module.css';
+
+export function Exports() {
+  const text = useText();
+  const query = useQuery({ queryKey: ['exports'], queryFn: api.exports });
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <h1>{text.exports}</h1>
+      </header>
+      <QueryState
+        pending={query.isPending}
+        error={query.error}
+        retry={() => void query.refetch()}
+      />
+      {!query.isPending && !query.error && !query.data?.length && (
+        <div className={styles.empty}>
+          <h2>{text.noExports}</h2>
+          <p>{text.noExportsDetail}</p>
+        </div>
+      )}
+      <div className={styles.list}>
+        {query.data?.map((item) => (
+          <article className={styles.listItem} key={item.id}>
+            <h2>{item.name}</h2>
+            <p>
+              {date(item.created_at)} · rev. {item.revision}
+            </p>
+            <div className={styles.headerActions}>
+              <a className={styles.downloadLink} href={assetUrl(item.asset_id, true)} download>
+                MP4
+              </a>
+              <a className={styles.downloadLink} href={assetUrl(item.srt_asset_id, true)} download>
+                SRT
+              </a>
+              <a className={styles.downloadLink} href={assetUrl(item.ass_asset_id, true)} download>
+                ASS
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
