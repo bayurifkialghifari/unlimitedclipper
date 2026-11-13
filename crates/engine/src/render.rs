@@ -164,9 +164,9 @@ pub async fn export_clip(
             "-i".into(),
             image.to_string_lossy().into_owned(),
         ]);
-        let (width, _) = document.layout.dimensions(document.resolution);
+        let (width, height) = document.layout.dimensions(document.resolution);
         let watermark_width = (width as f64 * document.watermark.scale).round() as u32;
-        filter.push_str(&format!(";[1:v]format=rgba,scale={watermark_width}:-1,colorchannelmixer=aa={}[mark];[composed][mark]overlay=x=(W-w)*{}:y=(H-h)*{}[branded]",
+        filter.push_str(&format!(";[1:v]format=rgba,scale={watermark_width}:{height}:force_original_aspect_ratio=decrease,colorchannelmixer=aa={}[mark];[composed][mark]overlay=x=(W-w)*{}:y=(H-h)*{}[branded]",
             document.watermark.opacity, document.watermark.x, document.watermark.y));
         subtitle_input = "branded";
     }

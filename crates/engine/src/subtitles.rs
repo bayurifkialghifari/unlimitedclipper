@@ -84,8 +84,46 @@ pub fn ass(document: &EditDocument) -> String {
     let title_size = (title.size as f64 * size_scale).round() as u32;
     let outline = caption.outline * size_scale;
     let border_style = if caption.preset == "box" { 3 } else { 1 };
+    let watermark_x = (document.watermark.x * width as f64)
+        .round()
+        .clamp(8.0, width as f64 - 8.0);
+    let watermark_y = (document.watermark.y * height as f64)
+        .round()
+        .clamp(8.0, height as f64 - 8.0);
+    let right = document.watermark.x > 0.5;
+    let bottom = document.watermark.y > 0.5;
+    let watermark_alignment = match (right, bottom) {
+        (false, false) => 7,
+        (true, false) => 9,
+        (false, true) => 1,
+        (true, true) => 3,
+    };
+    let horizontal_space = if right {
+        watermark_x - 8.0
+    } else {
+        width as f64 - watermark_x - 8.0
+    };
+    let vertical_space = if bottom {
+        watermark_y - 8.0
+    } else {
+        height as f64 - watermark_y - 8.0
+    };
+    let longest_line = document
+        .watermark
+        .text
+        .lines()
+        .map(|line| line.chars().count())
+        .max()
+        .unwrap_or(1)
+        .max(1);
+    let line_count = document.watermark.text.lines().count().max(1);
+    let watermark_size = (width as f64 * document.watermark.scale * 0.22)
+        .min(horizontal_space / (longest_line as f64 * 1.25))
+        .min(vertical_space / (line_count as f64 * 1.5))
+        .max(1.0)
+        .round() as u32;
     let mut result = format!(
-        "[Script Info]\nScriptType: v4.00+\nPlayResX: {width}\nPlayResY: {height}\nWrapStyle: 2\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Caption,{},{} ,{},{},{},&H80000000,0,0,0,0,100,100,0,0,{border_style},{outline},0,5,20,20,20,1\nStyle: Title,{},{} ,{},&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,{},3,0,5,30,30,30,1\nStyle: Watermark,Noto Sans,{},{} ,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,1,0,7,0,0,0,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
+        "[Script Info]\nScriptType: v4.00+\nPlayResX: {width}\nPlayResY: {height}\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Caption,{},{} ,{},{},{},&H80000000,0,0,0,0,100,100,0,0,{border_style},{outline},0,5,20,20,20,1\nStyle: Title,{},{} ,{},&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,{},3,0,5,30,30,30,1\nStyle: Watermark,Noto Sans,{},{} ,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,1,0,7,0,0,0,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
         caption.font,
         caption_size,
         color(&caption.color),
@@ -95,7 +133,7 @@ pub fn ass(document: &EditDocument) -> String {
         title_size,
         color(&title.color),
         if title.preset == "boxed" { 3 } else { 1 },
-        (width as f64 * document.watermark.scale * 0.22).round() as u32,
+        watermark_size,
         color(&document.watermark.color),
     );
     let caption_position = format!(
@@ -170,9 +208,8 @@ pub fn ass(document: &EditDocument) -> String {
     if document.watermark.mode == "text" && !document.watermark.text.is_empty() {
         let opacity = ((1.0 - document.watermark.opacity) * 255.0).round() as u32;
         let tags = format!(
-            "\\an7\\pos({},{})\\alpha&H{opacity:02X}&",
-            (document.watermark.x * width as f64).round(),
-            (document.watermark.y * height as f64).round()
+            "\\an{watermark_alignment}\\pos({},{})\\alpha&H{opacity:02X}&",
+            watermark_x, watermark_y
         );
         result.push_str(&dialogue(
             3,
