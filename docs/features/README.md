@@ -1,0 +1,15 @@
+# Feature documentation
+
+- [Source import](source-import.md)
+- [Local AI setup](local-ai.md)
+- [Clip discovery](clip-discovery.md)
+- [Caption editor](caption-editor.md)
+- [Title editor](title-editor.md)
+- [Smart crop](smart-crop.md)
+- [Gaming split layout](gaming-layout.md)
+- [Watermark](watermark.md)
+- [Render and export](render-export.md)
+- [Project and clip history](project-history.md)
+- [Settings and diagnostics](settings-diagnostics.md)
+- [Automatic updates](auto-update.md)
+- [Local browser studio](local-web.md)

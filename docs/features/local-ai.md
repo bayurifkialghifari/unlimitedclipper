@@ -1,0 +1,25 @@
+# Local AI setup
+
+Requirement: AI-01 / TXT-01. Status: implemented; validation coverage is recorded in ../validation.md.
+
+## Behavior
+
+Install hash-verified Whisper and Qwen models. Downloads resume from partial files and remain usable offline. Small speech is default; medium is an optional quality upgrade.
+
+Installed models have a readiness marker bound to their SHA-256 and modification timestamp. Repair rehashes the bytes. Importing replacement models is blocked during active processing. Whisper small and Qwen3 4B have passed real local inference; the optional medium model remains separately unverified.
+
+## Interface
+
+GET /api/v1/models; POST /api/v1/models/{id}/download; POST /api/v1/models/{id}/import
+
+## States and failure handling
+
+Every data view provides empty, loading, success, and error states. Disabled actions explain their prerequisites. Missing models explain what to install. Invalid checksums never activate a model. Model installation does not overwrite a working version. Show actual download sizes and errors.
+
+## Acceptance scenarios
+
+Verify interrupted/resumed downloads, wrong size/hash, cancellation, existing models, and offline processing.
+
+## Evidence
+
+Record completed runtime and interaction checks in ../validation.md. This document specifies required behavior; it does not claim unrun checks have passed.
