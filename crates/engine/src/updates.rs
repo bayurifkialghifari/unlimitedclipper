@@ -68,16 +68,22 @@ async fn persist(state: &AppState, update: &UpdateState) -> Result<()> {
     Ok(())
 }
 
-async fn bounded(state: &AppState, url: &str, maximum: usize) -> Result<Vec<u8>> {
-    let mut stream = state
-        .client
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes_stream();
+async fn bounded(
+    state: &AppState,
+    url: &str,
+    maximum: usize,
+    cancellation: &CancellationToken,
+) -> Result<Vec<u8>> {
+    let response = tokio::select! {
+        response = state.client.get(url).send() => response?.error_for_status()?,
+        _ = cancellation.cancelled() => anyhow::bail!("Job cancelled."),
+    };
+    let mut stream = response.bytes_stream();
     let mut bytes = Vec::new();
-    while let Some(chunk) = stream.next().await {
+    while let Some(chunk) = tokio::select! {
+        chunk = stream.next() => chunk,
+        _ = cancellation.cancelled() => anyhow::bail!("Job cancelled."),
+    } {
         let chunk = chunk?;
         anyhow::ensure!(
             bytes.len() + chunk.len() <= maximum,
@@ -99,8 +105,15 @@ pub async fn download(
         "Configure a signed component update feed in Settings."
     );
     let key = trusted_key(state)?;
-    let envelope: Envelope =
-        serde_json::from_slice(&bounded(state, &settings.component_feed, 2 * 1024 * 1024).await?)?;
+    let envelope: Envelope = serde_json::from_slice(
+        &bounded(
+            state,
+            &settings.component_feed,
+            2 * 1024 * 1024,
+            cancellation,
+        )
+        .await?,
+    )?;
     let signature = Signature::decode(&envelope.signature)?;
     key.verify(envelope.manifest.as_bytes(), &signature, false)?;
     let manifest: Manifest = serde_json::from_str(&envelope.manifest)?;
@@ -132,13 +145,11 @@ pub async fn download(
     let relative = format!("components/{}-{}", manifest.version, job.id);
     let directory = state.root.join(&relative);
     let archive = state.root.join("temporary").join(format!("{}.zip", job.id));
-    let mut stream = state
-        .client
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes_stream();
+    let response = tokio::select! {
+        response = state.client.get(url).send() => response?.error_for_status()?,
+        _ = cancellation.cancelled() => anyhow::bail!("Job cancelled."),
+    };
+    let mut stream = response.bytes_stream();
     let mut file = tokio::fs::File::create(&archive).await?;
     let mut size = 0_u64;
     let mut reported = 0_u64;

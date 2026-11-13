@@ -89,6 +89,8 @@ impl AppState {
             restart: Arc::new(Notify::new()),
             client: reqwest::Client::builder()
                 .user_agent("UnlimitedClipper/0.1.0")
+                .connect_timeout(std::time::Duration::from_secs(15))
+                .read_timeout(std::time::Duration::from_secs(30))
                 .build()?,
             events,
             sequence: Arc::new(AtomicU64::new(0)),

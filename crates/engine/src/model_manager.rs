@@ -139,7 +139,10 @@ pub async fn download(
         if offset > 0 {
             request = request.header(reqwest::header::RANGE, format!("bytes={offset}-"));
         }
-        let response = request.send().await?.error_for_status()?;
+        let response = tokio::select! {
+            response = request.send() => response?.error_for_status()?,
+            _ = cancellation.cancelled() => bail!("Job cancelled."),
+        };
         let append = offset > 0 && response.status() == reqwest::StatusCode::PARTIAL_CONTENT;
         if append {
             let expected = format!("bytes {offset}-");
