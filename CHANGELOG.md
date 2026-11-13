@@ -4,6 +4,9 @@
 
 ### Added
 
+- A manual ARM64 APK build workflow and package inspection for SDK metadata, native architecture,
+  signature, checksum, and 16 KB alignment. Artifact delivery remains pending the first full build.
+
 - An Android Tauri host and native media bridge, scoped document import/export, foreground media
   processing, and a shared studio with visible preview limitations. Android runtime remains untested.
 

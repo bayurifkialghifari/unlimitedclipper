@@ -18,6 +18,7 @@ if (!env.JAVA_HOME && existsSync(localJdk)) {
 env.UC_ANDROID_MEDIA_MAVEN ??= path.join(root, '.cache/android-native-tools/maven');
 env.GRADLE_OPTS ??= '-Dorg.gradle.jvmargs=-Xmx2048m';
 env.CARGO_PROFILE_DEV_DEBUG ??= '0';
+env.CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS ??= '-C link-arg=-Wl,-z,max-page-size=16384';
 if (args[0] === 'init' && existsSync(path.join(root, 'apps/desktop/src-tauri/gen/android/app'))) {
   throw new Error(
     'The Android project is checked in. Build it directly to preserve its platform configuration.',
