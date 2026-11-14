@@ -39,12 +39,15 @@ const output = path.resolve(option('out') ?? path.join(root, '.cache/releases'))
 await mkdir(output, { recursive: true });
 const cli = path.join(root, 'node_modules/@tauri-apps/cli/tauri.js');
 function sign(filename, bindVersion = false) {
+  const env = { ...process.env };
+  // The build's string key must not conflict with the explicit signing key path.
+  delete env.TAURI_SIGNING_PRIVATE_KEY;
   const args = [cli, 'signer', 'sign', '-f', path.resolve(key)];
   if (bindVersion) {
     args.push('--app-version', version);
   }
   args.push(filename);
-  execFileSync(process.execPath, args, { stdio: 'ignore', windowsHide: true });
+  execFileSync(process.execPath, args, { env, stdio: 'ignore', windowsHide: true });
 }
 const artifact = path.resolve(file);
 const hash = createHash('sha256');

@@ -27,6 +27,8 @@
 
 ### Fixed
 
+- Release signing no longer passes both a string key and a file key to the Tauri signer.
+  The real ARM64 preview installer passed version-bound signature and checksum verification.
 - Caption/layer timing after removing source ranges, split output geometry, concat sample aspect
   ratio, original soundtrack preservation under B-roll, and proposal timing provenance.
 - Retryable temporary checkpoints hidden by recent-history limits; cleanup now reports reclaimed
