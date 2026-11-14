@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdir, mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cargoEnvironment, root } from './cargo.mjs';
+import { fixtureDirectory, modelDirectory } from './test-paths.mjs';
 
 const environment = cargoEnvironment();
 const target = environment.CARGO_BUILD_TARGET;
@@ -43,6 +44,8 @@ async function start() {
       UC_DEV: '1',
       UC_DATA_DIR: directory,
       UC_PORT: new URL(origin).port,
+      UC_MODELS_DIR: modelDirectory,
+      UC_MODELS_READ_ONLY: '1',
     },
     windowsHide: true,
     stdio: ['ignore', 'ignore', 'pipe'],
@@ -100,7 +103,7 @@ async function fingerprint(filename) {
 try {
   await start();
   const imported = await api('/imports/local', {
-    path: path.join(root, '.cache/fixtures/speech-face.mp4'),
+    path: path.join(fixtureDirectory, 'speech-face.mp4'),
   });
   const projectId = (await wait(imported.id)).project_id;
   const clips = [];
@@ -111,6 +114,26 @@ try {
       end_ms: 5000,
     });
     clip.document.resolution = 720;
+    clip.document.segments = [
+      { start_ms: 1000, end_ms: 2500 },
+      { start_ms: 3500, end_ms: 5000 },
+    ];
+    clip.document.visual_layers = [
+      {
+        id: 'recovery-note',
+        kind: 'note',
+        enabled: true,
+        start_ms: 200,
+        end_ms: 1200,
+        text: 'Recovery fixture',
+        x: 0.5,
+        y: 0.2,
+        color: '#FFCB66',
+        size: 60,
+        crop: null,
+        secondary_crop: null,
+      },
+    ];
     clip.document.title.text = 'IMMUTABLE REVISION';
     clips.push(await api('/clips/' + clip.id, clip, 'PUT'));
   }

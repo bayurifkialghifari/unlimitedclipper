@@ -1,0 +1,48 @@
+name: Native editorial media
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/engine/**'
+      - 'apps/studio/**'
+      - 'scripts/validate-editorial.mjs'
+      - 'scripts/validate-browser.mjs'
+      - 'tests/browser/**'
+      - '.github/workflows/editorial-media.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-arm64:
+    runs-on: windows-11-arm
+    timeout-minutes: 30
+    env:
+      UC_USE_MSVC: '1'
+      UC_TARGET: aarch64-pc-windows-msvc
+      CARGO_BUILD_TARGET: aarch64-pc-windows-msvc
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: stable
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/setup-tools.mjs --arch=arm64 --family=ffmpeg
+      - run: node scripts/setup-assets.mjs --arch=arm64
+      - run: node scripts/generate-fixtures.mjs
+      - run: cargo build --locked -p unlimitedclipper-engine
+      - run: node scripts/validate-editorial.mjs
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        if: always()
+        with:
+          name: editorial-media-evidence
+          path: .cache/editorial-validation.json
+          if-no-files-found: warn
