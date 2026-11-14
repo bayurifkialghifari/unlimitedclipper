@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@unlimitedclipper/ui';
 import {
@@ -21,6 +21,8 @@ import { time } from '../lib/format';
 import type { CropRect, EditDocument, Project } from '../types';
 import styles from '../styles/Studio.module.css';
 import { CropHandle } from '../molecules/CropHandle';
+import { sourceSegments } from '../lib/timeline';
+import { usePreviewFrame } from '../hooks/use-preview-frame';
 
 function currentCrop(document: EditDocument, milliseconds: number): CropRect {
   let previous = { time_ms: 0, x: document.crop.x, y: document.crop.y };
@@ -63,11 +65,21 @@ function videoStyle(
   };
 }
 
-export function VideoPreview({ project, onImport }: { project?: Project; onImport: () => void }) {
+export function VideoPreview({
+  project,
+  onImport,
+  active = true,
+}: {
+  project?: Project;
+  onImport: () => void;
+  active?: boolean;
+}) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
   const playhead = useEditor((state) => state.playhead);
   const seekRequest = useEditor((state) => state.seekRequest);
+  const stage = useRef<HTMLDivElement>(null);
+  const sceneIndex = useRef(0);
   const frame = useRef<HTMLDivElement>(null);
   const primary = useRef<HTMLVideoElement>(null);
   const secondary = useRef<HTMLVideoElement>(null);
@@ -88,10 +100,17 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
   const hasDocument = Boolean(document);
   const clipId = draft?.id;
   const captionsUrl = clipId ? '/api/v1/clips/' + clipId + '/subtitles?format=vtt' : undefined;
-  const start = document?.start_ms ?? 0;
-  const end = document?.end_ms ?? project?.duration_ms ?? 0;
+  const segmentKey = JSON.stringify(
+    document ? sourceSegments(document) : [{ start_ms: 0, end_ms: project?.duration_ms ?? 0 }],
+  );
+  const segments = useMemo(
+    () => JSON.parse(segmentKey) as { start_ms: number; end_ms: number }[],
+    [segmentKey],
+  );
+  const duration = segments.reduce((sum, scene) => sum + scene.end_ms - scene.start_ms, 0);
   const layout = document?.layout ?? 'landscape';
   const aspect = layout === 'square' ? 1 : layout === 'landscape' ? 16 / 9 : 9 / 16;
+  const frameWidth = usePreviewFrame(stage, aspect);
   const crop = document ? currentCrop(document, playhead) : { x: 0, y: 0, width: 1, height: 1 };
 
   useEffect(() => {
@@ -99,30 +118,36 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
       return;
     }
     const observer = new ResizeObserver(([entry]) => {
-      setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+      if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+        setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+      }
     });
     observer.observe(frame.current);
     return () => observer.disconnect();
   }, [project?.id]);
 
   useEffect(() => {
-    if (primary.current) {
-      primary.current.currentTime = start / 1000;
+    const position = Math.min(duration, useEditor.getState().playhead);
+    let offset = 0;
+    for (let index = 0; index < segments.length; index += 1) {
+      const scene = segments[index];
+      const length = scene.end_ms - scene.start_ms;
+      if (position < offset + length || index === segments.length - 1) {
+        sceneIndex.current = index;
+        const seconds = (scene.start_ms + position - offset) / 1000;
+        for (const video of [primary.current, secondary.current]) {
+          if (video) {
+            video.currentTime = seconds;
+            if (!active) {
+              video.pause();
+            }
+          }
+        }
+        break;
+      }
+      offset += length;
     }
-  }, [draft?.id, start]);
-
-  useEffect(() => {
-    if (!seekRequest || seekRequest.clipId !== clipId) {
-      return;
-    }
-    const milliseconds = Math.max(start, Math.min(end, start + seekRequest.positionMs));
-    if (primary.current) {
-      primary.current.currentTime = milliseconds / 1000;
-    }
-    if (secondary.current) {
-      secondary.current.currentTime = milliseconds / 1000;
-    }
-  }, [seekRequest, clipId, start, end]);
+  }, [segments, duration, active, clipId, seekRequest]);
 
   useEffect(() => {
     if (!canvas.current || !hasDocument || !fonts.data) {
@@ -185,20 +210,41 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
 
   useEffect(() => {
     const video = primary.current;
-    if (!video || !project) {
+    if (!video || !project || !active) {
       return;
     }
     let handle = 0;
     let lastStoreUpdate = 0;
     let busy = false;
     const update = () => {
-      const milliseconds = video.currentTime * 1000;
-      if (milliseconds >= end && !video.paused) {
-        video.pause();
-        secondary.current?.pause();
+      let scene = segments[sceneIndex.current];
+      if (!scene) {
+        return;
       }
+      if (video.currentTime * 1000 >= scene.end_ms && (!video.paused || video.ended)) {
+        if (sceneIndex.current < segments.length - 1) {
+          sceneIndex.current += 1;
+          scene = segments[sceneIndex.current];
+          video.currentTime = scene.start_ms / 1000;
+          if (video.paused) {
+            void video.play().catch(() => setVideoError(project.id));
+          }
+        } else {
+          video.pause();
+          secondary.current?.pause();
+        }
+      }
+      const offset = segments
+        .slice(0, sceneIndex.current)
+        .reduce((sum, item) => sum + item.end_ms - item.start_ms, 0);
+      const milliseconds =
+        offset +
+        Math.max(
+          0,
+          Math.min(scene.end_ms - scene.start_ms, video.currentTime * 1000 - scene.start_ms),
+        );
       if (performance.now() - lastStoreUpdate > 80) {
-        useEditor.getState().setPlayhead(Math.max(0, milliseconds - start));
+        useEditor.getState().setPlayhead(milliseconds);
         lastStoreUpdate = performance.now();
       }
       const subtitle = renderer.current;
@@ -211,7 +257,7 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
                 expectedDisplayTime: performance.now(),
                 width: size.width,
                 height: size.height,
-                mediaTime: Math.max(0, milliseconds - start) / 1000,
+                mediaTime: milliseconds / 1000,
               },
               !playing,
             ),
@@ -228,17 +274,10 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
     };
     handle = requestAnimationFrame(update);
     return () => cancelAnimationFrame(handle);
-  }, [project, start, end, size.width, size.height, playing]);
+  }, [project, segments, active, size.width, size.height, playing]);
 
   function seek(milliseconds: number) {
-    const value = Math.max(start, Math.min(end, milliseconds));
-    if (primary.current) {
-      primary.current.currentTime = value / 1000;
-    }
-    if (secondary.current) {
-      secondary.current.currentTime = value / 1000;
-    }
-    useEditor.getState().setPlayhead(value - start);
+    useEditor.getState().seekTo(Math.max(0, Math.min(duration, milliseconds)));
   }
 
   async function togglePlay() {
@@ -246,8 +285,8 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
       return;
     }
     if (primary.current.paused) {
-      if (primary.current.currentTime * 1000 >= end - 50) {
-        seek(start);
+      if (playhead >= duration - 50) {
+        seek(0);
       }
       await primary.current.play();
       await secondary.current?.play();
@@ -273,9 +312,9 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
     <section className={styles.previewPanel} aria-label={text.source}>
       <div className={styles.previewTop}>
         <span>{project ? project.width + ' × ' + project.height : text.source}</span>
-        <span>{text.offline}</span>
+        <span>{text.sourcePreviewHint}</span>
       </div>
-      <div className={styles.previewStage}>
+      <div ref={stage} className={styles.previewStage}>
         {!project ? (
           <div className={styles.empty}>
             <FilmStripIcon className={styles.emptyIcon} aria-hidden="true" />
@@ -289,7 +328,7 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
           <div
             ref={frame}
             className={styles.videoFrame}
-            style={{ aspectRatio: aspect, maxWidth: aspect * 490 }}
+            style={{ aspectRatio: aspect, width: frameWidth }}
           >
             {layout === 'blur' && (
               <div className={styles.videoRegion}>
@@ -331,7 +370,7 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
                 )}
                 onLoadedMetadata={() => {
                   setVideoError(null);
-                  seek(start);
+                  seek(0);
                 }}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
@@ -460,7 +499,7 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
             <Button
               variant="ghost"
               aria-label={text.undo + ' 5s'}
-              onClick={() => seek(start + playhead - 5000)}
+              onClick={() => seek(playhead - 5000)}
             >
               <ArrowCounterClockwiseIcon size={19} />
             </Button>
@@ -475,7 +514,7 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
             <Button
               variant="ghost"
               aria-label={text.redo + ' 5s'}
-              onClick={() => seek(start + playhead + 5000)}
+              onClick={() => seek(playhead + 5000)}
             >
               <ArrowClockwiseIcon size={19} />
             </Button>
@@ -483,14 +522,14 @@ export function VideoPreview({ project, onImport }: { project?: Project; onImpor
           <input
             type="range"
             min={0}
-            max={end - start}
+            max={duration}
             step={10}
-            value={Math.min(playhead, end - start)}
+            value={Math.min(playhead, duration)}
             aria-label={text.playhead}
-            onChange={(event) => seek(start + Number(event.target.value))}
+            onChange={(event) => seek(Number(event.target.value))}
           />
           <span>
-            {time(playhead)} / {time(end - start)}
+            {time(playhead)} / {time(duration)}
           </span>
         </div>
       )}

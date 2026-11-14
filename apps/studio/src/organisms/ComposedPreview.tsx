@@ -12,6 +12,7 @@ import { useEditor } from '../lib/editor-store';
 import { flushEditor } from '../lib/save';
 import { useText } from '../lib/i18n';
 import { outputDuration } from '../lib/timeline';
+import { usePreviewFrame } from '../hooks/use-preview-frame';
 import type { EditDocument, Job } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -24,7 +25,7 @@ function identity(document: EditDocument) {
   return JSON.stringify(video);
 }
 
-export function ComposedPreview() {
+export function ComposedPreview({ active = true }: { active?: boolean }) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
   const seek = useEditor((state) => state.seekRequest);
@@ -35,7 +36,9 @@ export function ComposedPreview() {
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const frame = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const renderer = useRef<JASSUB | null>(null);
+  const renderingActive = useRef(false);
   const jobs = useQuery({
     queryKey: ['preview-jobs', jobId],
     queryFn: api.jobs,
@@ -51,6 +54,16 @@ export function ComposedPreview() {
   const clipId = draft?.id;
   const duration = document ? outputDuration(document) : 0;
   const stale = Boolean(document && snapshot && identity(document) !== snapshot);
+  const aspect =
+    document?.layout === 'square' ? 1 : document?.layout === 'landscape' ? 16 / 9 : 9 / 16;
+  const frameWidth = usePreviewFrame(stage, aspect);
+
+  useEffect(() => {
+    renderingActive.current = active && !stale;
+    if (!active || stale) {
+      video.current?.pause();
+    }
+  }, [active, stale]);
 
   useEffect(() => {
     if (!asset) {
@@ -118,7 +131,7 @@ export function ComposedPreview() {
     let handle = 0;
     let working = false;
     const update = () => {
-      if (!working && video.current) {
+      if (!working && video.current && renderingActive.current) {
         working = true;
         void subtitle.ready
           .then(() =>
@@ -148,7 +161,7 @@ export function ComposedPreview() {
   }, [fonts.data, asset]);
 
   useEffect(() => {
-    if (!document || !draft || !asset) {
+    if (!document || !draft || !asset || stale) {
       return;
     }
     const controller = new AbortController();
@@ -174,16 +187,14 @@ export function ComposedPreview() {
         }
       });
     return () => controller.abort();
-  }, [document, draft, asset, fonts.data]);
+  }, [document, draft, asset, fonts.data, stale]);
 
   useEffect(() => {
-    if (video.current && seek && seek.clipId === clipId) {
+    if (active && !stale && video.current && seek && seek.clipId === clipId) {
       video.current.currentTime = Math.min(duration, seek.positionMs) / 1000;
     }
-  }, [seek, clipId, duration]);
+  }, [seek, clipId, duration, active, stale]);
 
-  const aspect =
-    document?.layout === 'square' ? 1 : document?.layout === 'landscape' ? 16 / 9 : 9 / 16;
   return (
     <section className={styles.previewPanel} aria-label={text.renderPreview}>
       <div className={styles.previewTop}>
@@ -192,46 +203,57 @@ export function ComposedPreview() {
         </Button>
         {busy && <span role="status">{text.running}</span>}
       </div>
-      <div
-        ref={frame}
-        style={{
-          position: 'relative',
-          aspectRatio: aspect,
-          width: 'min(100%, ' + 65 * aspect + 'vh)',
-        }}
-      >
-        {asset ? (
-          <video
-            ref={video}
-            src={assetUrl(asset)}
-            controls
-            playsInline
-            aria-label={text.renderPreview}
-            style={{ width: '100%', height: '100%' }}
-            onTimeUpdate={() =>
-              useEditor.getState().setPlayhead((video.current?.currentTime ?? 0) * 1000)
-            }
-            onError={() => setError(text.previewError)}
-          >
-            <track
-              kind="captions"
-              src={'/api/v1/clips/' + clipId + '/subtitles?format=vtt&timeline=output'}
-            />
-          </video>
-        ) : (
-          <p className={styles.hint}>{text.renderPreview}</p>
-        )}
-        <canvas
-          ref={canvas}
-          aria-hidden="true"
+      <div ref={stage} className={styles.previewStage}>
+        <div
+          ref={frame}
           style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
+            position: 'relative',
+            aspectRatio: aspect,
+            width: frameWidth,
           }}
-        />
+        >
+          {asset ? (
+            <video
+              ref={video}
+              src={assetUrl(asset)}
+              controls={active && !stale}
+              playsInline
+              aria-label={text.renderPreview}
+              style={{ width: '100%', height: '100%' }}
+              onPlay={() => {
+                if (!active || stale) {
+                  video.current?.pause();
+                }
+              }}
+              onTimeUpdate={() => {
+                if (active && !stale) {
+                  useEditor.getState().setPlayhead((video.current?.currentTime ?? 0) * 1000);
+                }
+              }}
+              onError={() => setError(text.previewError)}
+            >
+              <track
+                kind="captions"
+                src={'/api/v1/clips/' + clipId + '/subtitles?format=vtt&timeline=output'}
+              />
+            </video>
+          ) : (
+            <p className={styles.hint}>{text.renderPreview}</p>
+          )}
+          <canvas
+            key={asset}
+            ref={canvas}
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              visibility: stale ? 'hidden' : 'visible',
+            }}
+          />
+        </div>
       </div>
       {stale && (
         <p role="status" className={styles.hint}>

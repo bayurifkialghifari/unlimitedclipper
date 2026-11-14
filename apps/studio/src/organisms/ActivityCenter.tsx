@@ -17,12 +17,20 @@ export function ActivityCenter() {
   const location = useLocation();
   const [top, setTop] = useState(16);
   useEffect(() => {
-    const header =
-      document.querySelector('[data-page-header]') ?? document.querySelector('main > header');
+    let header: Element | null = null;
     let frame = 0;
     function update() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
+        const current =
+          document.querySelector('[data-page-header]') ?? document.querySelector('main > header');
+        if (current !== header) {
+          observer.disconnect();
+          header = current;
+          if (header) {
+            observer.observe(header);
+          }
+        }
         setTop(
           Math.max(
             16,
@@ -32,14 +40,17 @@ export function ActivityCenter() {
       });
     }
     const observer = new ResizeObserver(update);
-    if (header) {
-      observer.observe(header);
+    const mutation = new MutationObserver(update);
+    const main = document.querySelector('main');
+    if (main) {
+      mutation.observe(main, { childList: true, subtree: true });
     }
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
     update();
     return () => {
       observer.disconnect();
+      mutation.disconnect();
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
       cancelAnimationFrame(frame);
@@ -55,6 +66,25 @@ export function ActivityCenter() {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const completedKey = JSON.stringify(
+    (query.data ?? [])
+      .filter((job) => job.status === 'completed' && job.updated_at >= openedAt)
+      .map((job) => ({ id: job.id, updatedAt: job.updated_at })),
+  );
+  useEffect(() => {
+    const completed = JSON.parse(completedKey) as { id: string; updatedAt: number }[];
+    const timers = completed.map((job) =>
+      window.setTimeout(
+        () => {
+          setDismissed((current) => [...new Set([...current, job.id + ':completed'])]);
+        },
+        Math.max(0, job.updatedAt + 6000 - Date.now()),
+      ),
+    );
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [completedKey]);
   const jobs = (query.data ?? [])
     .filter(
       (job) =>

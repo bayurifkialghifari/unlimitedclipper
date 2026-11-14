@@ -34,8 +34,12 @@ test('imports, edits, saves, reopens, renders captions and exports real media', 
   await expect(page.getByRole('button', { name: /Browser caption fixture/ })).toBeVisible();
   await page.getByRole('tab', { name: 'Caption', exact: true }).click();
   await page.getByRole('button', { name: 'Tambah kata caption' }).click();
-  await page.getByLabel('Teks', { exact: true }).fill('LOCAL');
-  await expect(page.getByRole('button', { name: 'LOCAL', exact: true })).toBeVisible();
+  await page.getByRole('tabpanel').getByLabel('Teks', { exact: true }).fill('LOCAL');
+  await expect(
+    page
+      .getByRole('region', { name: 'Transkrip' })
+      .getByRole('button', { name: 'LOCAL', exact: true }),
+  ).toBeVisible();
   const captionPosition = page.getByLabel('Posisi vertikal (%)', { exact: true });
   await captionPosition.focus();
   await page.keyboard.press('ArrowRight');
@@ -169,18 +173,20 @@ test('edits source segments and local layers, then plays a composed preview', as
   await page.keyboard.press('ArrowRight');
   await audio.getByLabel('End (s)', { exact: true }).fill('0.5');
   await expect(page.getByText('Saved locally', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Edited', exact: true }).click();
   await page.getByRole('button', { name: 'Render edited preview', exact: true }).click();
-  await expect(page.locator('video[src*="/api/v1/assets/"]')).toBeVisible({ timeout: 90000 });
+  const composed = page.getByRole('region', { name: 'Render edited preview', exact: true });
+  await expect(composed.locator('video')).toBeVisible({ timeout: 90000 });
   await expect
-    .poll(() => page.locator('video').evaluate((video: HTMLVideoElement) => video.readyState))
+    .poll(() => composed.locator('video').evaluate((video: HTMLVideoElement) => video.readyState))
     .toBeGreaterThan(1);
-  await page.locator('video').evaluate(async (video: HTMLVideoElement) => {
+  await composed.locator('video').evaluate(async (video: HTMLVideoElement) => {
     await video.play();
   });
   await expect
-    .poll(() => page.locator('video').evaluate((video: HTMLVideoElement) => video.currentTime))
+    .poll(() => composed.locator('video').evaluate((video: HTMLVideoElement) => video.currentTime))
     .toBeGreaterThan(0.1);
-  await page.locator('video').evaluate((video: HTMLVideoElement) => video.pause());
+  await composed.locator('video').evaluate((video: HTMLVideoElement) => video.pause());
   await note.getByLabel('Text', { exact: true }).fill('Updated note');
   await expect(
     page.getByText('Video edits changed. Refresh the preview to review the current edit.'),
@@ -188,6 +194,7 @@ test('edits source segments and local layers, then plays a composed preview', as
   await page.screenshot({ path: 'test-results/editorial-studio.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.getByRole('button', { name: 'Clip options', exact: true }).click();
   await timeline
     .getByRole('group', { name: 'Add camera frame', exact: true })
     .getByRole('button', { name: 'Delete', exact: true })

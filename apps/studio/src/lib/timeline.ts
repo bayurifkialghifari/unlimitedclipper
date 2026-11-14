@@ -23,5 +23,41 @@ export function outputToSource(document: EditDocument, milliseconds: number): nu
     }
     offset += duration;
   }
-  return milliseconds === offset ? document.end_ms : null;
+  return milliseconds === offset ? (sourceSegments(document).at(-1)?.end_ms ?? null) : null;
+}
+
+export function identifiedSegments(document: EditDocument): SourceSegment[] {
+  return sourceSegments(document).map((segment, index) => ({
+    ...segment,
+    id: segment.id ?? `scene-${index}-${segment.start_ms}-${segment.end_ms}`,
+  }));
+}
+
+export function removeOutputRange(
+  document: EditDocument,
+  start: number,
+  end: number,
+): SourceSegment[] {
+  let offset = 0;
+  return identifiedSegments(document).flatMap((segment) => {
+    const length = segment.end_ms - segment.start_ms;
+    const left = Math.max(0, Math.min(length, start - offset));
+    const right = Math.max(0, Math.min(length, end - offset));
+    offset += length;
+    if (right <= left) {
+      return [segment];
+    }
+    const retained: SourceSegment[] = [];
+    if (left > 0) {
+      retained.push({ ...segment, end_ms: segment.start_ms + left });
+    }
+    if (right < length) {
+      retained.push({
+        ...segment,
+        id: left > 0 ? crypto.randomUUID() : segment.id,
+        start_ms: segment.start_ms + right,
+      });
+    }
+    return retained;
+  });
 }

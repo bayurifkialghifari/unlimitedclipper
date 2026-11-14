@@ -10,6 +10,8 @@ type EditorState = {
   saving: boolean;
   error: string | null;
   selectedWords: string[];
+  timelinePending: boolean;
+  timelineSelection: { kind: 'scene' | 'visual' | 'audio'; id: string } | null;
   playhead: number;
   seekRequest: { clipId: string | null; positionMs: number } | null;
   history: Clip[];
@@ -36,6 +38,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   saving: false,
   error: null,
   selectedWords: [],
+  timelinePending: false,
+  timelineSelection: null,
   playhead: 0,
   seekRequest: null,
   history: [],
@@ -62,6 +66,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       history: [],
       future: [],
       selectedWords: [],
+      timelineSelection: null,
       playhead: 0,
       error: null,
     }),

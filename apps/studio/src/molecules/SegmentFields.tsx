@@ -43,6 +43,7 @@ export function SegmentFields({
       <Button
         onClick={() =>
           onApply({
+            ...segment,
             start_ms: Math.round(Number(start) * 1000),
             end_ms: Math.round(Number(end) * 1000),
           })

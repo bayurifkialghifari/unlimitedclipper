@@ -16,6 +16,28 @@ audio frequency order, duration, AV start timing, full decode, subtitle order, a
 revision checks. Preview created no export record. Evidence: .cache/scene-media-validation.json.
 This deterministic fixture verifies composition, not AI selection or caption recognition quality.
 
+## Visual editor validation, 2026-11-14
+
+Browser scene interactions passed with actual source media: drag reorder with no remap during
+movement and one on release, playback from the source end into an earlier scene, undo, keyboard
+trim, Escape cancellation, audio left-trim offset advancement, layer movement without changing
+its media offset, caption-only deletion, transcript video cuts, composed rendering, and stale
+playback protection. Layout checks passed at 390, 1280, 1920, and 2560 pixels. Existing upload,
+caption/title/crop, reload/export, layer/audio, onboarding, and page-width tests also passed in
+targeted reruns. Evidence: tests/browser/scenes.spec.ts and test-results/visual-editor.png.
+
+The tests caught a repeated OffscreenCanvas transfer when preview mode/staleness changed and
+completed notifications intercepting editor clicks. The renderer now retains its worker across
+mode changes, replaces its canvas for a new media asset, and hides captions while stale.
+Successful job notices expire after six seconds; active jobs and errors remain visible.
+
+Anti-slop During delivery gate: the graphite studio, compact clip/transcript panel, independent
+inspector scroll, source/media tracks, and lime playhead each serve editing or timing review.
+Only real fixture records populate interaction screenshots. Enabled controls have working
+actions, keyboard counterparts, disabled/error states, and visible focus; no promotional
+statistics or competitor assets were introduced. Native preview.3 interaction and refreshed
+README screenshots remain pending until the built host is inspected separately.
+
 ## Executed checks
 
 Environment: Windows 11 on Snapdragon X ARM64, eight logical cores, approximately 16 GB RAM. Native Rust 1.100 uses the workspace LLVM-MinGW linker. Node.js 24 runs as x64 under emulation. The minimum supported Rust version is 1.92 because of the ORT dependency.

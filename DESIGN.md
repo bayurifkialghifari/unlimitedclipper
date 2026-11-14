@@ -18,6 +18,14 @@ Desktop layouts keep the preview beside the inspector. Narrow layouts use a stac
 
 The editorial reference workspace is the functional reference. Its assets, logo, promotional claims, and screenshots are not product assets.
 
+The visual editor uses a viewport-fitting three-column workspace: clips/transcript on the left,
+footage in the center, precise controls on the right, and a timeline underneath. Independent
+panel scrolling keeps the footage and playhead visible. Narrow layouts toggle side panels.
+Source scenes, caption words, visual layers, and audio layers use separate timeline rows; muted
+blue and amber distinguish media tracks, while lime remains selection/playhead feedback. Drag
+previews have no decorative motion. Successful job notifications clear after six seconds to
+return access to the workspace; active processing and errors remain reviewable.
+
 The owner approved the original graphite/lime frame-and-cut mark for the app, installer, browser,
 and README. Its master is resources/brand/app-icon.svg. Run npm run generate:icons to derive native
 icon formats and synchronize browser/README assets. Competitor marks are not reused.

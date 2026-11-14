@@ -4,6 +4,20 @@
 
 ### Added
 
+- A local visual editor with transcript range cuts, drag/keyboard scene reorder and trimming,
+  split/delete, layer tracks, source-offset-preserving layer trim, snapping, zoom, and undo.
+- A viewport-fitting editor, narrow-screen panel toggles, quick source playback in scene order,
+  and an edited preview that stops when its media is stale. Routes load on demand.
+
+### Fixed
+
+- Completed import notices no longer stay over editor controls; successful job notices clear
+  after six seconds, and the popup tracks page headers loaded after route navigation.
+- Edited preview mode/staleness changes reuse the subtitle canvas instead of transferring it
+  to an offscreen worker twice.
+
+### Added (page and engine changes)
+
 - Version 3 scene documents with stable IDs, arbitrary scene order, source-word hydration on
   extension, deterministic layer fragments, and compatible version 1/2 loading.
 - Window-width page headers, responsive export previews with immutable subtitle tracks, compact

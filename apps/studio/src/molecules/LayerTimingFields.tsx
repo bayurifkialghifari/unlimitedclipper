@@ -26,6 +26,10 @@ export function LayerTimingFields({
     const next = { ...layer, source_start_ms: layer.source_start_ms ?? 0 };
     if (field === 'start_ms') {
       next.start_ms = Math.max(0, Math.min(value, next.end_ms - 1));
+      if (sourceDuration !== undefined) {
+        next.start_ms = Math.max(next.start_ms, layer.start_ms - next.source_start_ms);
+        next.source_start_ms += next.start_ms - layer.start_ms;
+      }
     } else if (field === 'source_start_ms') {
       next.source_start_ms = Math.max(0, Math.min(value, (sourceDuration ?? Infinity) - 1));
     } else {

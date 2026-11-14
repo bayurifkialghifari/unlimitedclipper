@@ -1,17 +1,28 @@
-import { Component, useEffect, type ReactNode } from 'react';
+import { Component, Suspense, lazy, useEffect, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Button } from '@unlimitedclipper/ui';
 import { api, request } from './lib/api';
 import { useLanguage, useText } from './lib/i18n';
 import { Shell } from './templates/Shell';
-import { Studio } from './pages/Studio';
-import { Projects } from './pages/Projects';
-import { Exports } from './pages/Exports';
-import { Jobs } from './pages/Jobs';
-import { SettingsPage } from './pages/Settings';
 import styles from './styles/Studio.module.css';
 import { isAndroidHost } from './lib/native';
+
+const Studio = lazy(async () => {
+  return { default: (await import('./pages/Studio')).Studio };
+});
+const Projects = lazy(async () => {
+  return { default: (await import('./pages/Projects')).Projects };
+});
+const Exports = lazy(async () => {
+  return { default: (await import('./pages/Exports')).Exports };
+});
+const Jobs = lazy(async () => {
+  return { default: (await import('./pages/Jobs')).Jobs };
+});
+const SettingsPage = lazy(async () => {
+  return { default: (await import('./pages/Settings')).SettingsPage };
+});
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
   state = { error: null as string | null };
@@ -76,14 +87,16 @@ export function App() {
   return (
     <ErrorBoundary>
       <Shell>
-        <Routes>
-          <Route path="/" element={<Studio />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/exports" element={<Exports />} />
-          <Route path="/jobs" element={<Jobs />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<p role="status">{text.waiting}</p>}>
+          <Routes>
+            <Route path="/" element={<Studio />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/exports" element={<Exports />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </Shell>
     </ErrorBoundary>
   );

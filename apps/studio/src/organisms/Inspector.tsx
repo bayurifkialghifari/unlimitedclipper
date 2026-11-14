@@ -5,6 +5,7 @@ import { ScissorsIcon, CropIcon, UploadSimpleIcon } from '@phosphor-icons/react'
 import { api, uploadFile } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
+import { outputDuration } from '../lib/timeline';
 import { isAndroidHost } from '../lib/native';
 import { languages } from '../lib/format';
 import { CaptionPresetPicker } from '../molecules/CaptionPresetPicker';
@@ -26,7 +27,13 @@ export function Inspector({
   onManualClip: () => void;
 }) {
   const text = useText();
-  const [tab, setTab] = useState('options');
+  const [chosenTab, setChosenTab] = useState('options');
+  const selection = useEditor((state) => state.timelineSelection);
+  const tab = selection ? 'timeline' : chosenTab;
+  function setTab(value: string) {
+    useEditor.setState({ timelineSelection: null });
+    setChosenTab(value);
+  }
   const [selectedCount, setCount] = useState<number | null>(null);
   const [selectedDuration, setDuration] = useState<string | null>(null);
   const [selectedLanguage, setLanguage] = useState<string | null>(null);
@@ -161,7 +168,7 @@ export function Inspector({
           start_ms: word.start_ms + oldStart - next.start_ms,
           end_ms: word.end_ms + oldStart - next.start_ms,
         }))
-        .filter((word) => word.start_ms >= 0 && word.end_ms <= next.end_ms - next.start_ms);
+        .filter((word) => word.start_ms >= 0 && word.end_ms <= outputDuration(next));
       next.words = [
         ...sourceWords.map((word) => ({
           ...word,
@@ -176,7 +183,7 @@ export function Inspector({
               : oldStart + overrides.get(word.id)!.start_ms) - next.start_ms,
           ),
           end_ms: Math.min(
-            next.end_ms - next.start_ms,
+            outputDuration(next),
             (overrides.get(word.id)?.end_ms === undefined
               ? word.end_ms
               : oldStart + overrides.get(word.id)!.end_ms) - next.start_ms,
@@ -191,7 +198,7 @@ export function Inspector({
           ...key,
           time_ms: key.time_ms + oldStart - next.start_ms,
         }))
-        .filter((key) => key.time_ms >= 0 && key.time_ms <= next.end_ms - next.start_ms);
+        .filter((key) => key.time_ms >= 0 && key.time_ms <= outputDuration(next));
     });
   }
 
@@ -339,6 +346,7 @@ export function Inspector({
                     step={0.1}
                     value={document.start_ms / 1000}
                     disabled={
+                      document.version === 3 ||
                       (document.segments?.length ?? 1) > 1 ||
                       Boolean(document.visual_layers?.length || document.audio_layers?.length)
                     }
@@ -353,6 +361,7 @@ export function Inspector({
                     max={(project?.duration_ms ?? 0) / 1000}
                     value={document.end_ms / 1000}
                     disabled={
+                      document.version === 3 ||
                       (document.segments?.length ?? 1) > 1 ||
                       Boolean(document.visual_layers?.length || document.audio_layers?.length)
                     }
@@ -374,7 +383,8 @@ export function Inspector({
                     ),
                   )}
                 </Select>
-                {((document.segments?.length ?? 1) > 1 ||
+                {(document.version === 3 ||
+                  (document.segments?.length ?? 1) > 1 ||
                   Boolean(document.visual_layers?.length || document.audio_layers?.length)) && (
                   <p className={styles.hint}>{text.timelineBoundaryHint}</p>
                 )}
@@ -687,12 +697,12 @@ export function Inspector({
               onClick={() => {
                 const id = crypto.randomUUID();
                 change((next) => {
-                  const start = Math.min(playhead, next.end_ms - next.start_ms - 100);
+                  const start = Math.min(playhead, outputDuration(next) - 100);
                   next.words.push({
                     id,
                     text: '',
                     start_ms: Math.max(0, Math.round(start)),
-                    end_ms: Math.min(next.end_ms - next.start_ms, Math.round(start + 350)),
+                    end_ms: Math.min(outputDuration(next), Math.round(start + 350)),
                     emphasis: false,
                   });
                   next.words.sort((a, b) => a.start_ms - b.start_ms);
@@ -893,7 +903,7 @@ export function Inspector({
               label={text.titleDuration + ' (s)'}
               type="number"
               min={0}
-              max={(document.end_ms - document.start_ms) / 1000}
+              max={outputDuration(document) / 1000}
               step={0.1}
               value={document.title.duration_ms / 1000}
               onChange={(event) =>

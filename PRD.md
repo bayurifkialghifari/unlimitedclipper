@@ -30,6 +30,11 @@ Independent creators working on podcasts, education, interviews, and gaming vide
 
 ## Reliability
 
+EDT-02 adds a local visual editor with transcript seek/range selection, explicit video cuts,
+scene reorder/split/trim, layer move/trim, zoom/snapping, keyboard equivalents, and one transaction
+per completed drag. Source review follows scene order without rendering; edited review stops
+when its media becomes stale. See docs/features/visual-editor.md for behavior and limits.
+
 EDT-01 adds versioned multi-range edits, reviewable automatic proposals, source-timed caption
 provenance, registered local visual/audio layers, and an edited preview sharing the export
 composition. The optional quality pack must pass native inference and frontend checks before
