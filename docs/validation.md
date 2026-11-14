@@ -674,3 +674,42 @@ accessible keyboard controls, forced-color fallback, and explicit job failures/s
 passed the stated checks. Active speaker detection, broad recognition/selection accuracy,
 physical Android/x64/macOS/Linux runtime, installer execution, and automatic updater execution
 remain unverified.
+
+## Preview.6 hosted checks, 2026-11-15
+
+The final source at `67f96dc` passed [quality run 43625762121](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43625762121):
+frontend checks and Rust tests/Clippy on Windows, Ubuntu, Intel macOS, and Apple macOS.
+These are build/test checks, not desktop runtime certification on all four platforms.
+
+[Native media run 43625762070](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43625762070)
+passed six compositions, edited preview, scene order/color/audio checks, revision conflicts,
+all 18 caption recipes, and browser interactions on Windows ARM64. Downloaded evidence is
+in .cache/preview6-ci-media. This run does not perform full podcast AI selection or certify
+natural face identities; those local fixtures and their limits are recorded above.
+
+[Tagged release run 43625776736](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43625776736)
+passed and published preview.6 ARM64/x64 installers plus manifests, signatures, and SHA256SUMS.
+All eight anonymous downloads matched their server sizes and SHA-256 digests. Both publisher
+signatures and their trusted version comments passed independent verification. Extracted
+application PE architectures matched ARM64/x64. Evidence: .cache/preview6-published.json,
+.cache/preview6-signature-validation.json, and .cache/preview6-native-binaries.json.
+
+The published ARM64 executable opened after fresh idle, unsaved-edit, upload, and native-dialog
+guards passed. Native WebView2 at 1920 x 1009 confirmed version 0.1.0-preview.6, the Tauri
+bridge, one themed inspector scrollbar, no horizontal overflow, Economy controls, four ready
+models, and all six registered canonical assets present. The README hero is this actual
+native screenshot; its two existing clips are separate from the four-clip discovery fixture.
+Evidence: .cache/preview6-native-final.json and .cache/preview6-native-studio.png.
+Installer execution, Authenticode signing, automatic update installation, physical x64,
+macOS/Linux desktop runtime, and Android runtime remain unverified.
+
+Final audited cleanup removed 13,565,252,489 bytes (12.63 GiB) of unique files from build
+caches, obsolete runtime copies, old installers, and extracted packages. Multiply-linked
+files are excluded from this conservative reclaimed-byte count. Resolved targets stayed
+inside the workspace, no junctions were traversed, no compiler was active, and the running
+published executable was protected. Canonical videos, models, required tools, publisher keys,
+current installers, and the three current processing fixtures were retained.
+Evidence: .cache/preview6-cleanup-applied.json.
+The native geometry, ready-model list, and registered-asset checks passed again after cleanup;
+the published application remains open. Final storage measurements are in
+.cache/preview6-storage-final.json.
