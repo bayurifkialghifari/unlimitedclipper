@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@unlimitedclipper/ui';
 import { UploadSimpleIcon } from '@phosphor-icons/react';
 import { api, uploadFile } from '../lib/api';
+import { useActivity } from '../lib/activity-store';
 import { useText } from '../lib/i18n';
 import { importAndroidVideo, isAndroidHost } from '../lib/native';
 import type { Job } from '../types';
@@ -17,24 +18,32 @@ export function ImportControls({
 }) {
   const text = useText();
   const [url, setUrl] = useState('');
-  const [progress, setProgress] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const client = useQueryClient();
   const form = useRef<HTMLFormElement>(null);
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(label: string, message: string, action: (id: string) => Promise<Job | null>) {
     setPending(true);
     setError(null);
+    const activity = useActivity.getState();
+    const id = activity.start(label, message);
     try {
-      await action();
+      const job = await action(id);
+      if (job) {
+        client.setQueryData<Job[]>(['jobs'], (current) => [
+          job,
+          ...(current ?? []).filter((item) => item.id !== job.id),
+        ]);
+      }
+      activity.finish(id);
       await client.invalidateQueries({ queryKey: ['jobs'] });
       setUrl('');
     } catch (failure) {
       setError((failure as Error).message);
+      activity.fail(id, (failure as Error).message);
     } finally {
       setPending(false);
-      setProgress(null);
     }
   }
 
@@ -46,7 +55,7 @@ export function ImportControls({
           className={styles.sourceForm}
           onSubmit={(event) => {
             event.preventDefault();
-            void run(() => api.youtube(url));
+            void run(text.importVideo, text.preparingImport, () => api.youtube(url));
           }}
         >
           <input
@@ -67,9 +76,9 @@ export function ImportControls({
           disabled={pending}
           onClick={() => {
             if (isAndroidHost()) {
-              void run(importAndroidVideo);
+              void run(text.importFile, text.preparingImport, importAndroidVideo);
             } else if (isTauri()) {
-              void run(async () => {
+              void run(text.importFile, text.preparingImport, async () => {
                 const path = await open({
                   multiple: false,
                   filters: [
@@ -80,8 +89,9 @@ export function ImportControls({
                   ],
                 });
                 if (path) {
-                  await api.local(path);
+                  return api.local(path);
                 }
+                return null;
               });
             } else {
               inputRef.current?.click();
@@ -99,14 +109,23 @@ export function ImportControls({
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) {
-              void run(() => uploadFile<Job>('/imports/upload', file, setProgress));
+              void run(file.name, text.uploadingVideo, (id) =>
+                uploadFile<Job>('/imports/upload', file, (progress) =>
+                  useActivity
+                    .getState()
+                    .update(
+                      id,
+                      progress,
+                      progress === 1 ? text.preparingImport : text.uploadingVideo,
+                    ),
+                ),
+              );
             }
             event.target.value = '';
           }}
         />
       </div>
       {isAndroidHost() && <p className={styles.hint}>{text.androidYoutubeUnavailable}</p>}
-      {progress !== null && <progress aria-label={text.importFile} max={1} value={progress} />}
       {error && (
         <p className={styles.error} role="alert">
           {error}

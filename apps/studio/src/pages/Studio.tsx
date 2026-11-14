@@ -61,9 +61,6 @@ export function Studio() {
       useEditor.getState().selectClip(clip);
     });
   }
-  const current =
-    jobs.data?.find((job) => ['running', 'cancelling'].includes(job.status)) ??
-    jobs.data?.find((job) => job.status === 'queued');
   const source = project.data?.project;
   const lastDiscovery = jobs.data?.find(
     (job) => job.kind === 'generate' && job.project_id === source?.id,
@@ -207,18 +204,6 @@ export function Studio() {
           </div>
         )}
       </section>
-      {current && (
-        <div className={styles.statusBar} role="status">
-          <span>{jobMessage(text, current)}</span>
-          <progress max={1} value={current.progress} aria-label={jobMessage(text, current)} />
-          <Button
-            disabled={current.status === 'cancelling'}
-            onClick={() => void action(() => api.cancelJob(current.id))}
-          >
-            {text.cancel}
-          </Button>
-        </div>
-      )}
       {manual && source && <ManualClipDialog project={source} onClose={() => setManual(false)} />}
     </>
   );

@@ -10,6 +10,14 @@ Keep the original source for export. Generate a managed H.264/AAC preview at up 
 
 Native dialog import and real browser upload passed separate interaction checks. The downloader streams progress and supervises child processes. Interrupted upload files are removed on startup only after acquiring the exclusive data-directory lock. Real channel recordings are validated independently of small test fixtures.
 
+The top-right Progress and alerts popup appears immediately during an import request. Browser
+uploads report transfer progress; accepted imports then report the durable job's overall progress
+and current stage, including download, probing, and preview creation. Running and queued jobs remain
+visible across pages. Percentages describe the whole job, not a download-speed estimate. Some
+inference stages stay at their completed checkpoint percentage until the next milestone.
+Unknown transfer totals use an indeterminate bar. Completion/failure alerts can be dismissed;
+active jobs can be cancelled, with a stopping state until the engine confirms termination.
+
 ## Interface
 
 POST /api/v1/imports/upload; POST /api/v1/imports/youtube; GET /api/v1/projects

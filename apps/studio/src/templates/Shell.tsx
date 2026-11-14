@@ -13,6 +13,7 @@ import { useText } from '../lib/i18n';
 import styles from '../styles/Studio.module.css';
 import { UpdateNotice } from '../organisms/UpdateNotice';
 import { isAndroidHost } from '../lib/native';
+import { ActivityCenter } from '../organisms/ActivityCenter';
 
 export function Shell({ children }: { children: ReactNode }) {
   const text = useText();
@@ -72,6 +73,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         {children}
       </main>
+      <ActivityCenter />
     </div>
   );
 }

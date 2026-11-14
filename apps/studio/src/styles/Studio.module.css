@@ -4,6 +4,66 @@
   min-height: 100svh;
 }
 
+.activityCenter {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  width: min(360px, calc(100vw - 32px));
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.activityList {
+  width: 100%;
+  max-height: min(480px, 60svh);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 28px #0006;
+}
+
+.activityCard {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.activityCard + .activityCard {
+  border-top: 1px solid var(--border);
+}
+
+.activityCard[data-failed='true'] {
+  border-left: 3px solid #f6a99f;
+}
+
+.activityCard p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.activityProgress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.activityProgress progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.activityActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .platformNotice {
   margin: 16px 28px 0;
   padding: 14px;

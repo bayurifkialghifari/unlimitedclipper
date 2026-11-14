@@ -1,6 +1,31 @@
 import { create } from 'zustand';
 
 const en = {
+  activityTitle: 'Progress and alerts',
+  overallProgress: 'Overall progress',
+  minimize: 'Minimize',
+  showProgress: 'Show progress',
+  preparingImport: 'Preparing the video import',
+  uploadingVideo: 'Uploading the video to the local library',
+  modelChoice: 'Choose an AI model',
+  modelFile: 'Model file',
+  manualModelImport: 'Import a model file manually',
+  downloadModel: 'Download model',
+  modelInstalled: 'Model installed',
+  modelSmallHint: 'Recommended for everyday captions with lower memory use.',
+  modelMediumHint: 'Larger speech model for reviewing difficult captions. Processing takes longer.',
+  modelSelectionHint: 'Required for finding moments, titles, and automatic editing suggestions.',
+  uploadingModel: 'Uploading the model file',
+  previewUpdateHelp: 'Preview updates are available on the download page.',
+  updateHelp:
+    'The app checks for new versions and installs verified updates after processing finishes.',
+  checkingUpdates: 'Checking for a new version',
+  updateCheckComplete: 'Update check completed',
+  toolDetails: 'Tool status and recovery',
+  manualModelBusy: 'Finish processing before importing a model file.',
+  advancedSpeech: 'Advanced caption timing (experimental)',
+  checkUpdatesInBrowser:
+    'The browser studio is open. Use Check for updates there to open downloads.',
   timelineBoundaryHint: 'Use Source segments to change boundaries after adding timeline layers.',
   noQualifyingMoments:
     'No moments passed review. Adjust the focus or interest filter, or create a clip manually.',
@@ -217,7 +242,7 @@ const en = {
   scale: 'Scale',
   watermarkText: 'Watermark text',
   updates: 'Automatic updates',
-  autoUpdate: 'Install verified updates when idle',
+  autoUpdate: 'Update automatically',
   updateFeed: 'Application update feed',
   componentFeed: 'Toolchain update feed',
   checkUpdates: 'Check for updates',
@@ -234,6 +259,31 @@ const en = {
 };
 
 const id: typeof en = {
+  activityTitle: 'Progres dan notifikasi',
+  overallProgress: 'Progres keseluruhan',
+  minimize: 'Kecilkan',
+  showProgress: 'Lihat progres',
+  preparingImport: 'Menyiapkan impor video',
+  uploadingVideo: 'Mengunggah video ke library lokal',
+  modelChoice: 'Pilih model AI',
+  modelFile: 'File model',
+  manualModelImport: 'Impor file model secara manual',
+  downloadModel: 'Download model',
+  modelInstalled: 'Model terpasang',
+  modelSmallHint: 'Disarankan untuk caption sehari-hari dengan penggunaan memori lebih rendah.',
+  modelMediumHint: 'Model lebih besar untuk memeriksa caption sulit. Prosesnya lebih lama.',
+  modelSelectionHint: 'Diperlukan untuk mencari momen, judul, dan usulan editing otomatis.',
+  uploadingModel: 'Mengunggah file model',
+  previewUpdateHelp: 'Update preview tersedia di halaman download.',
+  updateHelp:
+    'Aplikasi memeriksa versi baru dan memasang update terverifikasi setelah proses selesai.',
+  checkingUpdates: 'Memeriksa versi baru',
+  updateCheckComplete: 'Pemeriksaan update selesai',
+  toolDetails: 'Status tool dan pemulihan',
+  manualModelBusy: 'Selesaikan proses sebelum mengimpor file model.',
+  advancedSpeech: 'Timing caption lanjutan (eksperimental)',
+  checkUpdatesInBrowser:
+    'Studio browser sudah terbuka. Klik Periksa update di sana untuk membuka download.',
   timelineBoundaryHint:
     'Gunakan Segmen sumber untuk mengubah batas setelah menambah layer timeline.',
   noQualifyingMoments:
@@ -451,7 +501,7 @@ const id: typeof en = {
   scale: 'Skala',
   watermarkText: 'Teks watermark',
   updates: 'Update otomatis',
-  autoUpdate: 'Pasang update terverifikasi saat idle',
+  autoUpdate: 'Update otomatis',
   updateFeed: 'Feed update aplikasi',
   componentFeed: 'Feed update toolchain',
   checkUpdates: 'Periksa update',
