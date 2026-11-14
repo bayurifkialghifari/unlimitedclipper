@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- WebView2 resource staging when the Cargo SDK and Windows checkout use different drives.
+  Generated resource paths passed local preparation checks; hosted installer validation is pending.
+
 ## 0.1.0-preview.4 (2026-11-14)
 
 ### Added

@@ -18,6 +18,9 @@ Build-time Windows tool provisioning extracts entries through .NET ZIP streams, 
 files inside the extraction directory, and rejects rooted paths or traversal outside that directory.
 This supports Windows PowerShell 5.1 when runner ZIP modules expose incompatible extraction overloads.
 
+Desktop packaging stages the matching WebView2 loader inside the workspace and uses resource
+paths relative to the Tauri project. The Cargo SDK cache may live on a different Windows drive.
+
 ## Interface
 
 GET /api/v1/updates; POST /api/v1/updates/check; desktop updater bridge

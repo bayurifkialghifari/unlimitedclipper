@@ -39,6 +39,11 @@ if (['build', 'dev'].includes(args[0])) {
     throw new Error('The locked desktop dependencies contain no WebView2 SDK.');
   }
   const loader = path.join(path.dirname(webview.manifest_path), architecture, 'WebView2Loader.dll');
+  const stagedLoader = path.join(directory, architecture, 'WebView2Loader.dll');
+  mkdirSync(path.dirname(stagedLoader), { recursive: true });
+  // Tauri resource paths must stay on the workspace drive when the SDK lives elsewhere.
+  copyFileSync(loader, stagedLoader);
+  const tauriDirectory = path.join(root, 'apps/desktop/src-tauri');
   if (args[0] === 'dev') {
     env.UC_DEV = '1';
     const targetDirectory = path.join(
@@ -55,9 +60,10 @@ if (['build', 'dev'].includes(args[0])) {
       ...(env.UC_APP_PUBLIC_KEY ? { plugins: { updater: { pubkey: env.UC_APP_PUBLIC_KEY } } } : {}),
       bundle: {
         resources: {
-          [path.join(root, '.tools/windows-' + architecture)]: 'tools',
-          [path.join(root, 'apps/studio/dist')]: 'studio',
-          [loader]: 'WebView2Loader.dll',
+          [path.relative(tauriDirectory, path.join(root, '.tools/windows-' + architecture))]:
+            'tools',
+          [path.relative(tauriDirectory, path.join(root, 'apps/studio/dist'))]: 'studio',
+          [path.relative(tauriDirectory, stagedLoader)]: 'WebView2Loader.dll',
         },
         createUpdaterArtifacts: Boolean(
           env.TAURI_SIGNING_PRIVATE_KEY || env.TAURI_SIGNING_PRIVATE_KEY_PATH,

@@ -126,6 +126,19 @@ and Apple Silicon, including desktop Clippy on Windows.
 completed actual editorial/scene rendering and the eight-test browser suite on Windows ARM64.
 These source/media checks do not certify installers or runtime behavior on every platform.
 
+## Desktop packaging on separate Windows drives, 2026-11-14
+
+The preview.4 tagged quality stage passed on all four platforms, but both MSVC installer builds
+failed before publishing: the WebView2 SDK was on C: while the checkout was on D:, and Tauri
+resolved its absolute loader resource on the wrong drive. The publish job was skipped. Evidence:
+[tagged workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43604634762)
+and .cache/ci-failure-43604634762.log. This is not a successful hosted release.
+
+The desktop script now copies the loader to architecture-specific workspace staging and supplies
+relative resource paths. Frontend checks passed. A non-compiling CLI preparation check verified
+that generated resources exist and the staged loader has the ARM64 PE header; full hosted
+packaging with this fix remains pending. Evidence: .cache/desktop-resource-validation.json.
+
 ## Executed checks
 
 Environment: Windows 11 on Snapdragon X ARM64, eight logical cores, approximately 16 GB RAM. Native Rust 1.100 uses the workspace LLVM-MinGW linker. Node.js 24 runs as x64 under emulation. The minimum supported Rust version is 1.92 because of the ORT dependency.
