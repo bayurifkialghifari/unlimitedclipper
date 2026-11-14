@@ -116,7 +116,15 @@ an unavailable three-argument ExtractToDirectory overload. Build-time extraction
 entries with explicit destination containment. Local Windows PowerShell 5.1.26100.9711 checks passed
 for nested files, replacing existing contents, and rejecting traversal without creating an escaped
 file. Evidence: .cache/extract-compatibility-validation.json and
-.cache/ci-failure-43601628952.log. Hosted execution of the corrected extractor is pending.
+.cache/ci-failure-43601628952.log. The corrected extractor passed on the hosted ARM64 runner.
+
+Public hosted validation passed for source 07ae289cb8685c3071079d7bccc88fb4e4cad7d1:
+[quality checks](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43603624006)
+completed frontend validation and engine Rustfmt/tests/Clippy on Windows, Linux, macOS Intel,
+and Apple Silicon, including desktop Clippy on Windows.
+[Native media](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43603624020)
+completed actual editorial/scene rendering and the eight-test browser suite on Windows ARM64.
+These source/media checks do not certify installers or runtime behavior on every platform.
 
 ## Executed checks
 
