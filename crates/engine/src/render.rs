@@ -103,12 +103,9 @@ fn crop_filter(rect: &CropRect, width: u32, height: u32, x: &str, y: &str) -> St
 }
 
 fn keyframe_expression(document: &EditDocument, axis: char, dimension: u32) -> String {
-    let origin = if axis == 'x' {
-        document.crop.x
-    } else {
-        document.crop.y
+    let coordinate = |key: &Keyframe| {
+        if axis == 'x' { key.x } else { key.y }
     };
-    let coordinate = |key: &Keyframe| if axis == 'x' { key.x } else { key.y };
     let mut points = vec![Keyframe {
         time_ms: 0,
         x: document.crop.x,
@@ -124,21 +121,42 @@ fn keyframe_expression(document: &EditDocument, axis: char, dimension: u32) -> S
     if points.len() == 1 {
         return format!("{:.4}", coordinate(&points[0]) * dimension as f64);
     }
-    let mut expression = format!(
+    let final_coordinate = format!(
         "{:.4}",
         coordinate(points.last().expect("Points exist")) * dimension as f64
     );
-    for pair in points.windows(2).rev() {
-        let start = pair[0].time_ms as f64 / 1000.0;
-        let end = pair[1].time_ms as f64 / 1000.0;
-        let from = coordinate(&pair[0]) * dimension as f64;
-        let to = coordinate(&pair[1]) * dimension as f64;
-        expression = format!(
-            "if(lt(t,{end:.4}),{from:.4}+({to:.4}-{from:.4})*max(0,t-{start:.4})/({end:.4}-{start:.4}),{expression})"
-        );
+    format!(
+        "if(lt(t,{:.4}),{},{final_coordinate})",
+        points.last().expect("Points exist").time_ms as f64 / 1000.0,
+        balanced_crop_expression(&points, axis, dimension)
+    )
+}
+
+fn balanced_crop_expression(points: &[Keyframe], axis: char, dimension: u32) -> String {
+    let coordinate = |key: &Keyframe| {
+        if axis == 'x' { key.x } else { key.y }
+    };
+    let from = coordinate(&points[0]) * dimension as f64;
+    if points
+        .iter()
+        .all(|key| coordinate(key) == coordinate(&points[0]))
+    {
+        return format!("{from:.4}");
     }
-    let _ = origin;
-    expression
+    if points.len() == 2 {
+        let start = points[0].time_ms as f64 / 1000.0;
+        let end = points[1].time_ms as f64 / 1000.0;
+        let to = coordinate(&points[1]) * dimension as f64;
+        return format!("{from:.4}+({to:.4}-{from:.4})*max(0,t-{start:.4})/({end:.4}-{start:.4})");
+    }
+    // FFmpeg limits expression nesting. A balanced tree preserves every anchor at logarithmic depth.
+    let middle = points.len() / 2;
+    format!(
+        "if(lt(t,{:.4}),{},{})",
+        points[middle].time_ms as f64 / 1000.0,
+        balanced_crop_expression(&points[..=middle], axis, dimension),
+        balanced_crop_expression(&points[middle..], axis, dimension)
+    )
 }
 
 fn escape_filter_path(path: &std::path::Path) -> String {
@@ -459,9 +477,22 @@ pub async fn render_media(
         escape_filter_path(&ass_file),
         escape_filter_path(&state.tools_root().join("fonts"))
     ));
+    let filter_argument = if state.native_tools.is_some() {
+        vec!["-filter_complex".into(), filter]
+    } else {
+        // Managed argument files avoid Windows command-line limits for dense motion and layers.
+        let filter_path = state
+            .root
+            .join("temporary")
+            .join(format!("{}-{}-filter.txt", job.id, clip.id));
+        tokio::fs::write(&filter_path, filter).await?;
+        vec![
+            "-/filter_complex".into(),
+            filter_path.to_string_lossy().into_owned(),
+        ]
+    };
+    args.extend(filter_argument);
     args.extend([
-        "-filter_complex".into(),
-        filter,
         "-map".into(),
         "[out]".into(),
         "-map".into(),
