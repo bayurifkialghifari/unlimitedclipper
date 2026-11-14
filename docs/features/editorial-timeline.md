@@ -4,16 +4,23 @@ Status: implemented with scoped media validation; optional speech-pack runtime v
 
 ## Source and output time
 
-New edits use document version 2. Up to 32 ordered, non-overlapping source ranges form the output.
-The output duration is the sum of their lengths. Source ranges are half-open; the final output
-endpoint maps to the final source endpoint. Legacy version 1 edits remain single-range documents.
-Advanced fields require version 2. Every persisted time uses integer milliseconds.
+Base clips retain document version 2. The visual editor upgrades a document to version 3 when
+identified scenes are submitted. Up to 32 disjoint source ranges form the output in any order.
+Version 3 requires unique scene IDs and rejects repeated/overlapping source content. Version 2
+retains chronological ordering, and version 1 remains a single source range. Both remain readable.
+The output duration is the sum of scene lengths; the source envelope is their minimum start and
+maximum end. The final output endpoint maps to the last output scene's source end, which can
+differ from the envelope end. Every persisted time uses integer milliseconds.
 
 The Source segments inspector applies range changes through the Rust timeline-preview endpoint.
 Words retain their source timing and provenance. A word crossing a removed interval keeps its
 largest surviving fragment. Visual/audio layers split across kept ranges; audio and B-roll source
 offsets advance to preserve the selected material. Crop motion retains interpolated segment-start
-anchors. Applying a remap supports undo and uses normal revision-aware autosave.
+anchors. Version 3 also anchors the last millisecond before each scene cut. Applying a remap
+supports undo and uses normal revision-aware autosave. Extending into previously excluded source
+coverage loads stored transcript words while preserving manual surviving edits and caption text
+deleted from already covered material. Missing transcript coverage requires manual captions or
+refinement. Layer fragment IDs remain stable across identical remaps.
 
 ## Layers and local assets
 

@@ -34,8 +34,39 @@ pub struct AudioAsset {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SourceSegment {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     pub start_ms: i64,
     pub end_ms: i64,
+}
+
+impl SourceSegment {
+    pub fn new(start_ms: i64, end_ms: i64) -> Self {
+        Self {
+            id: None,
+            start_ms,
+            end_ms,
+        }
+    }
+
+    pub fn section(&self, start_ms: i64, end_ms: i64) -> Self {
+        let id = self.id.as_ref().map(|id| {
+            if start_ms == self.start_ms {
+                id.clone()
+            } else {
+                uuid::Uuid::new_v5(
+                    &uuid::Uuid::NAMESPACE_URL,
+                    format!("uc-scene:{id}:{start_ms}").as_bytes(),
+                )
+                .to_string()
+            }
+        });
+        Self {
+            id,
+            start_ms,
+            end_ms,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -265,7 +296,7 @@ impl EditDocument {
         let crop_width = (project.height as f64 * 9.0 / 16.0 / project.width as f64).min(1.0);
         Self {
             version: 2,
-            segments: vec![SourceSegment { start_ms, end_ms }],
+            segments: vec![SourceSegment::new(start_ms, end_ms)],
             visual_layers: Vec::new(),
             audio_layers: Vec::new(),
             start_ms,
@@ -305,7 +336,7 @@ impl EditDocument {
     }
 
     pub fn validate(&self, source_duration: i64) -> Result<(), String> {
-        if ![1, 2].contains(&self.version)
+        if ![1, 2, 3].contains(&self.version)
             || self.start_ms < 0
             || self.end_ms <= self.start_ms
             || self.end_ms > source_duration
@@ -347,7 +378,11 @@ impl EditDocument {
             previous = keyframe.time_ms;
         }
         previous = -1;
+        let mut word_ids = std::collections::HashSet::new();
         for word in &self.words {
+            if self.version == 3 && (word.id.is_empty() || !word_ids.insert(&word.id)) {
+                return Err("Caption words need unique IDs.".into());
+            }
             if word.start_ms < 0
                 || word.start_ms < previous
                 || word.end_ms <= word.start_ms

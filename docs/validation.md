@@ -4,6 +4,18 @@
 
 The implemented clipping workflow has passed real media, browser, and native ARM64 interaction checks. This is a development validation record, not a claim that every release gate or operating system is certified. Unrun scenarios remain pending.
 
+## Scene engine validation, 2026-11-14
+
+The six scene integration tests cover reorder provenance, surviving manual corrections, extension
+without caption resurrection, media offsets and stable layer fragments, crop boundaries, legacy
+loading, and invalid/repeated scene rejection. The full engine suite passed 32 tests.
+
+scripts/validate-scenes.mjs generated a three-second red/green/blue source with 440/660/880 Hz
+audio. Its blue/red/green edited preview and all six 720p export layouts passed pixel samples,
+audio frequency order, duration, AV start timing, full decode, subtitle order, and immutable
+revision checks. Preview created no export record. Evidence: .cache/scene-media-validation.json.
+This deterministic fixture verifies composition, not AI selection or caption recognition quality.
+
 ## Executed checks
 
 Environment: Windows 11 on Snapdragon X ARM64, eight logical cores, approximately 16 GB RAM. Native Rust 1.100 uses the workspace LLVM-MinGW linker. Node.js 24 runs as x64 under emulation. The minimum supported Rust version is 1.92 because of the ORT dependency.

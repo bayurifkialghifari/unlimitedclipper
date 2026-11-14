@@ -941,8 +941,12 @@
       },
       "Health": {
         "type": "object",
-        "required": ["version", "platform", "native", "tools", "models"],
+        "required": ["edit_document_versions", "version", "platform", "native", "tools", "models"],
         "properties": {
+          "edit_document_versions": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int32", "minimum": 0 }
+          },
           "models": { "type": "array", "items": { "$ref": "#/components/schemas/ModelStatus" } },
           "native": { "type": "boolean" },
           "platform": { "type": "string" },
@@ -1126,6 +1130,7 @@
         "required": ["start_ms", "end_ms"],
         "properties": {
           "end_ms": { "type": "integer", "format": "int64" },
+          "id": { "type": ["string", "null"] },
           "start_ms": { "type": "integer", "format": "int64" }
         }
       },

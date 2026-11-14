@@ -16,11 +16,15 @@ All persisted times are integer milliseconds. Source word timing remains immutab
 
 ## Persistence
 
-EditDocument v2 composes ordered source segments and output-relative layers. Rust owns remapping
+EditDocument v2 composes chronological source segments and output-relative layers. Version 3
+adds stable scene IDs and arbitrary output order while retaining disjoint source coverage. Its
+source envelope differs from the summed output duration. Health advertises supported document
+versions so an older host cannot silently accept incompatible scene edits. Rust owns remapping
 and splits layers at removed intervals, advancing their asset offsets. Version 1 loads as a single
 source range. WordTiming stores estimated/aligned/manual provenance, source anchors, and independent
 alignment confidence. Automatic proposals and render jobs freeze revisions; applying a proposal
-uses the editor transaction and autosave checks. Caption groups stop at source cuts.
+uses the editor transaction and autosave checks. Caption groups stop at source cuts. Source VTT
+cues are sorted by source time; output VTT and rendered captions retain edited scene order.
 
 Edited preview and export share render_media, including AV concat, split framing, local B-roll,
 ASS graphics, and audio mixing. A preview omits captions for a live browser ASS overlay and creates

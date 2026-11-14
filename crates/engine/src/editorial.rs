@@ -141,7 +141,8 @@ async fn remove_silence(
                 document.output_to_source(word.end_ms - 1).unwrap() + 1 - document.start_ms;
             word
         })
-        .collect();
+        .collect::<Vec<_>>();
+    words.sort_by_key(|word| word.start_ms);
     let report = alignment::align(
         state,
         &mut words,
@@ -214,17 +215,11 @@ fn trimmed_segments(
                 start < to && end > from
             });
             if to - from > 650 && !protected && from > keep_from {
-                segments.push(SourceSegment {
-                    start_ms: keep_from,
-                    end_ms: from,
-                });
+                segments.push(segment.section(keep_from, from));
                 keep_from = to;
             }
         }
-        segments.push(SourceSegment {
-            start_ms: keep_from,
-            end_ms: segment.end_ms,
-        });
+        segments.push(segment.section(keep_from, segment.end_ms));
     }
     segments
 }

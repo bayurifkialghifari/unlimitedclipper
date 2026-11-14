@@ -4,6 +4,8 @@
 
 ### Added
 
+- Version 3 scene documents with stable IDs, arbitrary scene order, source-word hydration on
+  extension, deterministic layer fragments, and compatible version 1/2 loading.
 - Window-width page headers, responsive export previews with immutable subtitle tracks, compact
   processing history, and labeled Settings action icons.
 - An original video frame/cut application icon, shared by native bundle configuration, browser

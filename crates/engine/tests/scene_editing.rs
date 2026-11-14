@@ -1,0 +1,253 @@
+use unlimitedclipper_engine::models::*;
+
+fn project() -> Project {
+    Project {
+        id: "scene-fixture".into(),
+        name: "Scene editing fixture".into(),
+        source_kind: "file".into(),
+        source_url: None,
+        asset_id: "fixture-video".into(),
+        preview_asset_id: None,
+        thumbnail_id: None,
+        duration_ms: 8000,
+        width: 1280,
+        height: 720,
+        has_audio: true,
+        language: Some("en".into()),
+        transcript_configuration: None,
+        created_at: 0,
+        words: [
+            ("first", 1200, 1500),
+            ("second", 3400, 3800),
+            ("third", 5600, 5900),
+        ]
+        .into_iter()
+        .map(|(text, start_ms, end_ms)| Word {
+            id: text.into(),
+            text: text.into(),
+            start_ms,
+            end_ms,
+            emphasis: false,
+            color: None,
+            confidence: None,
+            timing: None,
+        })
+        .collect(),
+    }
+}
+
+fn scene(id: &str, start_ms: i64, end_ms: i64) -> SourceSegment {
+    SourceSegment {
+        id: Some(id.into()),
+        start_ms,
+        end_ms,
+    }
+}
+
+fn document() -> EditDocument {
+    EditDocument::new(&project(), 0, 6000).replace_segments(vec![
+        scene("a", 0, 2000),
+        scene("b", 3000, 4000),
+        scene("c", 5000, 6000),
+    ])
+}
+
+fn note(start_ms: i64, end_ms: i64) -> VisualLayer {
+    VisualLayer {
+        id: "note".into(),
+        enabled: true,
+        start_ms,
+        end_ms,
+        kind: "note".into(),
+        text: "Scene note".into(),
+        crop: None,
+        secondary_crop: None,
+        x: 0.5,
+        y: 0.2,
+        color: "#FFFFFF".into(),
+        size: 60,
+        asset_id: None,
+        source_start_ms: 0,
+    }
+}
+
+#[test]
+fn reordered_scenes_keep_source_anchors_and_layer_audio_offsets() {
+    let mut original = document();
+    let second = original
+        .words
+        .iter_mut()
+        .find(|word| word.id == "second")
+        .unwrap();
+    second.text = "Manual correction".into();
+    second.timing = Some(WordTiming {
+        provenance: "manual".into(),
+        source_start_ms: 3400,
+        source_end_ms: 3800,
+        alignment_confidence: None,
+    });
+    original.visual_layers.push(note(3200, 3500));
+    original.audio_layers.push(AudioLayer {
+        id: "audio".into(),
+        enabled: true,
+        start_ms: 2300,
+        end_ms: 2600,
+        asset_id: Some("registered-audio".into()),
+        source_start_ms: 100,
+        gain: 0.5,
+    });
+    let reordered = original.replace_segments(vec![
+        scene("c", 5000, 6000),
+        scene("a", 0, 2000),
+        scene("b", 3000, 4000),
+    ]);
+    reordered.validate(8000).unwrap();
+    assert_eq!(reordered.version, 3);
+    assert_eq!(reordered.duration_ms(), 4000);
+    assert_eq!((reordered.start_ms, reordered.end_ms), (0, 6000));
+    assert_eq!(reordered.output_to_source(0), Some(5000));
+    assert_eq!(reordered.output_to_source(1000), Some(0));
+    assert_eq!(reordered.output_to_source(4000), Some(4000));
+    assert_eq!(
+        reordered
+            .words
+            .iter()
+            .map(|word| word.id.as_str())
+            .collect::<Vec<_>>(),
+        ["third", "first", "second"]
+    );
+    assert_eq!(reordered.words[2].text, "Manual correction");
+    let source_vtt = unlimitedclipper_engine::subtitles::vtt(&reordered);
+    let output_vtt = unlimitedclipper_engine::subtitles::vtt_timeline(&reordered, true);
+    assert!(source_vtt.find("first").unwrap() < source_vtt.find("third").unwrap());
+    assert!(output_vtt.find("third").unwrap() < output_vtt.find("first").unwrap());
+    assert_eq!(
+        reordered.words[2].timing.as_ref().unwrap().source_start_ms,
+        3400
+    );
+    assert_eq!(reordered.words[2].start_ms, 3400);
+    assert_eq!(
+        (
+            reordered.visual_layers[0].start_ms,
+            reordered.visual_layers[0].end_ms
+        ),
+        (200, 500)
+    );
+    assert_eq!(reordered.audio_layers[0].start_ms, 3300);
+    assert_eq!(reordered.audio_layers[0].source_start_ms, 100);
+}
+
+#[test]
+fn extension_adds_source_words_without_restoring_deleted_caption_text() {
+    let mut original = EditDocument::new(&project(), 1000, 2000);
+    original.words.clear();
+    let mut extended = original.replace_segments(vec![scene("extended", 1000, 4000)]);
+    extended.hydrate_added_words(&original, &project().words);
+    extended.validate(8000).unwrap();
+    assert_eq!(extended.words.len(), 1);
+    assert_eq!(extended.words[0].id, "second");
+    assert_eq!(extended.words[0].start_ms, 2400);
+}
+
+#[test]
+fn splitting_and_reordering_preserve_asset_content_and_fragment_identity() {
+    let mut original = document();
+    original.audio_layers.push(AudioLayer {
+        id: "bed".into(),
+        enabled: true,
+        start_ms: 1800,
+        end_ms: 2300,
+        asset_id: Some("registered-audio".into()),
+        source_start_ms: 1000,
+        gain: 0.5,
+    });
+    let reordered = original.replace_segments(vec![
+        scene("b", 3000, 4000),
+        scene("a", 0, 2000),
+        scene("c", 5000, 6000),
+    ]);
+    reordered.validate(8000).unwrap();
+    assert_eq!(reordered.audio_layers.len(), 2);
+    let first = reordered
+        .audio_layers
+        .iter()
+        .find(|layer| layer.start_ms == 0)
+        .unwrap();
+    assert_eq!(first.source_start_ms, 1200);
+    let second = reordered
+        .audio_layers
+        .iter()
+        .find(|layer| layer.id == "bed")
+        .unwrap();
+    assert_eq!(second.start_ms, 2800);
+    assert_eq!(second.source_start_ms, 1000);
+    let again = original.replace_segments(reordered.segments.clone());
+    assert_eq!(first.id, again.audio_layers[0].id);
+}
+
+#[test]
+fn scene_crop_reaches_its_own_boundary_before_the_next_cut() {
+    let mut original = document();
+    original.crop.width = 0.3;
+    original.keyframes = vec![
+        Keyframe {
+            time_ms: 0,
+            x: 0.1,
+            y: 0.0,
+        },
+        Keyframe {
+            time_ms: 3000,
+            x: 0.6,
+            y: 0.0,
+        },
+    ];
+    let reordered = original.replace_segments(vec![
+        scene("c", 5000, 6000),
+        scene("a", 0, 2000),
+        scene("b", 3000, 4000),
+    ]);
+    reordered.validate(8000).unwrap();
+    assert!(
+        reordered
+            .keyframes
+            .iter()
+            .any(|key| key.time_ms == 999 && key.x == 0.6)
+    );
+    assert!(
+        reordered
+            .keyframes
+            .iter()
+            .any(|key| key.time_ms == 1000 && key.x == 0.1)
+    );
+}
+
+#[test]
+fn legacy_documents_remain_readable_and_repeated_or_unidentified_scenes_are_rejected() {
+    let original = EditDocument::new(&project(), 0, 6000);
+    assert_eq!(original.version, 2);
+    assert!(original.segments[0].id.is_none());
+    original.validate(8000).unwrap();
+    let repeated = original.replace_segments(vec![scene("a", 0, 2000), scene("copy", 0, 2000)]);
+    assert!(repeated.validate(8000).is_err());
+    let missing =
+        original.replace_segments(vec![scene("a", 0, 2000), SourceSegment::new(3000, 4000)]);
+    assert!(missing.validate(8000).is_err());
+    let duplicate = original.replace_segments(vec![scene("a", 0, 2000), scene("a", 3000, 4000)]);
+    assert!(duplicate.validate(8000).is_err());
+}
+
+#[test]
+fn acoustic_words_crossing_a_removed_gap_keep_the_largest_surviving_fragment() {
+    let mut raw = project().words[0].clone();
+    raw.start_ms = 1900;
+    raw.end_ms = 3200;
+    let reordered = document().replace_segments(vec![
+        scene("b", 3000, 4000),
+        scene("a", 0, 2000),
+        scene("c", 5000, 6000),
+    ]);
+    let mapped = reordered.map_source_word(&raw).unwrap();
+    assert_eq!((mapped.start_ms, mapped.end_ms), (0, 200));
+    assert_eq!(mapped.id, raw.id);
+    assert_eq!(mapped.timing.unwrap().source_start_ms, 1900);
+}

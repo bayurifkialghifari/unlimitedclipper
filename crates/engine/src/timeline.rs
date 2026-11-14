@@ -4,6 +4,7 @@ impl EditDocument {
     pub fn source_segments(&self) -> Vec<SourceSegment> {
         if self.version == 1 || self.segments.is_empty() {
             vec![SourceSegment {
+                id: None,
                 start_ms: self.start_ms,
                 end_ms: self.end_ms,
             }]
@@ -27,7 +28,11 @@ impl EditDocument {
             }
             offset += segment.end_ms - segment.start_ms;
         }
-        if source_ms == self.end_ms {
+        if self
+            .source_segments()
+            .last()
+            .is_some_and(|segment| source_ms == segment.end_ms)
+        {
             Some(offset)
         } else {
             None
@@ -47,7 +52,7 @@ impl EditDocument {
             offset += duration;
         }
         if output_ms == offset {
-            Some(self.end_ms)
+            self.source_segments().last().map(|segment| segment.end_ms)
         } else {
             None
         }
@@ -61,13 +66,13 @@ impl EditDocument {
         {
             return Err("Advanced edits require document version 2.".into());
         }
-        if self.version == 2 && (self.segments.is_empty() || self.segments.len() > 32) {
+        if self.version >= 2 && (self.segments.is_empty() || self.segments.len() > 32) {
             return Err("A timeline needs between one and 32 source segments.".into());
         }
         let mut previous = -1;
         for segment in self.source_segments() {
             if segment.start_ms < 0
-                || segment.start_ms < previous
+                || (self.version < 3 && segment.start_ms < previous)
                 || segment.end_ms <= segment.start_ms
                 || segment.end_ms > source_duration
             {
@@ -76,6 +81,31 @@ impl EditDocument {
                 );
             }
             previous = segment.end_ms;
+        }
+        if self.version == 3 {
+            let mut ids = std::collections::HashSet::new();
+            for segment in &self.segments {
+                if segment
+                    .id
+                    .as_ref()
+                    .is_none_or(|id| id.is_empty() || id.len() > 128 || !ids.insert(id))
+                {
+                    return Err("Rearrangeable scenes need unique, stable IDs.".into());
+                }
+            }
+            let mut ranges = self.segments.iter().collect::<Vec<_>>();
+            ranges.sort_by_key(|segment| segment.start_ms);
+            if ranges
+                .windows(2)
+                .any(|pair| pair[0].end_ms > pair[1].start_ms)
+            {
+                return Err("Source scenes cannot overlap or repeat.".into());
+            }
+            if ranges.first().unwrap().start_ms != self.start_ms
+                || ranges.last().unwrap().end_ms != self.end_ms
+            {
+                return Err("The source envelope must cover all scenes.".into());
+            }
         }
         if self.version == 2
             && (self.segments[0].start_ms != self.start_ms
@@ -180,15 +210,7 @@ impl EditDocument {
     }
 
     pub fn replace_segments(&self, segments: Vec<SourceSegment>) -> Self {
-        let mut result = self.clone();
-        result.version = 2;
-        result.start_ms = segments
-            .first()
-            .map_or(self.start_ms, |segment| segment.start_ms);
-        result.end_ms = segments
-            .last()
-            .map_or(self.end_ms, |segment| segment.end_ms);
-        result.segments = segments;
+        let mut result = self.segment_envelope(segments);
         result.words = self
             .words
             .iter()
@@ -213,6 +235,9 @@ impl EditDocument {
                 Some(word)
             })
             .collect();
+        result
+            .words
+            .sort_by_key(|word| (word.start_ms, word.end_ms));
         let mapping = result.clone();
         let remap = |time| {
             self.output_to_source(time)
@@ -247,6 +272,17 @@ impl EditDocument {
                         y,
                     });
                 }
+                if result.version == 3 {
+                    let last = offset + segment.end_ms - segment.start_ms - 1;
+                    if let Some(time) = self.source_to_output(segment.end_ms - 1) {
+                        let (x, y) = self.crop_position(time);
+                        result.keyframes.push(Keyframe {
+                            time_ms: last,
+                            x,
+                            y,
+                        });
+                    }
+                }
                 offset += segment.end_ms - segment.start_ms;
             }
             result.keyframes.sort_by_key(|key| key.time_ms);
@@ -258,13 +294,8 @@ impl EditDocument {
             .flat_map(|layer| {
                 self.remap_ranges(layer.start_ms, layer.end_ms, &mapping)
                     .into_iter()
-                    .enumerate()
-                    .map(|(index, (start, end, old_start))| VisualLayer {
-                        id: if index == 0 {
-                            layer.id.clone()
-                        } else {
-                            format!("{}-cut-{index}", layer.id)
-                        },
+                    .map(|(start, end, old_start)| VisualLayer {
+                        id: fragment_id(&layer.id, layer.start_ms, old_start),
                         start_ms: start,
                         end_ms: end,
                         source_start_ms: if layer.kind == "broll" {
@@ -283,13 +314,8 @@ impl EditDocument {
             .flat_map(|layer| {
                 self.remap_ranges(layer.start_ms, layer.end_ms, &mapping)
                     .into_iter()
-                    .enumerate()
-                    .map(|(index, (start, end, old_start))| AudioLayer {
-                        id: if index == 0 {
-                            layer.id.clone()
-                        } else {
-                            format!("{}-cut-{index}", layer.id)
-                        },
+                    .map(|(start, end, old_start)| AudioLayer {
+                        id: fragment_id(&layer.id, layer.start_ms, old_start),
                         start_ms: start,
                         end_ms: end,
                         source_start_ms: layer.source_start_ms + old_start - layer.start_ms,
@@ -299,6 +325,103 @@ impl EditDocument {
             })
             .collect();
         result
+    }
+
+    pub fn segment_envelope(&self, segments: Vec<SourceSegment>) -> Self {
+        let mut result = self.clone();
+        result.version = if self.version == 3 || segments.iter().any(|segment| segment.id.is_some())
+        {
+            3
+        } else {
+            2
+        };
+        result.start_ms = segments
+            .iter()
+            .map(|segment| segment.start_ms)
+            .min()
+            .unwrap_or(self.start_ms);
+        result.end_ms = segments
+            .iter()
+            .map(|segment| segment.end_ms)
+            .max()
+            .unwrap_or(self.end_ms);
+        result.segments = segments;
+        result
+    }
+
+    fn crop_position(&self, time: i64) -> (f64, f64) {
+        let from = self.keyframes.iter().rev().find(|key| key.time_ms <= time);
+        let to = self.keyframes.iter().find(|key| key.time_ms > time);
+        let (start, x, y) = from.map_or((0, self.crop.x, self.crop.y), |key| {
+            (key.time_ms, key.x, key.y)
+        });
+        to.map_or((x, y), |key| {
+            let ratio = (time - start) as f64 / (key.time_ms - start) as f64;
+            (x + (key.x - x) * ratio, y + (key.y - y) * ratio)
+        })
+    }
+
+    pub fn hydrate_added_words(&mut self, previous: &Self, source_words: &[Word]) {
+        let previous_segments = previous.source_segments();
+        let mut ids = self
+            .words
+            .iter()
+            .map(|word| word.id.clone())
+            .collect::<std::collections::HashSet<_>>();
+        for source in source_words {
+            if ids.contains(&source.id)
+                || previous_segments.iter().any(|segment| {
+                    source.start_ms < segment.end_ms && source.end_ms > segment.start_ms
+                })
+            {
+                continue;
+            }
+            if let Some(word) = self.map_source_word(source) {
+                ids.insert(word.id.clone());
+                self.words.push(word);
+            }
+        }
+        self.words.sort_by_key(|word| (word.start_ms, word.end_ms));
+    }
+
+    pub fn map_source_word(&self, source: &Word) -> Option<Word> {
+        let mut offset = 0;
+        let mut best = None;
+        for segment in self.source_segments() {
+            let start = source.start_ms.max(segment.start_ms);
+            let end = source.end_ms.min(segment.end_ms);
+            if end > start && best.is_none_or(|(_, _, length)| end - start > length) {
+                best = Some((
+                    offset + start - segment.start_ms,
+                    offset + end - segment.start_ms,
+                    end - start,
+                ));
+            }
+            offset += segment.end_ms - segment.start_ms;
+        }
+        let (start, end, _) = best?;
+        let mut word = source.clone();
+        word.start_ms = start;
+        word.end_ms = end;
+        word.timing.get_or_insert(WordTiming {
+            provenance: "estimated".into(),
+            source_start_ms: source.start_ms,
+            source_end_ms: source.end_ms,
+            alignment_confidence: None,
+        });
+        Some(word)
+    }
+}
+
+fn fragment_id(id: &str, original_start: i64, retained_start: i64) -> String {
+    if original_start == retained_start {
+        id.to_owned()
+    } else {
+        uuid::Uuid::new_v5(
+            &uuid::Uuid::NAMESPACE_URL,
+            format!("uc-layer:{id}:{retained_start}").as_bytes(),
+        )
+        .to_string()
     }
 }
 

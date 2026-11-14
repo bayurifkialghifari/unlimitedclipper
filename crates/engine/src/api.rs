@@ -93,6 +93,7 @@ pub struct UpdateClipRequest {
 
 #[derive(Serialize, ToSchema)]
 pub struct Health {
+    pub edit_document_versions: Vec<u32>,
     pub version: String,
     pub platform: String,
     pub native: bool,
@@ -402,6 +403,7 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Health>> {
         tools.insert(name.into(), crate::tools::available(&state, family, name));
     }
     Ok(Json(Health {
+        edit_document_versions: vec![1, 2, 3],
         version: env!("CARGO_PKG_VERSION").into(),
         platform: std::env::consts::ARCH.into(),
         native: state.native_tools.is_some(),
@@ -1441,20 +1443,14 @@ async fn timeline_preview(
         .document
         .validate(project.duration_ms)
         .map_err(ApiError::bad_request)?;
-    let mut envelope = request.document.clone();
-    envelope.version = 2;
-    envelope.segments = request.segments.clone();
-    envelope.start_ms = request
-        .segments
-        .first()
-        .map_or(-1, |segment| segment.start_ms);
-    envelope.end_ms = request.segments.last().map_or(-1, |segment| segment.end_ms);
+    let mut envelope = request.document.segment_envelope(request.segments.clone());
     envelope.visual_layers.clear();
     envelope.audio_layers.clear();
     envelope
         .validate_timeline(project.duration_ms)
         .map_err(ApiError::bad_request)?;
-    let result = request.document.replace_segments(request.segments);
+    let mut result = request.document.replace_segments(request.segments);
+    result.hydrate_added_words(&request.document, &project.words);
     result
         .validate(project.duration_ms)
         .map_err(ApiError::bad_request)?;

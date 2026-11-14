@@ -523,8 +523,8 @@ pub async fn refine_captions(
         .filter_map(|mut word| {
             let source_start = input_start + word.start_ms;
             let source_end = (input_start + word.end_ms).min(clip.document.end_ms);
-            word.start_ms = clip.document.source_to_output(source_start)?;
-            word.end_ms = clip.document.source_to_output(source_end - 1)? + 1;
+            word.start_ms = source_start;
+            word.end_ms = source_end;
             if word
                 .timing
                 .as_ref()
@@ -537,7 +537,7 @@ pub async fn refine_captions(
                     alignment_confidence: None,
                 });
             }
-            Some(word)
+            clip.document.map_source_word(&word)
         })
         .filter(|word| {
             !manual

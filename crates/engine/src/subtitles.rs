@@ -411,7 +411,11 @@ pub fn vtt_timeline(document: &EditDocument, output_time: bool) -> String {
         )
     };
     let mut content = String::from("WEBVTT\n\n");
-    for words in caption_groups(document) {
+    let mut groups = caption_groups(document);
+    if !output_time {
+        groups.sort_by_key(|words| document.output_to_source(words[0].start_ms));
+    }
+    for words in groups {
         let start = if output_time {
             words[0].start_ms
         } else {

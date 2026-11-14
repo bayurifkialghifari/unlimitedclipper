@@ -116,10 +116,12 @@ fn timeline_remapping_preserves_manual_words_and_audio_source_offsets() {
     });
     let result = document.replace_segments(vec![
         SourceSegment {
+            id: None,
             start_ms: 2000,
             end_ms: 4000,
         },
         SourceSegment {
+            id: None,
             start_ms: 6000,
             end_ms: 8000,
         },
@@ -172,10 +174,12 @@ fn captions_keep_phrases_visible_but_never_group_across_a_cut() {
     let mut document = EditDocument::new(&project(), 0, 4000);
     document.segments = vec![
         SourceSegment {
+            id: None,
             start_ms: 0,
             end_ms: 1000,
         },
         SourceSegment {
+            id: None,
             start_ms: 3000,
             end_ms: 4000,
         },

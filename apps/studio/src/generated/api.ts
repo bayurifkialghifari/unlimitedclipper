@@ -852,6 +852,7 @@ export interface components {
       minimum_score?: number;
     };
     Health: {
+      edit_document_versions: number[];
       models: components['schemas']['ModelStatus'][];
       native: boolean;
       platform: string;
@@ -967,6 +968,7 @@ export interface components {
     SourceSegment: {
       /** Format: int64 */
       end_ms: number;
+      id?: string | null;
       /** Format: int64 */
       start_ms: number;
     };
