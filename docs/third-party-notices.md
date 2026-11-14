@@ -1,6 +1,7 @@
 # Third-party software and model notices
 
-UnlimitedClipper uses original application source. It does not incorporate SupoClip source or editorial reference assets.
+UnlimitedClipper uses original application source. It does not incorporate SupoClip source or
+competitor assets.
 
 | Component                       | Upstream                                                                      | Notice                                                                                                                                                                 |
 | ------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

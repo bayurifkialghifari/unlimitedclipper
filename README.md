@@ -232,5 +232,5 @@ boundaries.
 - **Sources:** [Research](docs/research.md) · [Demo media notes](docs/media/README.md) ·
   [Third-party notices](docs/third-party-notices.md).
 
-The implementation is original. editorial reference and OpusClip are workflow references; their source,
-branding, and marketing assets are not bundled.
+The implementation is original. OpusClip is a workflow reference; its source, branding, and
+marketing assets are not bundled.

@@ -16,8 +16,6 @@ Reading this as a video editing studio for independent creators, using blue grap
 
 Desktop layouts keep the preview beside the inspector. Narrow layouts use a stacked preview and tabbed settings without horizontal overflow. Use native controls where possible, minimum 44px touch targets, meaningful labels, and visible focus rings. Project galleries show real thumbnails and records, never invented usage statistics.
 
-The editorial reference workspace is the functional reference. Its assets, logo, promotional claims, and screenshots are not product assets.
-
 The visual editor uses a viewport-fitting three-column workspace: clips/transcript on the left,
 footage in the center, precise controls on the right, and a timeline underneath. Independent
 panel scrolling keeps the footage and playhead visible. Narrow layouts toggle side panels.
