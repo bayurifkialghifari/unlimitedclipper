@@ -232,6 +232,23 @@ and canonical models remain intact. Evidence: .cache/storage-cleanup-initial.jso
 .cache/storage-cleanup.json, .cache/quality-transfer-cleanup.json, and .cache/storage-final.json.
 After cleanup and validation builds, the measured workspace was 16,163,312,034 bytes, approximately
 15.05 GiB. This includes the retained compiled target output.
+The canonical .data library contained 42 registered assets; all resolved to existing files after
+cleanup. Its measured size remained 7,029,653,999 bytes.
+
+Source commit 7d614ead8a2bfe56bd141c59f57c400d92485bd5 passed all five jobs in
+[quality run 43573112874](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43573112874):
+the studio check and engine tests/Rustfmt/Clippy on Windows x64, Ubuntu, macOS Intel, and macOS
+Apple Silicon. Windows desktop Clippy also passed. These source checks do not certify packaged
+applications on those platforms.
+
+The same commit passed
+[native editorial run 43573112948](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43573112948)
+on the official Windows ARM64 runner using MSVC. A fresh engine build rendered the fixture
+successfully: 6.000000 seconds, all six layouts decoded, local audio/B-roll layers, preview isolation,
+and stale-revision rejection.
+[Evidence artifact 14105785414](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43573112948/artifacts/14105785414)
+contains the JSON result; the downloaded copy is .cache/ci-editorial-evidence/editorial-validation.json.
+This CI job tests the standalone engine, while the separate native desktop check above uses WebView2.
 
 ### Anti-slop gate for the changed editor
 

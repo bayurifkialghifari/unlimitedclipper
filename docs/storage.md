@@ -28,6 +28,7 @@ the current target build. Evidence is .cache/storage-cleanup-initial.json and
 the net workspace-size change. The previous workspace measurement was about 55.46 GiB.
 The final measurement after cleanup and validation builds was 16,163,312,034 bytes, approximately
 15.05 GiB, including the current build output. See .cache/storage-final.json.
+All 42 registered assets in the canonical .data library resolved to existing files after cleanup.
 
 Fixtures use configurable UC_FIXTURE_DIR and UC_TEST_DATA_DIR paths. UC_MODELS_DIR selects a shared
 model store at engine startup; UC_MODELS_READ_ONLY=1 rejects model mutations. Tests borrow models
