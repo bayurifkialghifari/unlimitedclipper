@@ -49,6 +49,39 @@ to the source library. Their English UI shows the transcript, two-scene timeline
 real project records, and installed models. Evidence: .cache/preview3-readme-validation.json and
 docs/media/. Full accessibility and installer/updater runtime certification remain pending.
 
+## Published Windows visual-editor preview, 2026-11-14
+
+The [v0.1.0-preview.3 release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.3)
+contains eight verified assets. Tagged source is 603c912ba50cf198b042de82faf576de6f63902c.
+Both installers were built locally with the release-version transformation. The original
+source version files were restored before committing/tagging; publisher private keys remained
+outside the repository.
+
+- Frontend lint, formatting, TypeScript, three unit tests, and production compilation passed.
+  Engine scene changes passed 32 Rust tests, Rustfmt, and engine/desktop Clippy with warnings denied.
+- ARM64 and x64 application compilation and NSIS packaging completed. Native PE headers were
+  aa64 and 8664, and Windows file/product versions matched 0.1.0-preview.3. NSIS launchers are
+  32-bit executables wrapping the native application; launcher headers do not identify the payload.
+- Independent Ed25519/BLAKE2b signature verification passed for both installers, including the
+  signed release version. Every local checksum and all eight GitHub asset digests matched.
+  An authenticated download of all eight assets passed the same signatures and checksums again.
+- The final cached ARM64 executable opened the original library in a maximized 1920 × 1009
+  native window without overflow or JavaScript errors. Both projects, all six registered source
+  assets, and the three canonical models remained available. No active jobs or dirty edits were
+  interrupted when the idle host was replaced.
+
+The ARM64 installer is 225,654,823 bytes (215.20 MiB); x64 is 286,467,429 bytes (273.20 MiB).
+Evidence: .cache/preview3-pe-validation.json, .cache/preview3-signature-validation.json,
+.cache/preview3-published.json, .cache/preview3-download-validation.json,
+.cache/preview3-live-validation.json, and .cache/preview3-live-state.json.
+
+The [tagged release workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43600419628)
+started zero validation/build steps because GitHub reported failed account payments or a
+spending-limit restriction. Hosted quality/media checks were blocked for the same reason.
+Local results are recorded independently. Installer install/uninstall, native updater installation,
+physical x64 runtime, complete accessibility certification, and Android runtime remain pending.
+The private repository provides manual preview downloads, not a public automatic-update feed.
+
 ## Executed checks
 
 Environment: Windows 11 on Snapdragon X ARM64, eight logical cores, approximately 16 GB RAM. Native Rust 1.100 uses the workspace LLVM-MinGW linker. Node.js 24 runs as x64 under emulation. The minimum supported Rust version is 1.92 because of the ORT dependency.
