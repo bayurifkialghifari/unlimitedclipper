@@ -23,8 +23,10 @@ movement and one on release, playback from the source end into an earlier scene,
 trim, Escape cancellation, audio left-trim offset advancement, layer movement without changing
 its media offset, caption-only deletion, transcript video cuts, composed rendering, and stale
 playback protection. Layout checks passed at 390, 1280, 1920, and 2560 pixels. Existing upload,
-caption/title/crop, reload/export, layer/audio, onboarding, and page-width tests also passed in
-targeted reruns. Evidence: tests/browser/scenes.spec.ts and test-results/visual-editor.png.
+caption/title/crop, reload/export, layer/audio, onboarding, and page-width tests also passed.
+The complete browser suite passed all eight tests together. The subsequent Clips/Klip library
+label correction passed the frontend check and changed no interactions. Evidence:
+tests/browser/scenes.spec.ts and test-results/visual-editor.png.
 
 The tests caught a repeated OffscreenCanvas transfer when preview mode/staleness changed and
 completed notifications intercepting editor clicks. The renderer now retains its worker across
@@ -35,8 +37,17 @@ Anti-slop During delivery gate: the graphite studio, compact clip/transcript pan
 inspector scroll, source/media tracks, and lime playhead each serve editing or timing review.
 Only real fixture records populate interaction screenshots. Enabled controls have working
 actions, keyboard counterparts, disabled/error states, and visible focus; no promotional
-statistics or competitor assets were introduced. Native preview.3 interaction and refreshed
-README screenshots remain pending until the built host is inspected separately.
+statistics or competitor assets were introduced. The optimized preview.3 ARM64 host was checked
+separately with a native file dialog, import, manual clip, scene reorder, caption autosave,
+composed playback, and export playback. Its maximized 1920 × 1009 viewport had no horizontal
+overflow or JavaScript errors. Evidence: .cache/preview3-native-validation.json.
+
+The original frame/cut icon was extracted from the native executable and visually checked
+against the SVG master. Evidence: .cache/preview3-native-icon.png. Refreshed README captures use
+the browser studio and a manual podcast review in an isolated library snapshot, with no changes
+to the source library. Their English UI shows the transcript, two-scene timeline, caption looks,
+real project records, and installed models. Evidence: .cache/preview3-readme-validation.json and
+docs/media/. Full accessibility and installer/updater runtime certification remain pending.
 
 ## Executed checks
 

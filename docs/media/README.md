@@ -5,13 +5,20 @@ works from a fresh checkout without relying on ignored `.cache` or `.data` files
 
 ## Screenshots
 
-Captured on 13 November 2026 from the Windows ARM64 native application with its WebView2 bridge. The
-studio viewport was 1800 × 1120; full-page editor screenshots include the saved clip rail. The
-interface uses its Indonesian dictionary. No mock data or competitor screenshots were substituted.
+Captured on 14 November 2026 from the browser studio at a 1920 × 1080 viewport. Settings uses a
+1920 × 1503 full-page capture. The interface uses its English dictionary. A consistent SQLite
+snapshot and hard-linked managed footage provided an isolated copy of the actual library.
+Creating the manual demo changed only that copy. No competitor screenshots were substituted.
 
-- `studio.png`: dinosaur cut at 2.2 seconds, with the Impact caption look.
-- `captions.png`: escape cut at 1.2 seconds, with the Word box caption look.
-- `projects.png`: the imported Windah recording in the persistent library.
+- `studio.png`: an 18-second manual podcast review with two scenes and the Studio caption look.
+- `captions.png`: the same review with the Word box look and a selected transcript word.
+- `projects.png`: two real imports of the 48-minute Matan podcast.
+- `settings.png`: actual installed models, download/import actions, and update controls.
+
+Podcast source: “Matan Finally Confronts Mike Majlak About Logan Paul,” already imported in the
+user library. This is a manual interface demonstration, not an AI-quality benchmark. The footage
+belongs to its original creator and does not imply endorsement. Capture evidence:
+`.cache/preview3-readme-validation.json`. The Windah video examples below remain unchanged.
 
 ## Video examples
 

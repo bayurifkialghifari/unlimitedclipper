@@ -17,7 +17,7 @@ A local video clipping studio built with Rust, React, SQLite, and Tauri.
 **Made for fun, still experimental.** This is a side project for tinkering with local video tools,
 mostly for fun and learning, at a relaxed pace. Expect rough edges and changing features.
 
-<img src="docs/media/studio.png" alt="UnlimitedClipper's native Windows editor showing a real Windah gaming clip, Impact captions, and seven saved cuts" width="1800" height="1468" />
+<img src="docs/media/studio.png" alt="Browser studio reviewing a real podcast with its transcript, scene timeline, and caption inspector" width="1920" height="1080" />
 
 Import a long recording, find or choose a cut, review its words, and export a captioned video.
 Speech recognition and clip selection run locally after the models are installed. No cloud AI
@@ -62,17 +62,18 @@ copies of the original 1080 × 1920 exports, with audio preserved.
 
 ## What you can do
 
-| In the studio          | What it does                                                                                                     |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                    |
-| Find a moment          | Give local AI a focus and interest filter, or set the boundaries yourself. Clip count is a maximum, not a quota. |
-| Make captions readable | Choose Studio, Impact, Word box, Single word, or Kinetic. Edit text, timing, emphasis, colors, and position.     |
-| Build an editorial cut | Join source segments, add text notes, punch-ins, split framing, local B-roll, and optional audio layers.         |
-| Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.          |
-| Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.             |
-| Frame the clip         | Use portrait, square, landscape, preserved framing, blur, or a gaming split. Adjust crops and keyframes.         |
-| Finish the edit        | Add a hook title or image/text watermark, with revisioned autosave and undo/redo.                                |
-| Export the result      | Render a single cut or a batch to MP4 with SRT and ASS sidecars. Retries keep completed exports.                 |
+| In the studio          | What it does                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                            |
+| Find a moment          | Give local AI a focus and interest filter, or set the boundaries yourself. Clip count is a maximum, not a quota.         |
+| Make captions readable | Choose Studio, Impact, Word box, Single word, or Kinetic. Edit text, timing, emphasis, colors, and position.             |
+| Edit on the timeline   | Select transcript ranges, reorder/split/trim scenes, and move or trim layers with snapping, keyboard controls, and undo. |
+| Build an editorial cut | Add text notes, punch-ins, split framing, local B-roll, and optional audio layers.                                       |
+| Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.                  |
+| Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.                     |
+| Frame the clip         | Use portrait, square, landscape, preserved framing, blur, or a gaming split. Adjust crops and keyframes.                 |
+| Finish the edit        | Add a hook title or image/text watermark, with revisioned autosave and undo/redo.                                        |
+| Export the result      | Render a single cut or a batch to MP4 with SRT and ASS sidecars. Retries keep completed exports.                         |
 
 The desktop window and localhost browser use the same Rust engine and saved library. The interface
 supports Indonesian and English. Video files stay in managed folders; SQLite stores project data
@@ -83,9 +84,10 @@ and edit revisions.
 ### Caption editing
 
 Five looks, the current clip's real words, and a preview of the active word. Styles, timing, and
-manual corrections become part of the saved edit.
+manual corrections become part of the saved edit. These browser screenshots show a manual podcast
+review in a separate copy of the real library; the source library is unchanged.
 
-<img src="docs/media/captions.png" alt="Native caption editor with the Word box look selected and the real escape clip in the preview" width="1800" height="1468" />
+<img src="docs/media/captions.png" alt="Podcast review with the Word box look selected, an active transcript word, and two timeline scenes" width="1920" height="1080" />
 
 <details>
 <summary>See the project library</summary>
@@ -93,7 +95,7 @@ manual corrections become part of the saved edit.
 Imported recordings and their edits persist locally. This screenshot shows the actual test
 recording, with no invented projects or usage numbers.
 
-<img src="docs/media/projects.png" alt="Project library containing the imported 84-minute Windah recording" width="1800" height="1120" />
+<img src="docs/media/projects.png" alt="Local project library showing two imports of the actual 48-minute Matan podcast" width="1920" height="1080" />
 
 </details>
 
@@ -104,7 +106,7 @@ Choose a supported model and download it in the app. Manual model import remains
 Import, download, clipping, and export activity appear in a collapsible popup at the top right.
 The preview's update button opens the download page.
 
-<img src="docs/media/settings.png" alt="Browser settings with the actual installed Whisper and Qwen models, optional manual import, and simple update controls" width="1440" height="1511" />
+<img src="docs/media/settings.png" alt="Browser settings with the actual installed Whisper and Qwen models, optional manual import, and simple update controls" width="1920" height="1503" />
 
 </details>
 
@@ -209,7 +211,7 @@ boundaries.
 
 ## Documentation
 
-- **Using the app:** [Setup](docs/setup.md) · [Troubleshooting](docs/troubleshooting.md) ·
+- **Using the app:** [Visual editor](docs/features/visual-editor.md) · [Setup](docs/setup.md) · [Troubleshooting](docs/troubleshooting.md) ·
   [Feature guide](docs/features/README.md).
 - **Building it:** [Product requirements](PRD.md) · [Architecture](architecture.md) ·
   [Design](DESIGN.md) · [Contributor rules](AGENTS.md).

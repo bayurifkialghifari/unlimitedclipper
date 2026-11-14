@@ -1,7 +1,9 @@
 # Local visual editor
 
-Status: implemented; current browser interaction checks passed for scene operations. Native
-preview.3 package verification is pending until recorded in ../validation.md.
+Status: implemented. Browser scene interactions and the optimized preview.3 Windows ARM64 host
+passed separate checks. Native import, scene reorder, caption autosave, composed playback, and
+export playback were exercised. Installer/updater execution and physical x64 runtime remain
+pending. See ../validation.md for the evidence and scope.
 
 ## Workspace
 
