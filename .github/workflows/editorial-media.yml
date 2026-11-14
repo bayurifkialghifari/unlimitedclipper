@@ -45,6 +45,7 @@ jobs:
       - run: cargo build --locked -p unlimitedclipper-engine
       - run: node scripts/validate-editorial.mjs
       - run: node scripts/validate-scenes.mjs
+      - run: node scripts/validate-caption-library.mjs
       - run: npx playwright install chromium
       - run: node scripts/validate-browser.mjs
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
@@ -54,5 +55,7 @@ jobs:
           path: |
             .cache/editorial-validation.json
             .cache/scene-media-validation.json
+            .cache/caption-media-validation.json
+            .cache/caption-frames/
             test-results/
           if-no-files-found: warn

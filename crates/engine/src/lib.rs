@@ -2,6 +2,7 @@ pub mod alignment;
 pub mod api;
 pub mod caption_metrics;
 pub mod caption_presets;
+pub mod clip_rating;
 pub mod db;
 pub mod editorial;
 pub mod error;

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- 18 original caption recipes, category previews, Reveal and Underline rendering, and up to
+  50 reusable named styles. Deleting a saved style preserves applied clip revisions.
+- Local clip potential reviews with a 0–100 editorial score, four transcript-grounded
+  dimensions, and editing suggestions. Ratings are separate from edits and become stale
+  after changes; oversized or unsupported requests are rejected with an explanation.
+
+### Changed
+
+- Rating validation rejects invented evidence and makes one bounded correction attempt
+  before reporting a worker error. Browser previews load bundled Noto Sans and bold Oswald.
+
 ### Fixed
 
 - Blue graphite surfaces and amber controls now give the studio and original app icon a

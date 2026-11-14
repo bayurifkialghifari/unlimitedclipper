@@ -72,8 +72,24 @@ export interface paths {
     };
     get: operations['caption_presets'];
     put?: never;
-    post?: never;
+    post: operations['save_caption_preset'];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/caption-presets/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['delete_caption_preset'];
     options?: never;
     head?: never;
     patch?: never;
@@ -169,6 +185,22 @@ export interface paths {
     get?: never;
     put?: never;
     post: operations['preview_render'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clips/{id}/rating': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_clip_rating'];
+    put?: never;
+    post: operations['rate_clip'];
     delete?: never;
     options?: never;
     head?: never;
@@ -753,8 +785,11 @@ export interface components {
       revision: number;
     };
     CaptionPreset: {
+      category: string;
       id: string;
+      name?: string | null;
       style: components['schemas']['CaptionStyle'];
+      user_created: boolean;
     };
     CaptionStyle: {
       animation: string;
@@ -786,6 +821,19 @@ export interface components {
       revision: number;
       /** Format: int32 */
       score?: number | null;
+    };
+    ClipRating: {
+      clip_id: string;
+      /** Format: int64 */
+      created_at: number;
+      dimensions: components['schemas']['RatingDimension'][];
+      model: string;
+      /** Format: int64 */
+      revision: number;
+      /** Format: int32 */
+      score: number;
+      suggestions: string[];
+      summary: string;
     };
     CreateClipRequest: {
       /** Format: int64 */
@@ -938,6 +986,13 @@ export interface components {
       clips: components['schemas']['Clip'][];
       project: components['schemas']['Project'];
     };
+    RatingDimension: {
+      explanation: string;
+      key: string;
+      quote: string;
+      /** Format: int32 */
+      score: number;
+    };
     RefineCaptionsRequest: {
       language: string;
       /** Format: int64 */
@@ -948,6 +1003,10 @@ export interface components {
     RevisionRequest: {
       /** Format: int64 */
       revision: number;
+    };
+    SaveCaptionPreset: {
+      name: string;
+      style: components['schemas']['CaptionStyle'];
     };
     SessionRequest: {
       token: string;
@@ -1186,6 +1245,48 @@ export interface operations {
       };
     };
   };
+  save_caption_preset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveCaptionPreset'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CaptionPreset'];
+        };
+      };
+    };
+  };
+  delete_caption_preset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   get_clip: {
     parameters: {
       query?: never;
@@ -1393,6 +1494,52 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  get_clip_rating: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': null | components['schemas']['ClipRating'];
+        };
+      };
+    };
+  };
+  rate_clip: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RevisionRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
       };
     };
   };

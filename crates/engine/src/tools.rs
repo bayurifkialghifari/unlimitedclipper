@@ -41,7 +41,7 @@ pub fn require_native_job(state: &AppState, kind: &str) -> Result<()> {
         "import" | "export" | "preview" => &["ffmpeg", "ffprobe"],
         "generate" => &["ffmpeg", "whisper-cli", "llama-completion"],
         "captions" => &["ffmpeg", "whisper-cli"],
-        "title" => &["llama-completion"],
+        "title" | "assess" => &["llama-completion"],
         "youtube" => &["yt-dlp", "deno", "ffmpeg", "ffprobe"],
         "track" | "model" | "component_update" | "auto_edit" => {
             bail!("This operation is unavailable in the current Android build.");

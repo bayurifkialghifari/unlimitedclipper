@@ -8,8 +8,8 @@ import { useText } from '../lib/i18n';
 import { outputDuration } from '../lib/timeline';
 import { isAndroidHost } from '../lib/native';
 import { languages } from '../lib/format';
-import { CaptionPresetPicker } from '../molecules/CaptionPresetPicker';
-import { QueryState } from '../molecules/QueryState';
+import { CaptionPresetLibrary } from './CaptionPresetLibrary';
+import { ClipRatingPanel } from './ClipRatingPanel';
 import { CaptionRefinement } from './CaptionRefinement';
 import { EditorialPanel } from './EditorialPanel';
 import { TimelineEditor } from './TimelineEditor';
@@ -50,11 +50,6 @@ export function Inspector({
   const models = useQuery({ queryKey: ['models'], queryFn: api.models });
   const preferences = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const jobs = useQuery({ queryKey: ['jobs'], queryFn: api.jobs });
-  const presets = useQuery({
-    queryKey: ['caption-presets'],
-    queryFn: api.captionPresets,
-    enabled: tab === 'captions',
-  });
   const count = selectedCount ?? preferences.data?.clip_count ?? 4;
   const duration = selectedDuration ?? String(preferences.data?.clip_duration_ms ?? 0);
   const language = selectedLanguage ?? preferences.data?.transcription_language ?? 'auto';
@@ -331,6 +326,13 @@ export function Inspector({
             {document && (
               <>
                 <hr className={styles.separator} />
+                <ClipRatingPanel
+                  key={'rating-' + draft!.id}
+                  clip={draft!}
+                  modelReady={selectionReady}
+                  dirty={dirty}
+                  saving={saving}
+                />
                 <EditorialPanel key={draft!.id} />
                 <Field
                   label={text.name}
@@ -409,27 +411,20 @@ export function Inspector({
         {tab === 'captions' && document && (
           <>
             <h2>{text.captions}</h2>
-            <QueryState
-              pending={presets.isPending}
-              error={presets.error}
-              retry={() => void presets.refetch()}
+            <CaptionPresetLibrary
+              current={document.captions}
+              words={document.words}
+              disabled={editing}
+              onChange={(style) =>
+                change((next) => {
+                  next.captions = {
+                    ...style,
+                    enabled: next.captions.enabled,
+                    position_y: next.captions.position_y,
+                  };
+                })
+              }
             />
-            {presets.data && (
-              <CaptionPresetPicker
-                presets={presets.data}
-                current={document.captions}
-                words={document.words}
-                onChange={(style) =>
-                  change((next) => {
-                    next.captions = {
-                      ...style,
-                      enabled: next.captions.enabled,
-                      position_y: next.captions.position_y,
-                    };
-                  })
-                }
-              />
-            )}
             <Toggle
               label={text.enabled}
               checked={document.captions.enabled}
@@ -452,6 +447,9 @@ export function Inspector({
               <option value="highlight">{text.highlight}</option>
               <option value="box">{text.boxHighlight}</option>
               <option value="word">{text.wordByWord}</option>
+              <option value="kinetic">{text.captionKinetic}</option>
+              <option value="reveal">{text.captionReveal}</option>
+              <option value="underline">{text.captionUnderline}</option>
             </Select>
             <Select
               label={text.font}

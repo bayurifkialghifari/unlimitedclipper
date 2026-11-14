@@ -116,7 +116,7 @@
   align-items: center;
   gap: 8px;
   padding: 24px 8px;
-  background: #171a14;
+  background: var(--surface-inset);
   border-right: 1px solid var(--border);
 }
 
@@ -162,15 +162,6 @@
 .navActive {
   background: var(--accent-soft);
   color: var(--accent);
-}
-
-.localLabel {
-  margin-top: auto;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.6;
-  text-align: center;
-  padding-top: 30px;
 }
 
 .main {
@@ -279,7 +270,7 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   overflow: hidden;
-  background: #0b0e09;
+  background: #0b1016;
 }
 
 .previewTop {
@@ -344,7 +335,7 @@
   gap: 16px;
   align-items: center;
   padding: 12px 20px;
-  border-top: 1px solid #262b21;
+  border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 11px;
 }
@@ -952,8 +943,7 @@
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
-  .wordmark,
-  .localLabel {
+  .wordmark {
     display: none;
   }
   .nav {
@@ -1027,7 +1017,181 @@
   gap: 8px;
 }
 
+.captionLibrary {
+  margin-bottom: 20px;
+  min-width: 0;
+}
+
+.clipRating {
+  margin: 0 0 20px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-inset);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.clipRating summary {
+  min-height: 44px;
+  padding: 10px 0;
+  font-weight: 600;
+}
+
+.clipRating summary span {
+  float: right;
+  color: var(--accent);
+}
+
+.ratingScore {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ratingScore output {
+  font-size: 32px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ratingScore small {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.ratingDimensions {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.ratingDimensionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ratingDimensions meter {
+  width: 100%;
+  height: 8px;
+  margin: 8px 0;
+}
+
+.ratingDimensions meter::-webkit-meter-bar {
+  border: 0;
+  background: var(--surface-raised);
+}
+
+.ratingDimensions meter::-webkit-meter-optimum-value,
+.ratingDimensions meter::-webkit-meter-suboptimum-value {
+  background: var(--accent);
+}
+
+.ratingDimensions meter::-moz-meter-bar {
+  background: var(--accent);
+}
+
+.ratingDimensions p {
+  margin-bottom: 8px;
+}
+
+.ratingDimensions blockquote {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--surface-raised);
+  border-radius: 6px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.ratingStale {
+  color: var(--accent);
+}
+
+.captionCategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.captionCategories button {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--surface-inset);
+  font-size: 12px;
+}
+
+.captionCategories button:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.captionCategories button:active {
+  transform: translateY(1px);
+}
+
+.captionCategories button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.captionPresetTile {
+  position: relative;
+  min-width: 0;
+}
+
+.captionPresetTile[data-user-created='true'] .captionPreset {
+  padding-top: 44px;
+}
+
+.captionPresetRemove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-inset);
+  color: var(--muted);
+}
+
+.captionPresetRemove:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.captionPresetRemove:active {
+  background: var(--surface-raised);
+}
+
+.captionPresetRemove:disabled,
+.captionPreset:disabled {
+  opacity: 0.5;
+}
+
+.captionSaveStyle summary {
+  min-height: 44px;
+  padding: 12px 0;
+}
+
+.captionSaveStyle form {
+  display: grid;
+  gap: 12px;
+}
+
 .captionPreset {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;

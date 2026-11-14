@@ -30,6 +30,11 @@ Independent creators working on podcasts, education, interviews, and gaming vide
 
 ## Reliability
 
+CAP-01 includes 18 original caption recipes, category previews, editable styling, and up to
+50 named reusable styles. AI-03 adds a revision-bound local clip potential score with four
+transcript-grounded dimensions and editing suggestions. It cannot predict reach or virality.
+See docs/features/caption-editor.md and docs/features/clip-rating.md for limits.
+
 EDT-02 adds a local visual editor with transcript seek/range selection, explicit video cuts,
 scene reorder/split/trim, layer move/trim, zoom/snapping, keyboard equivalents, and one transaction
 per completed drag. Source review follows scene order without rendering; edited review stops

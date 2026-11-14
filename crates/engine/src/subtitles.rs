@@ -141,6 +141,11 @@ fn styled_word(word: &Word, active: bool, document: &EditDocument) -> String {
         String::new()
     };
     let slash = char::from(92);
+    let underline = if document.captions.preset == "underline" && active {
+        1
+    } else {
+        0
+    };
     let emphasis_tags = if document.captions.preset == "kinetic" {
         let (width, height) = document.layout.dimensions(document.resolution);
         let size = document.captions.size as f64 * width.min(height) as f64 / 1080.0;
@@ -158,10 +163,43 @@ fn styled_word(word: &Word, active: bool, document: &EditDocument) -> String {
         String::new()
     };
     format!(
-        "{{\\1c{}\\b{bold}{box_tags}{emphasis_tags}}}{}",
+        "{{\\1c{}\\b{bold}\\u{underline}{box_tags}{emphasis_tags}}}{}",
         override_color(chosen_color),
         escape_ass(&text)
     )
+}
+
+fn styled_phrase(
+    words: &[Word],
+    active: Option<usize>,
+    revealed: Option<usize>,
+    document: &EditDocument,
+) -> String {
+    words
+        .iter()
+        .enumerate()
+        .map(|(index, word)| {
+            let alpha = if revealed.is_some_and(|last| index > last) {
+                "FF"
+            } else {
+                "00"
+            };
+            // Invisible future words reserve their glyph widths so reveal captions do not jump.
+            format!(
+                "{{\\alpha&H{alpha}&}}{}",
+                styled_word(word, active == Some(index), document)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn caption_animation(animation: &str, animate: bool) -> &str {
+    match (animation, animate) {
+        ("fade", true) => "\\fad(70,50)",
+        ("pop", true) => "\\fscx94\\fscy94\\t(0,80,\\fscx100\\fscy100)",
+        _ => "",
+    }
 }
 
 pub fn ass(document: &EditDocument) -> String {
@@ -251,36 +289,25 @@ pub fn ass(document: &EditDocument) -> String {
             );
             let document = &group_document;
             if caption.preset == "plain" {
-                let content = words
-                    .iter()
-                    .map(|word| styled_word(word, false, document))
-                    .collect::<Vec<_>>()
-                    .join(" ");
+                let content = styled_phrase(words, None, None, document);
+                let animation = caption_animation(&caption.animation, true);
                 result.push_str(&dialogue(
                     1,
                     words[0].start_ms,
                     words.last().expect("Non-empty group").end_ms,
                     "Caption",
-                    &format!("{{{caption_position}}}{content}"),
+                    &format!("{{{caption_position}{animation}}}{content}"),
                 ));
             } else {
                 for (index, word) in words.iter().enumerate() {
                     let content = if caption.preset == "word" {
                         styled_word(word, true, document)
                     } else {
-                        words
-                            .iter()
-                            .enumerate()
-                            .map(|(position, item)| styled_word(item, position == index, document))
-                            .collect::<Vec<_>>()
-                            .join(" ")
+                        let revealed = (caption.preset == "reveal").then_some(index);
+                        styled_phrase(words, Some(index), revealed, document)
                     };
                     let animate = caption.preset == "word" || index == 0;
-                    let animation = match (caption.animation.as_str(), animate) {
-                        ("fade", true) => "\\fad(70,50)",
-                        ("pop", true) => "\\fscx94\\fscy94\\t(0,80,\\fscx100\\fscy100)",
-                        _ => "",
-                    };
+                    let animation = caption_animation(&caption.animation, animate);
                     let end = words
                         .get(index + 1)
                         .map(|next| next.start_ms.min(word.end_ms + 120))
@@ -296,11 +323,8 @@ pub fn ass(document: &EditDocument) -> String {
                     if caption.preset != "word"
                         && let Some(next) = words.get(index + 1).filter(|next| next.start_ms > end)
                     {
-                        let base = words
-                            .iter()
-                            .map(|word| styled_word(word, false, document))
-                            .collect::<Vec<_>>()
-                            .join(" ");
+                        let revealed = (caption.preset == "reveal").then_some(index);
+                        let base = styled_phrase(words, None, revealed, document);
                         result.push_str(&dialogue(
                             1,
                             end,

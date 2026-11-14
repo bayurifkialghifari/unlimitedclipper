@@ -129,6 +129,10 @@ pub struct Health {
         track_job,
         caption_job,
         caption_presets,
+        save_caption_preset,
+        delete_caption_preset,
+        get_clip_rating,
+        rate_clip,
         update_status,
         check_updates,
         install_updates,
@@ -187,6 +191,9 @@ pub struct Health {
         TimelineRequest,
         crate::quality_pack::PackStatus,
         crate::caption_presets::CaptionPreset,
+        crate::caption_presets::SaveCaptionPreset,
+        crate::clip_rating::ClipRating,
+        crate::clip_rating::RatingDimension,
         CreateClipRequest,
         UpdateClipRequest,
         Health
@@ -293,7 +300,15 @@ pub fn router(state: AppState) -> Router {
         .route("/clips/{id}/title", post(title_job))
         .route("/clips/{id}/track", post(track_job))
         .route("/clips/{id}/captions", post(caption_job))
-        .route("/caption-presets", get(caption_presets))
+        .route(
+            "/caption-presets",
+            get(caption_presets).post(save_caption_preset),
+        )
+        .route(
+            "/caption-presets/{id}",
+            axum::routing::delete(delete_caption_preset),
+        )
+        .route("/clips/{id}/rating", get(get_clip_rating).post(rate_clip))
         .route("/clips/{id}/subtitles", get(clip_subtitles))
         .route("/clips/{id}/preview", post(preview_subtitles))
         .route("/clips/{id}/preview-render", post(preview_render))
@@ -875,6 +890,49 @@ async fn export_project(
     ))
 }
 
+#[utoipa::path(get, path = "/api/v1/clips/{id}/rating", responses((status = 200, body = Option<crate::clip_rating::ClipRating>)))]
+async fn get_clip_rating(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Option<crate::clip_rating::ClipRating>>> {
+    db::clip(&state.db, &id).await?;
+    Ok(Json(crate::clip_rating::get(&state.db, &id).await?))
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/rating", request_body = RevisionRequest, responses((status = 200, body = Job)))]
+async fn rate_clip(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<RevisionRequest>,
+) -> ApiResult<Json<Job>> {
+    let _gate = state.operation_gate.lock().await;
+    let clip = db::clip(&state.db, &id).await?;
+    if clip.revision != request.revision {
+        return Err(ApiError::conflict());
+    }
+    crate::clip_rating::transcript(&clip)
+        .map_err(|error| ApiError::bad_request(error.to_string()))?;
+    model_manager::model_path(&state, "qwen3-4b").await?;
+    if db::active_jobs(&state.db)
+        .await?
+        .iter()
+        .any(|job| job.kind == "assess" && job.clip_id.as_deref() == Some(&id))
+    {
+        return Err(ApiError::bad_request("This clip already has a rating job."));
+    }
+    let language = db::settings(&state.db).await?.language;
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "assess",
+                Some(clip.project_id.clone()),
+                Some(id),
+                json!({"snapshot": clip, "language": language, "revision": request.revision}),
+            )
+            .await?,
+    ))
+}
+
 #[utoipa::path(post, path = "/api/v1/clips/{id}/title", responses((status = 200, body = Job)))]
 async fn title_job(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Json<Job>> {
     let _gate = state.operation_gate.lock().await;
@@ -922,8 +980,32 @@ async fn ensure_no_clip_edit_job(state: &AppState, clip_id: &str) -> ApiResult<(
 }
 
 #[utoipa::path(get, path = "/api/v1/caption-presets", responses((status = 200, body = [crate::caption_presets::CaptionPreset])))]
-async fn caption_presets() -> Json<Vec<crate::caption_presets::CaptionPreset>> {
-    Json(crate::caption_presets::presets())
+async fn caption_presets(
+    State(state): State<AppState>,
+) -> ApiResult<Json<Vec<crate::caption_presets::CaptionPreset>>> {
+    Ok(Json(crate::caption_presets::list(&state.db).await?))
+}
+
+#[utoipa::path(post, path = "/api/v1/caption-presets", request_body = crate::caption_presets::SaveCaptionPreset, responses((status = 200, body = crate::caption_presets::CaptionPreset)))]
+async fn save_caption_preset(
+    State(state): State<AppState>,
+    Json(request): Json<crate::caption_presets::SaveCaptionPreset>,
+) -> ApiResult<Json<crate::caption_presets::CaptionPreset>> {
+    let _gate = state.operation_gate.lock().await;
+    let preset = crate::caption_presets::save(&state.db, request).await?;
+    state.emit("caption-presets", None);
+    Ok(Json(preset))
+}
+
+#[utoipa::path(delete, path = "/api/v1/caption-presets/{id}", responses((status = 200)))]
+async fn delete_caption_preset(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let _gate = state.operation_gate.lock().await;
+    crate::caption_presets::remove(&state.db, &id).await?;
+    state.emit("caption-presets", None);
+    Ok(Json(json!({"deleted": true})))
 }
 
 #[utoipa::path(post, path = "/api/v1/clips/{id}/captions", request_body = RefineCaptionsRequest, responses((status = 200, body = Job), (status = 409)))]

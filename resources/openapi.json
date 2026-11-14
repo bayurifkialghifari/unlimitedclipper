@@ -85,6 +85,34 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [],
+        "operationId": "save_caption_preset",
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/SaveCaptionPreset" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CaptionPreset" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/caption-presets/{id}": {
+      "delete": {
+        "tags": [],
+        "operationId": "delete_caption_preset",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/clips/{id}": {
@@ -231,6 +259,46 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           },
           "409": { "description": "" }
+        }
+      }
+    },
+    "/api/v1/clips/{id}/rating": {
+      "get": {
+        "tags": [],
+        "operationId": "get_clip_rating",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/ClipRating" }]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "operationId": "rate_clip",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RevisionRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          }
         }
       }
     },
@@ -777,10 +845,13 @@
       },
       "CaptionPreset": {
         "type": "object",
-        "required": ["id", "style"],
+        "required": ["id", "category", "user_created", "style"],
         "properties": {
+          "category": { "type": "string" },
           "id": { "type": "string" },
-          "style": { "$ref": "#/components/schemas/CaptionStyle" }
+          "name": { "type": ["string", "null"] },
+          "style": { "$ref": "#/components/schemas/CaptionStyle" },
+          "user_created": { "type": "boolean" }
         }
       },
       "CaptionStyle": {
@@ -834,6 +905,32 @@
           "project_id": { "type": "string" },
           "revision": { "type": "integer", "format": "int64" },
           "score": { "type": ["integer", "null"], "format": "int32", "minimum": 0 }
+        }
+      },
+      "ClipRating": {
+        "type": "object",
+        "required": [
+          "clip_id",
+          "revision",
+          "score",
+          "summary",
+          "dimensions",
+          "suggestions",
+          "model",
+          "created_at"
+        ],
+        "properties": {
+          "clip_id": { "type": "string" },
+          "created_at": { "type": "integer", "format": "int64" },
+          "dimensions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RatingDimension" }
+          },
+          "model": { "type": "string" },
+          "revision": { "type": "integer", "format": "int64" },
+          "score": { "type": "integer", "format": "int32", "minimum": 0 },
+          "suggestions": { "type": "array", "items": { "type": "string" } },
+          "summary": { "type": "string" }
         }
       },
       "CreateClipRequest": {
@@ -1080,6 +1177,16 @@
           "project": { "$ref": "#/components/schemas/Project" }
         }
       },
+      "RatingDimension": {
+        "type": "object",
+        "required": ["key", "score", "explanation", "quote"],
+        "properties": {
+          "explanation": { "type": "string" },
+          "key": { "type": "string" },
+          "quote": { "type": "string" },
+          "score": { "type": "integer", "format": "int32", "minimum": 0 }
+        }
+      },
       "RefineCaptionsRequest": {
         "type": "object",
         "required": ["revision", "speech_model", "language"],
@@ -1094,6 +1201,14 @@
         "type": "object",
         "required": ["revision"],
         "properties": { "revision": { "type": "integer", "format": "int64" } }
+      },
+      "SaveCaptionPreset": {
+        "type": "object",
+        "required": ["name", "style"],
+        "properties": {
+          "name": { "type": "string" },
+          "style": { "$ref": "#/components/schemas/CaptionStyle" }
+        }
       },
       "SessionRequest": {
         "type": "object",

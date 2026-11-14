@@ -3,6 +3,7 @@
 - [Source import](source-import.md)
 - [Local AI setup](local-ai.md)
 - [Clip discovery](clip-discovery.md)
+- [Clip potential rating](clip-rating.md)
 - [Caption editor](caption-editor.md)
 - [Editorial timeline](editorial-timeline.md)
 - [Speech quality pack](speech-quality-pack.md)

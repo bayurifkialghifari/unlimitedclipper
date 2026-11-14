@@ -16,6 +16,13 @@ All persisted times are integer milliseconds. Source word timing remains immutab
 
 ## Persistence
 
+Caption recipes are engine-owned value objects. A separate caption_presets table stores up to
+50 validated user recipes; applying one copies styling into the edit document and preserves
+visibility/position. Deleting the recipe never changes an existing revision. Migration 0003
+also adds clip_assessments with cascading clip deletion. Assess jobs freeze a clip and language,
+validate structured Qwen output against the full bounded transcript, checkpoint results, and
+save without editing the clip. Revision ordering prevents old retries replacing newer scores.
+
 EditDocument v2 composes chronological source segments and output-relative layers. Version 3
 adds stable scene IDs and arbitrary output order while retaining disjoint source coverage. Its
 source envelope differs from the summed output duration. Health advertises supported document

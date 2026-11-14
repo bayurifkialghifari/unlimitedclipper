@@ -4,6 +4,8 @@ import type {
   Export,
   Health,
   CaptionPreset,
+  CaptionStyle,
+  ClipRating,
   Job,
   ModelStatus,
   Project,
@@ -64,6 +66,18 @@ export const api = {
   jobs: () => request<Job[]>('/jobs'),
   models: () => request<ModelStatus[]>('/models'),
   captionPresets: () => request<CaptionPreset[]>('/caption-presets'),
+  saveCaptionPreset: (name: string, style: CaptionStyle) =>
+    request<CaptionPreset>('/caption-presets', {
+      method: 'POST',
+      body: JSON.stringify({ name, style }),
+    }),
+  deleteCaptionPreset: (id: string) => request('/caption-presets/' + id, { method: 'DELETE' }),
+  clipRating: (id: string) => request<ClipRating | null>('/clips/' + id + '/rating'),
+  rateClip: (id: string, revision: number) =>
+    request<Job>('/clips/' + id + '/rating', {
+      method: 'POST',
+      body: JSON.stringify({ revision }),
+    }),
   settings: () => request<Settings>('/settings'),
   exports: () => request<Export[]>('/exports'),
   saveSettings: (settings: Settings) =>

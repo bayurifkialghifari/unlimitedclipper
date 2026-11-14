@@ -12,6 +12,7 @@ export function jobKind(text: Copy, job: Job) {
     title: text.generateTitle,
     track: text.autoCrop,
     captions: text.refineCaptions,
+    assess: text.rateClip,
     auto_edit: text.autoEditTitle,
     preview: text.renderPreview,
     component_update: text.updates,
@@ -54,6 +55,7 @@ export function jobMessage(text: Copy, job: Job) {
     review: text.phaseReview,
     captions: text.phaseCaptions,
     alignment: text.phaseCaptions,
+    rating: text.phaseRating,
     tracking: text.phaseTracking,
     render: text.phaseRender,
   };

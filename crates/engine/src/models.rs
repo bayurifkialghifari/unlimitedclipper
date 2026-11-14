@@ -201,7 +201,7 @@ impl Default for CaptionStyle {
             font: "DM Sans".into(),
             size: 84,
             color: "#FFFFFF".into(),
-            highlight_color: "#D9FA63".into(),
+            highlight_color: "#FFB86B".into(),
             outline_color: "#000000".into(),
             outline: 4.0,
             position_y: 0.70,
@@ -210,6 +210,38 @@ impl Default for CaptionStyle {
             bold: true,
             uppercase: false,
         }
+    }
+}
+
+impl CaptionStyle {
+    pub fn validate(&self) -> Result<(), String> {
+        for color in [&self.color, &self.highlight_color, &self.outline_color] {
+            validate_color(color)?;
+        }
+        if !["Noto Sans", "DM Sans", "Oswald"].contains(&self.font.as_str()) {
+            return Err("Choose one of the bundled fonts.".into());
+        }
+        if !(12..=180).contains(&self.size)
+            || !(1..=10).contains(&self.words_per_line)
+            || !self.outline.is_finite()
+            || !(0.0..=12.0).contains(&self.outline)
+            || ![
+                "plain",
+                "highlight",
+                "box",
+                "word",
+                "kinetic",
+                "reveal",
+                "underline",
+            ]
+            .contains(&self.preset.as_str())
+            || !["none", "fade", "pop"].contains(&self.animation.as_str())
+            || !self.position_y.is_finite()
+            || !(0.0..=1.0).contains(&self.position_y)
+        {
+            return Err("Invalid caption style.".into());
+        }
+        Ok(())
     }
 }
 
@@ -336,6 +368,7 @@ impl EditDocument {
     }
 
     pub fn validate(&self, source_duration: i64) -> Result<(), String> {
+        self.captions.validate()?;
         if ![1, 2, 3].contains(&self.version)
             || self.start_ms < 0
             || self.end_ms <= self.start_ms
@@ -413,28 +446,13 @@ impl EditDocument {
             }
             previous = word.start_ms;
         }
-        for color in [
-            &self.captions.color,
-            &self.captions.highlight_color,
-            &self.captions.outline_color,
-            &self.title.color,
-            &self.watermark.color,
-        ] {
+        for color in [&self.title.color, &self.watermark.color] {
             validate_color(color)?;
         }
-        for font in [&self.captions.font, &self.title.font] {
-            if !["Noto Sans", "DM Sans", "Oswald"].contains(&font.as_str()) {
-                return Err("Choose one of the bundled fonts.".into());
-            }
+        if !["Noto Sans", "DM Sans", "Oswald"].contains(&self.title.font.as_str()) {
+            return Err("Choose one of the bundled fonts.".into());
         }
-        if !(12..=180).contains(&self.captions.size)
-            || !(12..=220).contains(&self.title.size)
-            || !(1..=10).contains(&self.captions.words_per_line)
-            || !self.captions.outline.is_finite()
-            || !(0.0..=12.0).contains(&self.captions.outline)
-            || !["plain", "highlight", "box", "word", "kinetic"]
-                .contains(&self.captions.preset.as_str())
-            || !["none", "fade", "pop"].contains(&self.captions.animation.as_str())
+        if !(12..=220).contains(&self.title.size)
             || !["bold", "plain", "boxed"].contains(&self.title.preset.as_str())
             || self.title.text.chars().count() > 300
             || self.title.duration_ms < 0

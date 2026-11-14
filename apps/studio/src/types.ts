@@ -14,6 +14,7 @@ export type ModelStatus = components['schemas']['ModelStatus'];
 export type Health = components['schemas']['Health'];
 export type CaptionPreset = components['schemas']['CaptionPreset'];
 export type CaptionStyle = components['schemas']['CaptionStyle'];
+export type ClipRating = components['schemas']['ClipRating'];
 export type SourceSegment = components['schemas']['SourceSegment'];
 export type VisualLayer = components['schemas']['VisualLayer'];
 export type AudioLayer = components['schemas']['AudioLayer'];

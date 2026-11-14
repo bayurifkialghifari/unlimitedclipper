@@ -6,12 +6,30 @@ Requirement: CAP-01. Status: implemented; validation coverage is recorded in ../
 
 Edit timed words and selected groups, apply presets, customize typography, colors, outline, box/word highlighting, position, and animation. Undo/redo modifies the draft; autosave commits revisions.
 
-New edits use bold DM Sans with a larger outline and three-word phrases. Five engine-owned looks
-are available: Studio, Impact, Word box, Single word, and Kinetic. Kinetic uses stable semantic
-emphasis with enlarged Oswald keywords; it does not require a different animation for every word.
-Impact uses uppercase Oswald; Word box keeps surrounding words visible while the active word
-receives a red rectangle. Bold and uppercase never rewrite stored speech. Applying a look
-preserves visibility and vertical position.
+New edits use bold DM Sans, amber word emphasis, and short phrases. The engine supplies 18
+original recipes. Category filters and sample previews use the current clip's words; an empty
+clip uses a labeled styling sample. Bold and uppercase never rewrite stored speech. Applying a
+recipe preserves caption visibility and vertical position. Existing documents retain their colors.
+
+| Category  | Recipes                                                    |
+| --------- | ---------------------------------------------------------- |
+| Minimal   | Clean, Documentary, Soft, Whisper                          |
+| Bold      | Impact, Headline, Punch, Editorial                         |
+| Highlight | Studio, Word box, Marker, Blue box, Amber, Teal, Underline |
+| Motion    | Single word, Kinetic, Reveal                               |
+
+Kinetic and Editorial emphasize marked keywords with larger type. Box recipes retain the phrase
+while boxing its active word. Reveal progressively exposes words and reserves the widths of
+future words, including during internal pauses, so the phrase stays in place. Underline affects
+only the spoken word. Fade and pop animations also work with plain phrase styles. Word grouping
+still respects measured width, speech pauses, and source cuts. A recipe does not improve recognition.
+
+Save this style stores a named copy in SQLite for reuse across projects. Names contain 1–60
+characters and the library supports 50 saved styles. Font registration, colors, sizing, modes,
+and other values are validated by the engine. Removing a saved style leaves applied clip styling
+intact; built-in styles cannot be deleted. The gallery reports loading, empty, saving, and failure
+states and supports keyboard selection. Existing font, timing, color, position, and per-word
+controls remain editable after selecting a recipe.
 
 ASS, SRT, and VTT share phrase boundaries: punctuation, a pause over 450 ms, word count, a
 2.2-second span, source cuts, or measured glyph width. Bundled font metrics determine width and
@@ -34,7 +52,9 @@ Caption previews and exports consume the same ASS document. The browser also pro
 
 GET /api/v1/clips/{id}; PUT /api/v1/clips/{id}; GET /api/v1/clips/{id}/subtitles
 
-GET /api/v1/caption-presets; POST /api/v1/clips/{id}/captions
+GET/POST /api/v1/caption-presets; DELETE /api/v1/caption-presets/{id}
+
+POST /api/v1/clips/{id}/captions
 
 ## States and failure handling
 

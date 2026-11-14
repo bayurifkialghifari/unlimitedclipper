@@ -55,6 +55,7 @@ async fn unsupported_native_jobs_are_rejected_before_persistence() {
         "generate",
         "captions",
         "title",
+        "assess",
         "youtube",
         "track",
         "model",

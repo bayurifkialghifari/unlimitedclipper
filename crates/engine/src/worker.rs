@@ -34,6 +34,7 @@ pub async fn run(state: AppState) -> Result<()> {
         state.emit("job", Some(job.clone()));
         drop(gate);
         let result = match job.kind.as_str() {
+            "assess" => crate::clip_rating::assess(&state, &mut job, &cancellation).await,
             "import" => pipeline::import_file(&state, &mut job, &cancellation).await,
             "youtube" => pipeline::import_youtube(&state, &mut job, &cancellation).await,
             "model" => model_manager::download(&state, &mut job, &cancellation).await,
