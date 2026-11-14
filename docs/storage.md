@@ -26,9 +26,24 @@ pass reclaimed another 6,128,626,801 bytes after owned test installations stoppe
 the current target build. Evidence is .cache/storage-cleanup-initial.json and
 .cache/storage-cleanup.json. Later builds grow target again; reclaimed bytes are not the same as
 the net workspace-size change. The previous workspace measurement was about 55.46 GiB.
-The final measurement after cleanup and validation builds was 16,163,312,034 bytes, approximately
+The earlier measurement after cleanup and validation builds was 16,163,312,034 bytes, approximately
 15.05 GiB, including the current build output. See .cache/storage-final.json.
 All 42 registered assets in the canonical .data library resolved to existing files after cleanup.
+
+## Preview.4 cleanup
+
+After preview.3 delivery was verified, obsolete preview.2 staging, cold media/test libraries, and
+preview.3 staging/download copies reclaimed 511,929,696, 79,147,615, and 1,024,253,942 bytes
+respectively. Fixture videos shared with the canonical library were hard links; their retained
+bytes were excluded from the reclaimed-byte count. Evidence: .cache/preview3-staging-cleanup.json,
+.cache/preview3-fixture-cleanup.json, and .cache/preview3-staging-completed-cleanup.json.
+
+Once both local preview.4 builds finished, another reviewed pass removed cold fixtures, tool
+download archives, and selected Rust debug/build/bundle directories, reclaiming 11,107,053,847
+bytes (10.34 GiB). The audit checked resolved containment, rejected symlinks/junctions, and
+protected running-process paths before deletion. Canonical models, required tools, managed videos,
+and the open native application were retained. Rebuilds will recreate the removed build caches.
+Evidence: .cache/preview4-cleanup-audit.json and .cache/preview4-cleanup-applied.json.
 
 Fixtures use configurable UC_FIXTURE_DIR and UC_TEST_DATA_DIR paths. UC_MODELS_DIR selects a shared
 model store at engine startup; UC_MODELS_READ_ONLY=1 rejects model mutations. Tests borrow models

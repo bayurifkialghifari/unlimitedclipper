@@ -62,18 +62,19 @@ copies of the original 1080 × 1920 exports, with audio preserved.
 
 ## What you can do
 
-| In the studio          | What it does                                                                                                             |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                            |
-| Find a moment          | Give local AI a focus and interest filter, or set the boundaries yourself. Clip count is a maximum, not a quota.         |
-| Make captions readable | Choose Studio, Impact, Word box, Single word, or Kinetic. Edit text, timing, emphasis, colors, and position.             |
-| Edit on the timeline   | Select transcript ranges, reorder/split/trim scenes, and move or trim layers with snapping, keyboard controls, and undo. |
-| Build an editorial cut | Add text notes, punch-ins, split framing, local B-roll, and optional audio layers.                                       |
-| Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.                  |
-| Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.                     |
-| Frame the clip         | Use portrait, square, landscape, preserved framing, blur, or a gaming split. Adjust crops and keyframes.                 |
-| Finish the edit        | Add a hook title or image/text watermark, with revisioned autosave and undo/redo.                                        |
-| Export the result      | Render a single cut or a batch to MP4 with SRT and ASS sidecars. Retries keep completed exports.                         |
+| In the studio          | What it does                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                              |
+| Find a moment          | Give local AI a focus and interest filter, or set the boundaries yourself. Clip count is a maximum, not a quota.           |
+| Make captions readable | Choose from 18 looks, including Reveal and Underline. Edit words and timing, customize styling, and save your own presets. |
+| Review clip potential  | Get a local 0–100 editorial score with quoted evidence and editing suggestions. It does not predict views or virality.     |
+| Edit on the timeline   | Select transcript ranges, reorder/split/trim scenes, and move or trim layers with snapping, keyboard controls, and undo.   |
+| Build an editorial cut | Add text notes, punch-ins, split framing, local B-roll, and optional audio layers.                                         |
+| Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.                    |
+| Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.                       |
+| Frame the clip         | Use portrait, square, landscape, preserved framing, blur, or a gaming split. Adjust crops and keyframes.                   |
+| Finish the edit        | Add a hook title or image/text watermark, with revisioned autosave and undo/redo.                                          |
+| Export the result      | Render a single cut or a batch to MP4 with SRT and ASS sidecars. Retries keep completed exports.                           |
 
 The desktop window and localhost browser use the same Rust engine and saved library. The interface
 supports Indonesian and English. Video files stay in managed folders; SQLite stores project data
@@ -83,11 +84,21 @@ and edit revisions.
 
 ### Caption editing
 
-Five looks, the current clip's real words, and a preview of the active word. Styles, timing, and
+18 looks, the current clip's real words, and a preview of the active word. Styles, timing, and
 manual corrections become part of the saved edit. These browser screenshots show a manual podcast
 review in a separate copy of the real library; the source library is unchanged.
 
 <img src="docs/media/captions.png" alt="Podcast review with the Word box look selected, an active transcript word, and two timeline scenes" width="1920" height="1080" />
+
+<details>
+<summary>See a local clip potential review</summary>
+
+This manual podcast cut received 74/100 from Qwen, with quoted evidence and suggestions to
+strengthen the ending. The score assesses the transcript; it does not forecast views.
+
+<img src="docs/media/rating.png" alt="Actual local podcast assessment with a 74 out of 100 editorial score" width="1920" height="1080" />
+
+</details>
 
 <details>
 <summary>See the project library</summary>

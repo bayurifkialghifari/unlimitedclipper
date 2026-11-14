@@ -4,6 +4,52 @@
 
 The implemented clipping workflow has passed real media, browser, and native ARM64 interaction checks. This is a development validation record, not a claim that every release gate or operating system is certified. Unrun scenarios remain pending.
 
+## Caption library and local ratings, 2026-11-14
+
+The frontend quality check passed ESLint, Prettier, TypeScript, three unit tests, and production
+compilation. The engine passed 35 tests, workspace Rustfmt, and engine/desktop Clippy with warnings
+denied. New persistence tests cover reusable styles, deletion without edit mutation, and an old
+assessment unable to replace a newer revision. Native admission rejects Android assess jobs.
+
+The browser suite covers nine scenarios. Caption-library interactions exercise all 18 recipes,
+category filtering, keyboard selection, actual bundled-font loading, save/reopen/reuse/delete,
+preserved styling, pending and failed requests, worker errors, stale assessments, missing models,
+and a 390-pixel viewport. Rating responses in these UI tests are controlled fixtures. Evidence:
+tests/browser/caption-library.spec.ts and test-results/caption-library-mobile.png.
+
+scripts/validate-caption-library.mjs imported real fixture media and rendered all 18 recipes to
+720 × 1280 MP4. Every output passed duration, geometry, full decoding, immutable revision, and
+byte-identical preview/export ASS checks. Independent black-background raster checks verified
+visible glyphs, progressively revealed words, retained hidden words during a pause, and an
+unchanged left edge at three timings. Underline uses explicit active/reset tags. Evidence:
+.cache/caption-media-validation.json and .cache/caption-frames/.
+
+Real Whisper/Qwen inference on the JFK speech fixture passed persisted rating, score-sum,
+unchanged-edit, stale-revision, and conflict checks. A first manual podcast assessment failed
+because positive scores had empty quotes; rejection preserved the clip. The final bounded
+correction path and stricter quote schema produced a grounded 74/100 podcast assessment with
+English explanations and editing suggestions. Screenshots use that actual result from an
+isolated SQLite snapshot with hard-linked footage. Evidence: .cache/clip-rating-validation.json
+and .cache/preview5-readme-validation.json. These functional fixtures do not calibrate rating
+accuracy, recognition accuracy, or virality. Large language models can still give poor advice.
+
+After checking all active SQLite jobs, dirty-page guards, visible dialogs, and upload actions,
+the idle previous native host was closed normally. The new ARM64 debug host opened against the
+canonical library with a stable copied studio directory. Its native bridge, 18 presets, three
+ready models, amber palette, removed sidebar footer, and lack of horizontal overflow passed
+read-only inspection. This is separate from browser interaction and installer execution.
+Evidence: .cache/caption-live-guard.json and .cache/caption-native-validation.json.
+
+Anti-slop During gate, scoped: original graphite/amber direction, real-word previews, actual
+media and scores, functional keyboard controls, explicit empty/loading/disabled/failure states,
+and narrow layouts passed the checks above. The supplied icon was recolored consistently. A full
+screen-reader and contrast audit, physical x64/macOS/Linux/Android runtime, long-file benchmark,
+fresh model downloads, and native installer/updater execution remain pending.
+
+The preview.4 tagged workflow passed source/platform validation but failed both Windows builds
+on a cross-drive WebView2 resource path. Publication was skipped. The workspace-drive staging
+fix is committed; preview.4 must not be described as a successful hosted release.
+
 ## Scene engine validation, 2026-11-14
 
 The six scene integration tests cover reorder provenance, surviving manual corrections, extension

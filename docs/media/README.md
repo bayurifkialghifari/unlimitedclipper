@@ -10,15 +10,18 @@ Captured on 14 November 2026 from the browser studio at a 1920 × 1080 viewport.
 snapshot and hard-linked managed footage provided an isolated copy of the actual library.
 Creating the manual demo changed only that copy. No competitor screenshots were substituted.
 
-- `studio.png`: an 18-second manual podcast review with two scenes and the Studio caption look.
+- `studio.png`: an 18-second manual podcast review with two scenes and the Motion style filter.
 - `captions.png`: the same review with the Word box look and a selected transcript word.
 - `projects.png`: two real imports of the 48-minute Matan podcast.
 - `settings.png`: actual installed models, download/import actions, and update controls.
+- `rating.png`: an actual Qwen transcript assessment of the manual review, scored 74/100.
 
 Podcast source: “Matan Finally Confronts Mike Majlak About Logan Paul,” already imported in the
 user library. This is a manual interface demonstration, not an AI-quality benchmark. The footage
 belongs to its original creator and does not imply endorsement. Capture evidence:
-`.cache/preview3-readme-validation.json`. The Windah video examples below remain unchanged.
+`.cache/preview5-readme-validation.json`. Screenshots use the current graphite/amber palette;
+Noto Sans previews load the same bundled font as rendering. The Windah video examples below
+remain unchanged. Rating explanations describe transcript evidence rather than predicted views.
 
 ## Video examples
 
