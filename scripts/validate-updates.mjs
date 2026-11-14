@@ -5,6 +5,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { root } from './cargo.mjs';
+import { fixtureDirectory, testDataDirectory } from './test-paths.mjs';
 
 const directory = path.join(root, '.cache/update-fixture');
 const environment = {
@@ -17,7 +18,7 @@ execFileSync(
     path.join(root, 'scripts/release-manifest.mjs'),
     '--version=0.1.1',
     '--platform=windows-arm64',
-    '--file=' + path.join(root, '.cache/fixtures/components.zip'),
+    '--file=' + path.join(fixtureDirectory, 'components.zip'),
     '--url=http://127.0.0.1:9999/components.zip',
     '--out=' + directory,
     '--development',
@@ -55,7 +56,7 @@ const server = createServer((request, response) => {
     response.setHeader('content-type', 'application/json');
     response.end(JSON.stringify(envelope));
   } else if (request.url === '/components.zip') {
-    const stream = createReadStream(path.join(root, '.cache/fixtures/components.zip'));
+    const stream = createReadStream(path.join(fixtureDirectory, 'components.zip'));
     if (slow) {
       stream.on('data', () => {
         stream.pause();
@@ -160,7 +161,7 @@ try {
   await api('/updates/rollback');
   assert.equal((await restart()).version, '0.1.1');
   const active = JSON.parse(
-    await readFile(path.join(root, '.cache/runtime/active-component.json'), 'utf8'),
+    await readFile(path.join(testDataDirectory, 'active-component.json'), 'utf8'),
   );
   assert.equal(active.directory, update.directory);
   await api('/updates/rollback');

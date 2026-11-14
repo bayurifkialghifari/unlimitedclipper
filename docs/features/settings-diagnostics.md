@@ -10,6 +10,11 @@ Interface preferences are synchronized from SQLite on bootstrap, including new t
 
 ## Interface
 
+Temporary cleanup reports reclaimed bytes and protected entries. It retains failed/cancelled job
+checkpoints for retry, nested temporary references, project transcription checkpoints, and every
+registered temporary asset. Originals, exports, and models are outside this cleanup scope.
+The repository cleanup helper is dry-run by default; see ../storage.md.
+
 GET /api/v1/settings; PUT /api/v1/settings; GET /api/v1/diagnostics
 
 ## States and failure handling

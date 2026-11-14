@@ -2,11 +2,12 @@ import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { root } from './cargo.mjs';
+import { modelDirectory, toolDirectory } from './test-paths.mjs';
 
-const binary = path.join(root, '.tools/windows-arm64/llama/llama-completion.exe');
+const binary = path.join(toolDirectory, 'llama/llama-completion.exe');
 const args = [
   '-m',
-  path.join(root, '.cache/runtime/models/Qwen3-4B-Q4_K_M.gguf'),
+  path.join(modelDirectory, 'Qwen3-4B-Q4_K_M.gguf'),
   '-p',
   '<|im_start|>user\nWrite a short title about creating video clips. Return JSON with title.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n',
   '--no-conversation',
