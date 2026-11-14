@@ -8,6 +8,12 @@ Check startup/daily, download signed updates, and install only when idle followi
 
 Components use a signed manifest with an architecture-specific package, bounded download, checksum verification, safe extraction, and executable health checks. Activation is deferred by active jobs and editor leases, then requires an idle restart for inference DLLs. Previous directory and version metadata persist across rollback and restart. The native application bridge verifies signed versions and creates a VACUUM INTO backup before installation. Production signing and release validation remain explicit gates.
 
+Normal Settings only presents an automatic-update preference and Check for updates. Publisher
+configuration supplies server addresses through the existing API. Private previews without that
+configuration use a fixed GitHub download page and disable automatic installation. Existing
+configured deployments keep their signed update workflow. The native download-page command accepts
+no URL argument, so the studio cannot use it as an unrestricted external opener.
+
 ## Interface
 
 GET /api/v1/updates; POST /api/v1/updates/check; desktop updater bridge

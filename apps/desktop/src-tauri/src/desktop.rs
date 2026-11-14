@@ -12,7 +12,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             updates::check_application_update,
             updates::install_application_update,
-            updates::open_browser
+            updates::open_browser,
+            updates::open_release_page
         ])
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())

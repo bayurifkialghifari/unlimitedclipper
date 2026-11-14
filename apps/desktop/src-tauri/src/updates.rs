@@ -137,3 +137,14 @@ pub fn activate_engine(app: &tauri::AppHandle, state: AppState) {
         *app.state::<DesktopState>().engine.lock().await = Some(state);
     });
 }
+
+#[tauri::command]
+pub async fn open_release_page(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_url(
+            "https://github.com/bayurifkialghifari/unlimitedclipper/releases",
+            None::<&str>,
+        )
+        .map_err(|error| error.to_string())
+}

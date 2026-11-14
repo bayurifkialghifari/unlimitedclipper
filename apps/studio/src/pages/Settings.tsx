@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { Button, Field, Select, Toggle } from '@unlimitedclipper/ui';
-import { api, request, uploadFile } from '../lib/api';
+import { api, request } from '../lib/api';
 import { useLanguage, useText } from '../lib/i18n';
-import { bytes, languages } from '../lib/format';
+import { languages } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
 import { isAndroidHost } from '../lib/native';
 import { QualityPackSettings } from '../organisms/QualityPackSettings';
+import { ModelSetup } from '../organisms/ModelSetup';
+import { UpdateControls } from '../organisms/UpdateControls';
 import type { Settings } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -103,25 +105,17 @@ function Preferences({ initial }: { initial: Settings }) {
       />
       <h2>{text.updates}</h2>
       {isAndroidHost() && <p className={styles.hint}>{text.androidUnavailable}</p>}
-      <fieldset className={styles.disabledGroup} disabled={isAndroidHost()}>
+      <fieldset
+        className={styles.disabledGroup}
+        disabled={isAndroidHost() || (!settings.update_feed && !settings.component_feed)}
+      >
         <Toggle
           label={text.autoUpdate}
-          checked={settings.auto_update}
+          checked={settings.auto_update && Boolean(settings.update_feed || settings.component_feed)}
           onChange={(value) => change('auto_update', value)}
         />
-        <Field
-          label={text.updateFeed}
-          type="url"
-          value={settings.update_feed}
-          onChange={(event) => change('update_feed', event.target.value)}
-        />
-        <Field
-          label={text.componentFeed}
-          type="url"
-          value={settings.component_feed}
-          onChange={(event) => change('component_feed', event.target.value)}
-        />
       </fieldset>
+      <UpdateControls configured={Boolean(settings.update_feed || settings.component_feed)} />
       <Button variant="primary" type="submit" disabled={pending}>
         {text.savePreferences}
       </Button>
@@ -138,7 +132,6 @@ function Preferences({ initial }: { initial: Settings }) {
 export function SettingsPage() {
   const text = useText();
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
-  const models = useQuery({ queryKey: ['models'], queryFn: api.models, refetchInterval: 5000 });
   const health = useQuery({ queryKey: ['health'], queryFn: api.health });
   const updates = useQuery({
     queryKey: ['updates'],
@@ -185,8 +178,8 @@ export function SettingsPage() {
         )}
       </header>
       <QueryState
-        pending={settings.isPending || models.isPending}
-        error={settings.error ?? models.error}
+        pending={settings.isPending}
+        error={settings.error}
         retry={() => void client.invalidateQueries()}
       />
       {error && (
@@ -196,74 +189,9 @@ export function SettingsPage() {
       )}
       {message && <p role="status">{message}</p>}
       <div className={styles.settingsGrid}>
+        <ModelSetup />
         <section className={styles.settingsSection}>
-          <h2>{text.modelSetup}</h2>
-          {isAndroidHost() && <p className={styles.hint}>{text.androidUnavailable}</p>}
-          <p className={styles.hint}>{text.modelDetail}</p>
-          {models.data?.map((model) => {
-            const job = jobs.data?.find(
-              (item) =>
-                item.kind === 'model' &&
-                item.payload &&
-                (item.payload as { model_id?: string }).model_id === model.id &&
-                ['queued', 'running'].includes(item.status),
-            );
-            return (
-              <div key={model.id} className={styles.modelRow}>
-                <strong>{model.name}</strong>
-                <small>
-                  {bytes(model.size)} · {model.license} · {model.ready ? text.ready : text.missing}
-                </small>
-                {!model.ready && (
-                  <progress
-                    value={model.downloaded_bytes}
-                    max={model.size}
-                    aria-label={model.name}
-                  />
-                )}
-                <div className={styles.headerActions}>
-                  <Button
-                    disabled={isAndroidHost() || pending !== null || Boolean(job)}
-                    onClick={() => void action(model.id, () => api.downloadModel(model.id))}
-                  >
-                    {model.ready ? text.repair : text.install}
-                  </Button>
-                  <label className={styles.downloadLink}>
-                    {text.importFile}
-                    <input
-                      className={styles.fileInput}
-                      type="file"
-                      accept=".bin,.gguf"
-                      disabled={isAndroidHost() || pending !== null || Boolean(job)}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          void action(model.id, () =>
-                            uploadFile('/models/' + model.id + '/import', file),
-                          );
-                        }
-                        event.target.value = '';
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-            );
-          })}
           <h2>{text.tools}</h2>
-          <Button
-            disabled={
-              isAndroidHost() ||
-              pending !== null ||
-              (!settings.data?.component_feed && !settings.data?.update_feed)
-            }
-            onClick={() => {
-              window.dispatchEvent(new Event('uc-check-updates'));
-              setMessage(text.waiting);
-            }}
-          >
-            {text.checkUpdates}
-          </Button>
           <Button
             disabled={
               isAndroidHost() || pending !== null || !updates.data?.version || updates.data.ready
@@ -297,7 +225,10 @@ export function SettingsPage() {
           </Button>
         </section>
         {settings.data && <Preferences initial={settings.data} />}
-        <QualityPackSettings />
+        <details className={styles.settingsSection}>
+          <summary>{text.advancedSpeech}</summary>
+          <QualityPackSettings />
+        </details>
       </div>
     </div>
   );
