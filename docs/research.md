@@ -32,3 +32,26 @@ Short-context recognition can omit words or misread English game terms. Increasi
 | [Anti-slop](https://github.com/miqdadbadjuber/anti-slop)                            | Requires explicit direction, real behavior, resilience, and evidence.                                                                                  | During mode; record interaction and delivery gates.                                 |
 
 The current development PC is Windows 11 ARM64, Snapdragon X with eight CPU cores and approximately 16 GB RAM. Node.js currently runs as x64 through Windows emulation. Rust targets ARM64 natively. Visual Studio C++ tools are absent, so a workspace-local compiler route is needed before native builds.
+
+## Editorial reference review, 2026-11-14
+
+The owner supplied the [editorial reference reels](editorial reference) and
+[Denywo-zWEl](https://www.instagram.com/reel/Denywo-zWEl/) /
+[DejJZRRTsHq](https://www.instagram.com/reel/DejJZRRTsHq/). Cached video review distinguished a
+product/tutorial wrapper from editorial treatments within the actual clip: persistent typography,
+single/split framing, occasional punch-ins, notes, and camera corners. That observation informed
+original edit layers. Promotional assets, branding, and screenshots were not imported. Public
+demonstrations do not establish how those services select moments or align their captions.
+
+The current implementation separates recognition from acoustic timing. The optional pack uses
+pinned Apache-2.0 Indonesian/English Wav2Vec2 models, MIT Silero VAD, and ECAPA speaker weights.
+[SpeechBrain 1.0.3 frontend source](https://github.com/speechbrain/speechbrain/blob/v1.0.3/speechbrain/processing/features.py)
+was inspected for Hamming windows, zero-centered padding, mel-filter geometry, and sentence
+normalization. Native frontend parity remains unverified. Model export comparisons are recorded
+separately from application runtime evidence.
+
+The strongest verified improvements in this pass concern editing mechanics: real AV concat,
+timed local layers, source/output mapping, measured-font captions, and immutable proposals. A
+38-second Indonesian fixture exercised Qwen and face-based suggestions. Podcast controls were
+identified, but excerpt downloads did not complete; podcast quality and overlapping-speaker
+benchmarks remain pending. Do not infer OpusClip parity from these fixtures.

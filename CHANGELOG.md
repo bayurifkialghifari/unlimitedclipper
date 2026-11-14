@@ -4,6 +4,34 @@
 
 ### Added
 
+- Version 2 editorial timelines with ordered source segments, source/output time mapping,
+  source-preserving word/layer remapping, and legacy single-range edit support.
+- Editable notes, punch-ins, split framing, camera corners, local B-roll, and registered local
+  audio imports with timing, source offsets, volume, and optional disabled-by-default taps.
+- Revision-frozen automatic editorial proposals with transcript-grounded emphasis and face-based
+  framing suggestions. Applying a proposal remains explicit and supports undo.
+- Shared composed preview/export rendering, a bounded preview cache with active leases, and
+  preview jobs that create no export records.
+- Kinetic captions, bundled glyph metrics, cut-aware phrase grouping, stable phrase text during
+  short pauses, and separate estimated/aligned/manual timing provenance.
+- An optional checksum-verified native speech pack and pinned ONNX export workflow. Model
+  export comparisons passed in CI; native pack accuracy and speaker frontend parity are pending.
+- Audited workspace cleanup, shared read-only fixture models, and real multi-cut media, browser,
+  native desktop, proposal, and recovery validation helpers.
+- A Windows ARM64 CI workflow for actual editorial media rendering.
+
+### Fixed
+
+- Caption/layer timing after removing source ranges, split output geometry, concat sample aspect
+  ratio, original soundtrack preservation under B-roll, and proposal timing provenance.
+- Retryable temporary checkpoints hidden by recent-history limits; cleanup now reports reclaimed
+  bytes and protects registered temporary assets.
+- Discovery can complete with zero qualifying moments and show localized guidance without
+  inserting clips to fill a quota.
+- MinGW debug desktop DLL linking exceeding the PE auto-export symbol limit.
+
+### Added (earlier work)
+
 - A manual ARM64 APK build workflow and package inspection for SDK metadata, native architecture,
   signature, checksum, and 16 KB alignment. The first debug-signed 0.1.0 preview APK is built and
   available from GitHub Actions; Android runtime remains untested.

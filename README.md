@@ -50,7 +50,9 @@ copies of the original 1080 × 1920 exports, with audio preserved.
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                    |
 | Find a moment          | Give local AI a focus and interest filter, or set the boundaries yourself. Clip count is a maximum, not a quota. |
-| Make captions readable | Choose Studio, Impact, Word box, or Single word. Edit text, timing, typography, colors, and position.            |
+| Make captions readable | Choose Studio, Impact, Word box, Single word, or Kinetic. Edit text, timing, emphasis, colors, and position.     |
+| Build an editorial cut | Join source segments, add text notes, punch-ins, split framing, local B-roll, and optional audio layers.         |
+| Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.          |
 | Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.             |
 | Frame the clip         | Use portrait, square, landscape, preserved framing, blur, or a gaming split. Adjust crops and keyframes.         |
 | Finish the edit        | Add a hook title or image/text watermark, with revisioned autosave and undo/redo.                                |
@@ -111,6 +113,15 @@ downloads, and configured update checks use the internet. Development stores the
 installed applications use the OS application-data directory.
 
 ## Where it stands
+
+The new [editorial timeline](docs/features/editorial-timeline.md) supports multi-cut edits and
+reviewable automatic proposals. An optional 1.61 GiB
+[speech quality pack](docs/features/speech-quality-pack.md) has passed model export checks; its
+native acoustic accuracy and speaker frontend remain unverified. No competitor-parity claim is made.
+
+Workspace getting large? Use the audited [cleanup helper](docs/storage.md). Recorded cleanup passes
+reclaimed about 45.60 GiB; the workspace measured 15.05 GiB after validation builds. Original videos,
+exports, and canonical models remain intact.
 
 Caption recognition still needs a human ear for slang, names, music, and shouting. Automatic moment
 selection currently reads transcripts and can miss silent action or visual jokes. It may return

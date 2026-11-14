@@ -191,6 +191,58 @@ The current label was checked against the
 [AOSP badging implementation](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/tools/aapt2/dump/DumpManifest.cpp).
 Failed package inspection retains a diagnostic artifact instead of discarding the assembled APK.
 
+## Editorial pipeline and storage, 2026-11-14
+
+This pass uses native Windows ARM64, an isolated application library, and shared read-only
+canonical models. Other operating systems require their own runtime checks.
+
+| Check                         | Status       | Evidence                                                                                                                                                                                                                                                                          |
+| ----------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend quality              | PASS         | npm run check: ESLint, Prettier, TypeScript, three Vitest tests, and production studio build.                                                                                                                                                                                     |
+| Rust quality                  | PASS         | 26 engine tests; workspace Rustfmt; engine and desktop Clippy with warnings denied.                                                                                                                                                                                               |
+| Timeline/caption regressions  | PASS         | Legacy v1, half-open source ranges, manual provenance, split audio offsets, cut-aware groups, and stable base phrases.                                                                                                                                                            |
+| Real composed media           | PASS         | Two source cuts produce exactly 6.000 seconds. Portrait, square, landscape, contain, blur, and gaming outputs pass geometry and full decoding with notes, punch-in, split, B-roll, imported audio, and a tap.                                                                     |
+| Preview/export isolation      | PASS         | Preview creates no export record; stale preview revision returns 409; export retains its immutable revision.                                                                                                                                                                      |
+| Browser interactions          | PASS         | Three Playwright workflows: actual upload/edit/reopen/export, five keyboard caption looks, local layers/offset/gain, preview playback, stale-preview guidance, delete/undo, English settings, and 390 px layout.                                                                  |
+| Native desktop                | PASS         | Fresh debug ARM64 binary, native bridge and Windows file dialog, import, Kinetic, note editing, preview playback, autosave, and export; no page errors.                                                                                                                           |
+| Real Indonesian proposal      | PASS, scoped | Existing 38-second Windah fixture with 33 transcribed words generates four layers through local Qwen and face samples. Word IDs stay grounded; generation leaves the revision unchanged; explicit application creates one revision. Silence removal is disabled without the pack. |
+| Multi-cut recovery            | PASS         | Five immutable batch exports survive cancel/retry and a lost job checkpoint followed by restart. One completed file survives cancellation; all five retain fingerprints after restart; no duplicate exports.                                                                      |
+| Quality pack export           | PASS, scoped | Pinned model wrappers passed ONNX/PyTorch comparisons in quality-pack run 43567427934. Ten model/notice files total 1,725,866,911 bytes.                                                                                                                                          |
+| Native quality-pack inference | Pending      | Local artifact download failed. CTC/VAD runtime, speaker frontend parity, acoustic accuracy, and multiple-speaker benchmarks were not run.                                                                                                                                        |
+| Podcast benchmark             | Pending      | Podcast sources were identified, but bounded excerpts did not download successfully.                                                                                                                                                                                              |
+| Android runtime               | Pending      | Device and emulator tests remain deferred by the owner; previous ARM64 APK evidence does not certify these new edits.                                                                                                                                                             |
+| Packaged release              | Pending      | Debug desktop testing is not installer, updater-signature, Linux/macOS package, or release-tag certification.                                                                                                                                                                     |
+
+Ignored evidence: .cache/editorial-validation.json, .cache/editorial-proposal-validation.json,
+.cache/recovery-validation.json, .cache/desktop-validation.json, .cache/native-studio.png, and
+test-results/editorial-studio.png. Helpers are scripts/validate-editorial.mjs,
+scripts/validate-editorial-proposal.mjs, scripts/validate-browser.mjs, scripts/validate-desktop.mjs,
+and scripts/validate-recovery.mjs. The fixture recipe is scripts/generate-fixtures.mjs.
+
+The debug MinGW build initially exceeded the PE auto-export symbol limit. Restricting automatic
+exports for the unused desktop CDylib resolved linking. Native dialog checks use the authorized
+43179 studio origin; the first attempt on a different port did not have native-dialog permission.
+The final check used the authorized origin and passed without broadening capabilities.
+
+Storage cleanup first reclaimed 42,702,334,654 bytes. After stopping owned test processes, a
+second audited pass reclaimed 6,128,626,801 bytes from old test installations, component archives,
+and a SHA-256-confirmed medium-model duplicate. The failed transfer also released 129,056,768
+bytes. Current compiled target output was explicitly retained. Original .data videos, exports,
+and canonical models remain intact. Evidence: .cache/storage-cleanup-initial.json,
+.cache/storage-cleanup.json, .cache/quality-transfer-cleanup.json, and .cache/storage-final.json.
+After cleanup and validation builds, the measured workspace was 16,163,312,034 bytes, approximately
+15.05 GiB. This includes the retained compiled target output.
+
+### Anti-slop gate for the changed editor
+
+| Block                  | Status       | Evidence                                                                                                                                                                                  |
+| ---------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direction and identity | PASS, scoped | Existing DESIGN.md matte studio, restrained lime, real footage, DM Sans/Oswald, ENERGY 2 / RHYTHM 2 / MOTION 1.                                                                           |
+| Working controls       | PASS, scoped | Changed layer/caption controls have real handlers; Playwright exercised enabled states, timing, crop width, text size/position/color, gain, offsets, deletion/undo, and preview playback. |
+| Resilience             | PASS, scoped | Empty prerequisite hints, upload/render errors, disabled model prerequisites, stale revisions, keyboard operation, and narrow-layout checks.                                              |
+| Content and claims     | PASS, scoped | Original application source; no competitor assets, invented projects, testimonials, performance numbers, or speaker identities. Native pack accuracy is visibly marked unverified.        |
+| Broader certification  | Pending      | Successful 1.61 GiB pack import, complete contrast/accessibility audit, all old controls, suspended-tab cache behavior, and native cross-platform certification remain unrun.             |
+
 ## Required scenarios
 
 - ARM64 and x64 imports, local speech inference, clip selection, and rendering.
