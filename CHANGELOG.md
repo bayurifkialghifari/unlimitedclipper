@@ -21,7 +21,7 @@
   consistent palette. The redundant sidebar footer has been removed.
 
 - WebView2 resource staging when the Cargo SDK and Windows checkout use different drives.
-  Generated resource paths passed local preparation checks; hosted installer validation is pending.
+  ARM64/x64 MSVC packaging passed hosted CI; published assets passed signature and checksum checks.
 
 ## 0.1.0-preview.4 (2026-11-14)
 

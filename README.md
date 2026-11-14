@@ -25,11 +25,11 @@ account or API key is required.
 
 ## Download the Windows preview
 
-[Download Windows ARM64 (215 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.3/UnlimitedClipper_0.1.0-preview.3_arm64-setup.exe)
+[Download Windows ARM64 (216 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.5/UnlimitedClipper_0.1.0-preview.5_arm64-setup.exe)
 for Snapdragon/ARM PCs, or
-[download Windows x64 (273 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.3/UnlimitedClipper_0.1.0-preview.3_x64-setup.exe)
+[download Windows x64 (274 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.5/UnlimitedClipper_0.1.0-preview.5_x64-setup.exe)
 for Intel/AMD PCs. Both belong to the same
-[preview release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.3).
+[preview release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.5).
 
 The repository and preview downloads are public; no GitHub account is required. Install local models
 from the dropdown in Settings after installation; manual model-file import remains optional. Updater
@@ -160,21 +160,22 @@ reviewable automatic proposals. An optional 1.61 GiB
 native acoustic accuracy and speaker frontend remain unverified. No competitor-parity claim is made.
 
 Workspace getting large? Use the audited [cleanup helper](docs/storage.md). Recorded cleanup passes
-reclaimed about 45.60 GiB; the workspace measured 15.05 GiB after validation builds. Original videos,
+removed rebuildable outputs and cold fixtures; the final preview.5 workspace measured 14.73 GiB
+of unique file bytes, including both downloaded installers. Original videos,
 exports, and canonical models remain intact.
 
 Caption recognition still needs a human ear for slang, names, music, and shouting. Automatic moment
 selection currently reads transcripts and can miss silent action or visual jokes. It may return
 fewer clips than requested, or none. Review the footage before publishing.
 
-| Platform                    | Current evidence                                                              |
-| --------------------------- | ----------------------------------------------------------------------------- |
-| Windows 11 ARM64            | Real native import, local inference, editing, recovery, and export checks.    |
-| Windows x64                 | Source checks in CI; physical hardware and package certification pending.     |
-| macOS Intel / Apple Silicon | Engine checks in CI; desktop packaging and runtime certification pending.     |
-| Linux                       | Engine checks in CI; Debian/Arch packaging and runtime certification pending. |
-| Android                     | ARM64 preview APK built; Android runtime untested.                            |
-| Local browser               | Real Chromium upload, edit, reopen, and export workflows tested.              |
+| Platform                    | Current evidence                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| Windows 11 ARM64            | Real native import, local inference, editing, recovery, and export checks.        |
+| Windows x64                 | Source checks and signed installer packaging passed CI; physical runtime pending. |
+| macOS Intel / Apple Silicon | Engine checks in CI; desktop packaging and runtime certification pending.         |
+| Linux                       | Engine checks in CI; Debian/Arch packaging and runtime certification pending.     |
+| Android                     | ARM64 preview APK built; Android runtime untested.                                |
+| Local browser               | Real Chromium upload, edit, reopen, and export workflows tested.                  |
 
 **Android preview:** [Download the debug-signed ARM64 APK](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43459222590/artifacts/14054984987)
 (127.9 MiB). The build requires Android 10+ and 64-bit ARM. The initial target is Snapdragon 8+ Gen 1

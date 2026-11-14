@@ -65,6 +65,37 @@ artifacts remain evidence of those original builds. This maintenance cannot eras
 clones or unreferenced objects cached by hosting services. Evidence:
 .cache/history-cleanup-validation.json.
 
+## Published preview.5, 2026-11-14
+
+The [tagged release workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43610553764)
+passed frontend quality and Windows/Linux/macOS Intel/Apple Silicon source checks, built both
+Windows MSVC installers, and published all eight assets. The separate
+[native media workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43610630250)
+passed actual scene composition, all 18 caption renders, and nine browser tests on Windows ARM64.
+Its downloaded evidence reproduced the same reveal pixel counts and stable left edge as the local
+run. Hosted AI inference remains unprovisioned; actual Qwen evidence is local.
+
+The [public preview.5 release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.5)
+contains the 226,251,606-byte ARM64 installer and 287,198,792-byte x64 installer. All eight files
+downloaded without authentication. Independent Ed25519/BLAKE2b signature checks, trusted signed
+version checks, local SHA256SUMS, architecture manifests, and GitHub asset digests passed. Both
+extracted application PE headers matched their native architecture. Evidence:
+.cache/preview5-anonymous-download.json, .cache/preview5-signature-validation.json, and
+.cache/preview5-published.json.
+
+After active-job, dirty-editor, upload, HTML-dialog, and native-modal checks, the previous idle
+host was closed normally. The published ARM64 application and its actual bundled studio were
+copied into a stable runtime and opened against the canonical library. Native/API/file versions
+matched 0.1.0-preview.5; 18 presets, three ready models, and 26 aligned Processing rows passed.
+Retry controls had empty visible text and 44-pixel hit areas. All six registered assets and both
+projects remained intact. The application stayed open on Studio. Evidence:
+.cache/preview5-native-final.json and .cache/caption-native-processing.json.
+
+This verifies the extracted ARM64 application, not native installer or updater execution. Physical
+x64, macOS/Linux packages, Android runtime, a complete accessibility audit, fresh model downloads,
+and long-file performance measurements remain pending. Final reviewed cleanup and a 14.73 GiB
+workspace measurement are recorded in storage.md.
+
 ## Scene engine validation, 2026-11-14
 
 The six scene integration tests cover reorder provenance, surviving manual corrections, extension
