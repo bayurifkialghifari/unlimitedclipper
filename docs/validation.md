@@ -50,6 +50,21 @@ The preview.4 tagged workflow passed source/platform validation but failed both 
 on a cross-drive WebView2 resource path. Publication was skipped. The workspace-drive staging
 fix is committed; preview.4 must not be described as a successful hosted release.
 
+## Published history maintenance, 2026-11-14
+
+At the owner's request, reference names were removed from current Markdown and reachable
+historical content/messages. All 67 commits, main, and the four existing preview tags were
+rewritten and pushed with atomic updates and expected-ref leases. A verified full Git bundle
+was preserved outside the workspace before rewriting. The release workflow was temporarily
+disabled to prevent rebuilt historical tags creating duplicate releases, then restored before
+the new preview tag. Existing signed installer bytes were not changed.
+
+Older commit hashes recorded in dated evidence identify original validation checkouts; they
+may no longer be reachable under the rewritten branch/tags. Existing workflow runs and signed
+artifacts remain evidence of those original builds. This maintenance cannot erase external
+clones or unreferenced objects cached by hosting services. Evidence:
+.cache/history-cleanup-validation.json.
+
 ## Scene engine validation, 2026-11-14
 
 The six scene integration tests cover reorder provenance, surviving manual corrections, extension
