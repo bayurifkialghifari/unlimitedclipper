@@ -8,7 +8,7 @@ const engine = await testEngine(43189);
 try {
   const child = spawn(
     process.execPath,
-    [path.join(root, 'node_modules/@playwright/test/cli.js'), 'test'],
+    [path.join(root, 'node_modules/@playwright/test/cli.js'), 'test', ...process.argv.slice(2)],
     {
       cwd: root,
       windowsHide: true,

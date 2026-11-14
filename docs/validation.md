@@ -260,6 +260,33 @@ This CI job tests the standalone engine, while the separate native desktop check
 | Content and claims     | PASS, scoped | Original application source; no competitor assets, invented projects, testimonials, performance numbers, or speaker identities. Native pack accuracy is visibly marked unverified.        |
 | Broader certification  | Pending      | Successful 1.61 GiB pack import, complete contrast/accessibility audit, all old controls, suspended-tab cache behavior, and native cross-platform certification remain unrun.             |
 
+## Progress and setup usability, 2026-11-14
+
+The global activity popup reports durable engine jobs and the transfer phase before admission.
+Its percentage is overall job completion. Inference stages without incremental tool telemetry
+retain their checkpoint percentage until another milestone completes.
+
+| Check                       | Status       | Evidence                                                                                                                                                                                                                                       |
+| --------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source quality              | PASS         | npm run check; 26 engine tests; workspace Rustfmt check; engine and desktop Clippy with warnings denied.                                                                                                                                       |
+| Browser interactions        | PASS, scoped | Three onboarding Playwright tests cover immediate submission, queue/download/proxy, transcription/render, navigation, cancellation confirmation, completion/failure dismissal, collapse/expand, and a 390 px viewport.                         |
+| Model and update controls   | PASS, scoped | Tests select Whisper medium and verify the POST endpoint, installed state, optional manual import, absent feed fields, disabled unconfigured automatic updates, the fixed release page, and compatibility with an older native command bridge. |
+| Fresh large model download  | Pending      | Browser tests use controlled network responses and isolated data with read-only canonical models. They do not certify a new multi-gigabyte transfer.                                                                                           |
+| Current native host refresh | Pending      | The user's existing ARM64 host and active selection job were preserved. New source compiles, but this pass has not verified the changed controls in a freshly built native host.                                                               |
+| Release installer runtime   | Pending      | Signing and installer production are separate from install/uninstall, native opener execution, and physical x64 runtime certification.                                                                                                         |
+
+Evidence: tests/browser/onboarding.spec.ts, test-results/onboarding-progress.png, and
+test-results/onboarding-settings.png. Run with node scripts/validate-browser.mjs onboarding.spec.ts.
+The final run passed three tests in 16.5 seconds after the production build completed. An earlier
+run started against the previous built assets and failed the new native compatibility scenario;
+the rebuilt assets passed. No real processing was submitted to the user's active engine.
+
+Anti-slop During gate, scoped to the changed controls: the matte popup uses elevation to separate
+running work from the editor, restrained lime for progress, a bounded scroll region, native labeled
+controls, and no decorative animation. The model selector reflects the actual registry. Working
+controls and loading/disabled/error states passed the controlled interactions above. Complete
+contrast, screen-reader, and native runtime audits remain pending.
+
 ## Required scenarios
 
 - ARM64 and x64 imports, local speech inference, clip selection, and rendering.

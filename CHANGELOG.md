@@ -4,6 +4,11 @@
 
 ### Added
 
+- A compact global progress popup for video uploads/imports, AI model downloads, clip processing,
+  and exports, with actual stages, percentages, cancellation, and terminal alerts.
+- A model-registry dropdown with in-app download and optional manual file import.
+- Simple update controls and a fixed native release-page opener for private preview downloads.
+
 - Version 2 editorial timelines with ordered source segments, source/output time mapping,
   source-preserving word/layer remapping, and legacy single-range edit support.
 - Editable notes, punch-ins, split framing, camera corners, local B-roll, and registered local
