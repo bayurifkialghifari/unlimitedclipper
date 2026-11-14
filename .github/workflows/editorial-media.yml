@@ -8,6 +8,7 @@ on:
       - 'crates/engine/**'
       - 'apps/studio/**'
       - 'scripts/validate-editorial.mjs'
+      - 'scripts/validate-scenes.mjs'
       - 'scripts/validate-browser.mjs'
       - 'tests/browser/**'
       - '.github/workflows/editorial-media.yml'
@@ -40,9 +41,15 @@ jobs:
       - run: node scripts/generate-fixtures.mjs
       - run: cargo build --locked -p unlimitedclipper-engine
       - run: node scripts/validate-editorial.mjs
+      - run: node scripts/validate-scenes.mjs
+      - run: npx playwright install chromium
+      - run: node scripts/validate-browser.mjs
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         if: always()
         with:
           name: editorial-media-evidence
-          path: .cache/editorial-validation.json
+          path: |
+            .cache/editorial-validation.json
+            .cache/scene-media-validation.json
+            test-results/
           if-no-files-found: warn
