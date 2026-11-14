@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { copyFile, mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { root } from './cargo.mjs';
@@ -8,6 +10,13 @@ await mkdir(directory, { recursive: true });
 const version = process.env.GITHUB_REF_NAME?.replace(/^v/, '');
 if (!version) {
   throw new Error('A release tag is required.');
+}
+async function sha256(filename) {
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(filename)) {
+    hash.update(chunk);
+  }
+  return hash.digest('hex');
 }
 if (process.argv.includes('--publish')) {
   const platforms = {};
@@ -24,7 +33,18 @@ if (process.argv.includes('--publish')) {
     path.join(directory, 'application.json'),
     JSON.stringify({ version, pub_date: new Date().toISOString(), platforms }, null, 2) + '\n',
   );
-  const files = (await readdir(directory)).map((name) => path.join(directory, name));
+  const names = (await readdir(directory)).filter((name) => name !== 'SHA256SUMS').sort();
+  const checksums = [];
+  for (const name of names) {
+    checksums.push((await sha256(path.join(directory, name))) + '  ' + name);
+  }
+  await writeFile(path.join(directory, 'SHA256SUMS'), checksums.join('\n') + '\n');
+  const notes = path.join(root, 'docs/releases/' + version + '.md');
+  const notesFile = await readFile(notes).then(
+    () => notes,
+    () => path.join(root, 'CHANGELOG.md'),
+  );
+  const files = [...names, 'SHA256SUMS'].map((name) => path.join(directory, name));
   execFileSync(
     'gh',
     [
@@ -36,7 +56,7 @@ if (process.argv.includes('--publish')) {
       '--title',
       'UnlimitedClipper ' + version,
       '--notes-file',
-      path.join(root, 'CHANGELOG.md'),
+      notesFile,
       ...(/-/.test(version) ? ['--prerelease'] : []),
     ],
     { stdio: 'inherit' },

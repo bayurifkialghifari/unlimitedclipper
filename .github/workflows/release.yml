@@ -48,6 +48,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.APP_UPDATE_PRIVATE_KEY }}
         run: node scripts/set-release-version.mjs
       - run: npm install --package-lock-only --ignore-scripts
+      - run: cargo update --workspace
       - run: npm ci
       - run: node scripts/setup-tools.mjs --arch=${{ matrix.arch }}
       - name: Build signed installer
