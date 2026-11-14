@@ -21,7 +21,14 @@ struct Window {
 
 #[derive(Deserialize)]
 struct Proposals {
-    clips: Vec<Suggestion>,
+    clips: Vec<PhraseProposal>,
+}
+
+#[derive(Deserialize)]
+struct PhraseProposal {
+    first_line: usize,
+    last_line: usize,
+    title: String,
 }
 
 #[derive(Deserialize)]
@@ -167,8 +174,8 @@ fn windows(words: &[Word]) -> Vec<Window> {
     result
 }
 
-fn transcript(words: &[Word], origin: i64) -> String {
-    let mut lines = String::new();
+fn phrases(words: &[Word]) -> Vec<(usize, usize)> {
+    let mut result = Vec::new();
     let mut first = 0;
     while first < words.len() {
         let mut end = first + 1;
@@ -180,17 +187,25 @@ fn transcript(words: &[Word], origin: i64) -> String {
             }
             end += 1;
         }
+        result.push((first, end));
+        first = end;
+    }
+    result
+}
+
+fn transcript(words: &[Word], origin: i64) -> String {
+    let mut lines = String::new();
+    for (index, (first, end)) in phrases(words).into_iter().enumerate() {
         let phrase = words[first..end]
             .iter()
             .map(|word| word.text.as_str())
             .collect::<Vec<_>>()
             .join(" ");
         lines.push_str(&format!(
-            "[{}-{}] {phrase}\n",
+            "[line {index}: {}-{} ms] {phrase}\n",
             words[first].start_ms - origin,
             words[end - 1].end_ms - origin
         ));
-        first = end;
     }
     lines
 }
@@ -229,11 +244,67 @@ fn rank(mut candidates: Vec<Suggestion>, count: usize) -> Vec<Suggestion> {
             continue;
         }
         result.push(candidate);
-        if result.len() >= count.saturating_mul(3).max(12) {
-            break;
+    }
+    let limit = count.saturating_mul(3).max(12);
+    if result.len() <= limit {
+        return result;
+    }
+    let first = result.iter().map(|item| item.start_ms).min().unwrap_or(0);
+    let last = result
+        .iter()
+        .map(|item| item.end_ms)
+        .max()
+        .unwrap_or(first + 1);
+    let buckets = limit / 2;
+    let mut occupied = std::collections::HashSet::new();
+    let mut selected = Vec::new();
+    let mut remainder = Vec::new();
+    for candidate in result {
+        let bucket = ((candidate.start_ms - first) as u128 * buckets as u128
+            / (last - first).max(1) as u128)
+            .min(buckets.saturating_sub(1) as u128);
+        if occupied.insert(bucket) {
+            selected.push(candidate);
+        } else {
+            remainder.push(candidate);
         }
     }
-    result
+    selected.extend(remainder.into_iter().take(limit - selected.len()));
+    selected.sort_by_key(|item| std::cmp::Reverse(item.score));
+    selected
+}
+
+fn phrase_candidate(proposal: PhraseProposal, words: &[Word]) -> Option<Suggestion> {
+    let lines = phrases(words);
+    if proposal.first_line > proposal.last_line || proposal.title.trim().is_empty() {
+        return None;
+    }
+    let first = lines.get(proposal.first_line)?.0;
+    let end = lines.get(proposal.last_line)?.1;
+    let selected = &words[first..end];
+    let quote = |words: &[Word]| {
+        words
+            .iter()
+            .map(|word| word.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    // Proposal priority is deterministic; only independent review becomes a displayed score.
+    let score = selected.len().min(80) as u32
+        + if selected.last()?.text.ends_with(['.', '!', '?']) {
+            20
+        } else {
+            0
+        };
+    Some(Suggestion {
+        start_ms: selected.first()?.start_ms,
+        end_ms: selected.last()?.end_ms,
+        title: proposal.title,
+        explanation: String::new(),
+        score,
+        hook: quote(&selected[..selected.len().min(8)]),
+        payoff: quote(&selected[selected.len().saturating_sub(8)..]),
+    })
 }
 
 fn select_nonoverlapping(mut candidates: Vec<Suggestion>, count: usize) -> Vec<Suggestion> {
@@ -309,11 +380,6 @@ async fn propose_windows(
     session: &mut Session,
     cancellation: &CancellationToken,
 ) -> Result<()> {
-    let schema = json!({"type":"object","properties":{"clips":{"type":"array","maxItems":4,"items":{"type":"object","properties":{
-        "start_ms":{"type":"integer"},"end_ms":{"type":"integer"},"title":{"type":"string","maxLength":80},
-        "explanation":{"type":"string","maxLength":160},"score":{"type":"integer","minimum":0,"maximum":100},
-        "hook":{"type":"string","minLength":1,"maxLength":100},"payoff":{"type":"string","minLength":1,"maxLength":100}},
-        "required":["start_ms","end_ms","title","explanation","score","hook","payoff"],"additionalProperties":false}}},"required":["clips"],"additionalProperties":false});
     let mut candidates: Vec<Suggestion> =
         serde_json::from_value(job.payload["discovery_candidates"].clone()).unwrap_or_default();
     let count = job.payload["clip_count"].as_u64().unwrap_or(4) as usize;
@@ -336,6 +402,18 @@ async fn propose_windows(
             .await?;
         let words = &project.words[window.first..window.end];
         let origin = words[0].start_ms;
+        let last_line = phrases(words).len().saturating_sub(1);
+        let schema = json!({
+            "type": "object", "properties": {"clips": {
+                "type": "array", "maxItems": 4, "items": {
+                    "type": "object", "properties": {
+                        "first_line": {"type": "integer", "minimum": 0, "maximum": last_line},
+                        "last_line": {"type": "integer", "minimum": 0, "maximum": last_line},
+                        "title": {"type": "string", "maxLength": 80}
+                    }, "required": ["first_line", "last_line", "title"], "additionalProperties": false
+                }
+            }}, "required": ["clips"], "additionalProperties": false
+        });
         let profile_instruction = if profile == "gaming" {
             "Prefer a surprising reaction, funny exchange, or tense outcome. Loud audio alone is not evidence of an interesting moment."
         } else {
@@ -377,7 +455,7 @@ async fn propose_windows(
             .collect::<Vec<_>>()
             .join(", ");
         let request = format!(
-            "Find up to 4 standalone video excerpts. {profile_instruction} Read the whole conversation before selecting. Prefer complete 8000-60000 ms moments. Include the setup AND its answer, outcome, or conclusion. Never suggest isolated fragments, unanswered questions, greetings, or repeated quotes. Target duration {duration} ms (0 means automatic); do not pad filler. Use the integer WINDOW-RELATIVE timestamps shown below, not seconds or global video time. Focus: {focus}. Audio energy changes near window ms {cue_text} are search hints only, not semantic evidence. Avoid already selected ranges: {excluded}. Titles and explanations in {}. Hook and payoff must be short exact quotes INSIDE the range; they should describe its opening and completed ending. An empty array is valid. Prefer moments starting in {}-{}; neighboring text may complete their context. Transcript:\n{}",
+            "Select up to 4 standalone video excerpts from NUMBERED TRANSCRIPT LINES. {profile_instruction} Read the whole conversation. Choose first_line and last_line (inclusive, 0 to {last_line}) that include a setup AND its answer, outcome, or conclusion. Prefer complete 8-60 second moments. Skip isolated fragments, unanswered questions and greetings. Target duration {duration} ms (0 means automatic); no filler. Return line numbers, not timestamps; the engine handles precise timing and quotes. Focus: {focus}. Audio changes near window ms {cue_text} are search hints only. Avoid selected window-ms ranges: {excluded}. Titles in {}. Empty clips is valid. Prefer openings near window ms {}-{}. Transcript:\n{}",
             pipeline::output_language(project),
             window.core_start_ms - origin,
             window.core_end_ms - origin,
@@ -385,18 +463,12 @@ async fn propose_windows(
         );
         let output = session.complete(&request, &schema, cancellation).await?;
         let response: Proposals = pipeline::extract_json(&output)?;
-        for mut candidate in response.clips {
+        for proposal in response.clips {
             increment(job, "proposed");
-            let Some(start) = candidate.start_ms.checked_add(origin) else {
+            let Some(candidate) = phrase_candidate(proposal, words) else {
                 increment(job, "invalid_evidence");
                 continue;
             };
-            let Some(end) = candidate.end_ms.checked_add(origin) else {
-                increment(job, "invalid_evidence");
-                continue;
-            };
-            candidate.start_ms = start;
-            candidate.end_ms = end;
             if candidate.start_ms < words[0].start_ms
                 || candidate.end_ms > words.last().context("Empty transcript window")?.end_ms
                 || candidate.end_ms <= candidate.start_ms
@@ -726,12 +798,16 @@ pub(crate) async fn select(
                 .collect::<Vec<_>>()
         };
         for pair in selected {
-            let first = pair[0].first.max(pair[0].end.saturating_sub(45));
-            let end = pair[1]
-                .end
-                .min(pair[1].first.saturating_add(45))
-                .max(first + 1)
-                .min(project.words.len());
+            let boundary = pair[1].core_start_ms;
+            let first = project
+                .words
+                .partition_point(|word| word.end_ms < boundary - 45_000);
+            let mut end = project
+                .words
+                .partition_point(|word| word.start_ms <= boundary + 45_000);
+            while end > first + 1 && transcript(&project.words[first..end], 0).len() > 2650 {
+                end -= 1;
+            }
             extra.push(Window {
                 first,
                 end,
@@ -830,5 +906,55 @@ mod tests {
                 .iter()
                 .any(|batch| index >= batch.first && index < batch.end)
         }));
+    }
+
+    #[test]
+    fn phrase_selection_preserves_absolute_source_time_and_rejects_invalid_ids() {
+        let words = (0..36)
+            .map(|index| Word {
+                id: index.to_string(),
+                text: format!("word{index}"),
+                start_ms: 1_000_000 + index * 1000,
+                end_ms: 1_000_500 + index * 1000,
+                emphasis: false,
+                color: None,
+                confidence: None,
+                timing: None,
+            })
+            .collect::<Vec<_>>();
+        let candidate = phrase_candidate(
+            PhraseProposal {
+                first_line: 1,
+                last_line: 2,
+                title: "Grounded range".into(),
+            },
+            &words,
+        )
+        .unwrap();
+        assert_eq!(candidate.start_ms, 1_012_000);
+        assert_eq!(candidate.end_ms, 1_035_500);
+        assert!(pipeline::grounded(&candidate, &words));
+        assert!(
+            phrase_candidate(
+                PhraseProposal {
+                    first_line: 2,
+                    last_line: 1,
+                    title: "Invalid reversed range".into(),
+                },
+                &words
+            )
+            .is_none()
+        );
+        assert!(
+            phrase_candidate(
+                PhraseProposal {
+                    first_line: 0,
+                    last_line: 3,
+                    title: "Invalid line".into(),
+                },
+                &words
+            )
+            .is_none()
+        );
     }
 }
