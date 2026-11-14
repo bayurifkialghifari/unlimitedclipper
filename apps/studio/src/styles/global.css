@@ -6,20 +6,21 @@
 
 :root {
   font-family: 'DM Sans', sans-serif;
-  color: #f1f3eb;
-  background: #111310;
+  color: #edf0f5;
+  background: #131820;
   font-synthesis: none;
-  --background: #111310;
-  --surface: #191c17;
-  --surface-raised: #22261f;
-  --surface-inset: #121510;
-  --surface-hover: #2d3328;
-  --border: #343a2e;
-  --text: #f1f3eb;
-  --muted: #a0a997;
-  --accent: #d9fa63;
-  --accent-soft: #303c1a;
-  --accent-ink: #171d0c;
+  --background: #131820;
+  --surface: #1a202a;
+  --surface-raised: #252d39;
+  --surface-inset: #10151d;
+  --surface-hover: #303b49;
+  --border: #364252;
+  --text: #edf0f5;
+  --muted: #a8b4c6;
+  --accent: #ffb86b;
+  --accent-hover: #ffcc94;
+  --accent-soft: #3c2d22;
+  --accent-ink: #24180d;
 }
 
 * {

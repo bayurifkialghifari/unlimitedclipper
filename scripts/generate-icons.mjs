@@ -14,7 +14,7 @@ execFileSync(
     '--output',
     path.join(root, 'apps/desktop/src-tauri/icons'),
     '--ios-color',
-    '#111310',
+    '#131820',
   ],
   { cwd: root, windowsHide: true, stdio: 'inherit' },
 );

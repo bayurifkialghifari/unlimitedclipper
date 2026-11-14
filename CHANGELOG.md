@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Blue graphite surfaces and amber controls now give the studio and original app icon a
+  consistent palette. The redundant sidebar footer has been removed.
+
 - WebView2 resource staging when the Cargo SDK and Windows checkout use different drives.
   Generated resource paths passed local preparation checks; hosted installer validation is pending.
 

@@ -55,11 +55,6 @@ export function Shell({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
-        <span className={styles.localLabel}>
-          UnlimitedClipper
-          <br />
-          {text.offline}
-        </span>
       </aside>
       <main className={styles.main}>
         {isAndroidHost() ? (
