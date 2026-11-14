@@ -25,11 +25,11 @@ account or API key is required.
 
 ## Download the Windows preview
 
-[Download Windows ARM64 (215 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.2/UnlimitedClipper_0.1.0-preview.2_arm64-setup.exe)
+[Download Windows ARM64 (215 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.3/UnlimitedClipper_0.1.0-preview.3_arm64-setup.exe)
 for Snapdragon/ARM PCs, or
-[download Windows x64 (273 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.2/UnlimitedClipper_0.1.0-preview.2_x64-setup.exe)
+[download Windows x64 (273 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.3/UnlimitedClipper_0.1.0-preview.3_x64-setup.exe)
 for Intel/AMD PCs. Both belong to the same
-[preview release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.2).
+[preview release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.3).
 
 GitHub access is required because the repository is private. Install the local models from the
 dropdown in Settings after installation; manual model-file import remains optional. Updater

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-preview.3 (2026-11-14)
 
 ### Added
 
@@ -8,6 +8,8 @@
   split/delete, layer tracks, source-offset-preserving layer trim, snapping, zoom, and undo.
 - A viewport-fitting editor, narrow-screen panel toggles, quick source playback in scene order,
   and an edited preview that stops when its media is stale. Routes load on demand.
+- Windows ARM64 and x64 preview installers with version-bound publisher updater signatures,
+  architecture manifests, and SHA256SUMS. Installer/updater execution remains untested.
 
 ### Fixed
 
