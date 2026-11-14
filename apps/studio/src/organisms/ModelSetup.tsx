@@ -31,6 +31,7 @@ export function ModelSetup() {
     'whisper-small': text.modelSmallHint,
     'whisper-medium': text.modelMediumHint,
     'qwen3-4b': text.modelSelectionHint,
+    'qwen3-1.7b': text.aiEconomyHint,
   };
 
   async function download() {

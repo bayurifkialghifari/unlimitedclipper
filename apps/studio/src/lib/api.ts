@@ -102,11 +102,19 @@ export const api = {
     duration_ms: number,
     language: string,
     focus = '',
-    minimum_score = 85,
+    minimum_score = 70,
+    content_profile = 'podcast',
   ) =>
     request<Job>('/projects/' + id + '/generate', {
       method: 'POST',
-      body: JSON.stringify({ clip_count, duration_ms, language, focus, minimum_score }),
+      body: JSON.stringify({
+        clip_count,
+        duration_ms,
+        language,
+        focus,
+        minimum_score,
+        content_profile,
+      }),
     }),
   refineCaptions: (
     id: string,
@@ -121,6 +129,11 @@ export const api = {
     }),
   clipAction: (id: string, action: 'export' | 'title' | 'track') =>
     request<Job>('/clips/' + id + '/' + action, { method: 'POST' }),
+  trackClip: (id: string, revision: number, mode: string) =>
+    request<Job>('/clips/' + id + '/track', {
+      method: 'POST',
+      body: JSON.stringify({ revision, mode }),
+    }),
   batchExport: (id: string) => request<Job>('/projects/' + id + '/export', { method: 'POST' }),
   cancelJob: (id: string) => request<Job>('/jobs/' + id + '/cancel', { method: 'POST' }),
   retryJob: (id: string) => request<Job>('/jobs/' + id + '/retry', { method: 'POST' }),

@@ -53,6 +53,25 @@ function Preferences({ initial }: { initial: Settings }) {
     >
       <h2>{text.preferences}</h2>
       <Select
+        label={text.aiMode}
+        value={settings.ai_mode ?? 'economy'}
+        disabled={isAndroidHost()}
+        onChange={(value) => change('ai_mode', value)}
+      >
+        <option value="economy">{text.aiEconomy}</option>
+        <option value="standard">{text.aiStandard}</option>
+      </Select>
+      <p className={styles.hint}>{text.aiEconomyHint}</p>
+      <Select
+        label={text.contentProfile}
+        value={settings.content_profile ?? 'podcast'}
+        disabled={isAndroidHost()}
+        onChange={(value) => change('content_profile', value)}
+      >
+        <option value="podcast">{text.profilePodcast}</option>
+        <option value="gaming">{text.profileGaming}</option>
+      </Select>
+      <Select
         label={text.uiLanguage}
         value={settings.language}
         onChange={(value) => change('language', value)}

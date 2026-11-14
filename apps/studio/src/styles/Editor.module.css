@@ -43,7 +43,7 @@
 .leftPanel,
 .rightPanel {
   min-width: 0;
-  overflow-y: auto;
+  min-height: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -51,14 +51,32 @@
 
 .leftPanel {
   padding: 16px;
+  overflow-y: auto;
 }
 
-.rightPanel > section {
+.rightPanel {
+  display: flex;
+  overflow: hidden;
+}
+
+.rightPanel > aside {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
   border: 0;
 }
 
-.rightPanel > section > div:last-child {
+.rightPanel > aside > div:first-child {
+  flex-shrink: 0;
+}
+
+.rightPanel > aside > div:last-child {
+  flex: 1;
+  min-height: 0;
   max-height: none;
+  align-content: start;
+  overscroll-behavior-y: contain;
 }
 
 .library h2,
@@ -350,9 +368,11 @@
     grid-row: 1;
     display: none;
   }
-  .leftPanel[data-visible='true'],
-  .rightPanel[data-visible='true'] {
+  .leftPanel[data-visible='true'] {
     display: block;
+  }
+  .rightPanel[data-visible='true'] {
+    display: flex;
   }
 }
 
@@ -372,6 +392,9 @@
   .leftPanel,
   .rightPanel {
     max-height: 440px;
+  }
+  .rightPanel {
+    height: 440px;
   }
   .timelineZoom {
     margin-left: 0;

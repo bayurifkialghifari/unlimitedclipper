@@ -205,6 +205,12 @@ export function Studio() {
       <div className={styles.editorBody}>
         <aside className={styles.leftPanel} data-visible={activePanel === 'transcript'}>
           <section className={styles.library} aria-label={text.clipLibrary}>
+            {lastDiscovery?.status === 'completed' &&
+              Boolean((lastDiscovery.payload as Record<string, unknown>)?.discovery_report) && (
+                <p className={styles.hint} role="status">
+                  {jobMessage(text, lastDiscovery)}
+                </p>
+              )}
             <h2>
               {text.clipLibrary} · {project.data?.clips.length ?? 0}
             </h2>

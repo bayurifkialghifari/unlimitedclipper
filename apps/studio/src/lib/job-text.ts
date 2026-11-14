@@ -34,7 +34,30 @@ export function jobStatus(text: Copy, job: Job) {
 }
 
 export function jobMessage(text: Copy, job: Job) {
-  const result = job.payload as { qualifying_moments?: number } | null;
+  const result = job.payload as {
+    qualifying_moments?: number;
+    discovery_report?: Record<string, number>;
+  } | null;
+  if (job.kind === 'generate' && job.status === 'completed' && result?.discovery_report) {
+    const report = result.discovery_report;
+    let message = text.discoveryResult
+      .replace('{accepted}', String(result.qualifying_moments ?? report.accepted ?? 0))
+      .replace('{requested}', String(report.requested ?? 4));
+    if ((result.qualifying_moments ?? 0) < (report.requested ?? 4)) {
+      message +=
+        '. ' +
+        text.discoveryShortfall +
+        ' ' +
+        text.discoveryRejected
+          .replace('{weak}', String(report.below_threshold ?? 0))
+          .replace(
+            '{invalid}',
+            String((report.invalid_evidence ?? 0) + (report.invalid_review ?? 0)),
+          )
+          .replace('{limits}', String((report.duration ?? 0) + (report.context_budget ?? 0)));
+    }
+    return message;
+  }
   if (job.kind === 'generate' && job.status === 'completed' && result?.qualifying_moments === 0) {
     return text.noQualifyingMoments;
   }
@@ -71,6 +94,12 @@ export function jobMessage(text: Copy, job: Job) {
     if (payload?.selection_sections) {
       message += '/' + payload.selection_sections;
     }
+  }
+  const model = (job.payload as Record<string, unknown> | null)?.[
+    job.stage === 'selection' ? 'proposal_model' : 'review_model'
+  ];
+  if (['selection', 'review'].includes(job.stage) && typeof model === 'string') {
+    message += ' · ' + model;
   }
   return message;
 }

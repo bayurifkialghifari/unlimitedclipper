@@ -4,6 +4,7 @@ import { Button, Field, Select, Segmented, Toggle } from '@unlimitedclipper/ui';
 import { ScissorsIcon, CropIcon, UploadSimpleIcon } from '@phosphor-icons/react';
 import { api, uploadFile } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
+import { flushEditor } from '../lib/save';
 import { useText } from '../lib/i18n';
 import { outputDuration } from '../lib/timeline';
 import { isAndroidHost } from '../lib/native';
@@ -38,7 +39,9 @@ export function Inspector({
   const [selectedDuration, setDuration] = useState<string | null>(null);
   const [selectedLanguage, setLanguage] = useState<string | null>(null);
   const [focus, setFocus] = useState('');
-  const [minimumScore, setMinimumScore] = useState('85');
+  const [minimumScore, setMinimumScore] = useState('70');
+  const [selectedProfile, setProfile] = useState<string | null>(null);
+  const [selectedTracking, setTracking] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const imageInput = useRef<HTMLInputElement>(null);
@@ -56,6 +59,17 @@ export function Inspector({
   const client = useQueryClient();
   const change = useEditor((state) => state.change);
   const document = draft?.document;
+  const lastTrack = jobs.data?.find(
+    (job) => job.kind === 'track' && job.clip_id === draft?.id && job.status === 'completed',
+  );
+  const trackingReport = (
+    lastTrack?.payload as { tracking_report?: Record<string, unknown> } | undefined
+  )?.tracking_report;
+  const profile = selectedProfile ?? preferences.data?.content_profile ?? 'podcast';
+  const tracking =
+    selectedTracking === 'facecam' && document?.layout !== 'gaming'
+      ? 'follow'
+      : (selectedTracking ?? (document?.layout === 'gaming' ? 'facecam' : 'follow'));
   const activeJobs = jobs.data?.filter((job) =>
     ['queued', 'running', 'cancelling'].includes(job.status),
   );
@@ -68,8 +82,12 @@ export function Inspector({
     ),
   );
   const selectionReady = Boolean(
-    models.data?.some((model) => model.id === 'qwen3-4b' && model.ready),
+    models.data?.some(
+      (model) =>
+        (model.id === 'qwen3-4b' || (!isAndroidHost() && model.id === 'qwen3-1.7b')) && model.ready,
+    ),
   );
+  const largeReady = Boolean(models.data?.some((model) => model.id === 'qwen3-4b' && model.ready));
   const speechReady = Boolean(
     models.data?.some(
       (model) => model.id === (preferences.data?.speech_model ?? 'whisper-small') && model.ready,
@@ -252,6 +270,10 @@ export function Inspector({
         {tab === 'options' && (
           <>
             <h2>{text.options}</h2>
+            <Select label={text.contentProfile} value={profile} onChange={setProfile}>
+              <option value="podcast">{text.profilePodcast}</option>
+              <option value="gaming">{text.profileGaming}</option>
+            </Select>
             <Field
               label={text.clipCount}
               type="number"
@@ -311,6 +333,7 @@ export function Inspector({
                     language,
                     focus,
                     Number(minimumScore),
+                    profile,
                   ),
                 )
               }
@@ -329,7 +352,7 @@ export function Inspector({
                 <ClipRatingPanel
                   key={'rating-' + draft!.id}
                   clip={draft!}
-                  modelReady={selectionReady}
+                  modelReady={largeReady}
                   dirty={dirty}
                   saving={saving}
                 />
@@ -715,10 +738,42 @@ export function Inspector({
         {tab === 'crop' && document && (
           <>
             <h2>{text.crop}</h2>
+            <Select
+              label={text.framingMode}
+              value={tracking}
+              onChange={setTracking}
+              disabled={editing || pending}
+            >
+              <option value="follow">{text.framingFollow}</option>
+              <option value="split">{text.framingSplit}</option>
+              <option value="facecam" disabled={document.layout !== 'gaming'}>
+                {text.framingFacecam}
+              </option>
+            </Select>
+            <p className={styles.hint}>{text.framingHint}</p>
+            {trackingReport && (
+              <div className={styles.hint} role="status">
+                <p>
+                  {text.framingReport
+                    .replace('{shots}', String(trackingReport.shots ?? 0))
+                    .replace('{splits}', String(trackingReport.split_shots ?? 0))}
+                </p>
+                {trackingReport.mode === 'split' && Number(trackingReport.split_shots) === 0 && (
+                  <p>{text.framingNoSplit}</p>
+                )}
+                {Number(trackingReport.missing_samples) > 0 && <p>{text.framingUncertain}</p>}
+              </div>
+            )}
             <Button
               icon={<CropIcon />}
               disabled={isAndroidHost() || pending || editing || dirty || saving}
-              onClick={() => void action(() => api.clipAction(draft!.id, 'track'))}
+              onClick={() =>
+                void action(async () => {
+                  await flushEditor();
+                  const saved = useEditor.getState().draft!;
+                  await api.trackClip(saved.id, saved.revision, tracking);
+                })
+              }
             >
               {editing ? text.running : text.autoCrop}
             </Button>
@@ -815,7 +870,7 @@ export function Inspector({
                 editing ||
                 dirty ||
                 saving ||
-                !selectionReady ||
+                !largeReady ||
                 !document.words.some((word) => word.text.trim())
               }
               onClick={() => void action(() => api.clipAction(draft!.id, 'title'))}

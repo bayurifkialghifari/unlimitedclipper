@@ -1,6 +1,29 @@
 import { create } from 'zustand';
 
 const en = {
+  aiMode: 'Local AI mode',
+  aiEconomy: 'Automatic economy',
+  aiStandard: 'Qwen 4B',
+  aiEconomyHint:
+    '1.7B finds candidates; installed 4B reviews the finalists. With one Qwen model installed, it handles both stages.',
+  contentProfile: 'Content profile',
+  profilePodcast: 'Podcast and interview',
+  profileGaming: 'Gaming and reactions',
+  framingMode: 'Framing mode',
+  framingReport: '{shots} shots checked; {splits} stable split shots.',
+  framingUncertain:
+    'Some faces were lost. Review those sections in Edited preview or adjust the crop manually.',
+  framingNoSplit: 'Two consistent faces were not available. Single-face framing was preserved.',
+  framingFollow: 'Follow one face',
+  framingSplit: 'Stable two-face split',
+  framingFacecam: 'Lock the facecam region',
+  framingHint:
+    'Position the crop around your subject first. Tracking follows visible faces, not the active speaker.',
+  discoveryResult: '{accepted} of target {requested}',
+  discoveryShortfall:
+    'The search found fewer complete, qualifying moments. Adjust the filter or review the source manually.',
+  discoveryRejected:
+    'Below threshold: {weak}; invalid evidence: {invalid}; duration/context limits: {limits}.',
   clipLibrary: 'Clips',
   transcript: 'Transcript',
   scenes: 'Scenes',
@@ -337,6 +360,29 @@ const en = {
 };
 
 const id: typeof en = {
+  aiMode: 'Mode AI lokal',
+  aiEconomy: 'Hemat otomatis',
+  aiStandard: 'Qwen 4B',
+  aiEconomyHint:
+    '1.7B mencari kandidat; 4B yang terpasang menilai final. Jika hanya ada satu model Qwen, model itu menjalankan kedua tahap.',
+  contentProfile: 'Profil konten',
+  profilePodcast: 'Podcast dan wawancara',
+  profileGaming: 'Gaming dan reaksi',
+  framingMode: 'Mode framing',
+  framingReport: '{shots} shot diperiksa; {splits} shot split stabil.',
+  framingUncertain:
+    'Ada wajah yang hilang dari deteksi. Periksa bagian itu di preview Edited atau atur crop manual.',
+  framingNoSplit: 'Dua wajah yang konsisten tidak tersedia. Framing satu wajah tetap dipakai.',
+  framingFollow: 'Ikuti satu wajah',
+  framingSplit: 'Split dua wajah stabil',
+  framingFacecam: 'Kunci area facecam',
+  framingHint:
+    'Posisikan crop pada subjek dulu. Tracking mengikuti wajah yang terlihat, bukan pembicara aktif.',
+  discoveryResult: '{accepted} dari target {requested}',
+  discoveryShortfall:
+    'Pencarian menemukan lebih sedikit momen lengkap yang lolos. Ubah filter atau tinjau sumber secara manual.',
+  discoveryRejected:
+    'Di bawah filter: {weak}; bukti tidak valid: {invalid}; batas durasi/konteks: {limits}.',
   clipLibrary: 'Klip',
   transcript: 'Transkrip',
   scenes: 'Scene',
