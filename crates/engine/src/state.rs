@@ -16,6 +16,8 @@ use tokio_util::sync::CancellationToken;
 pub struct AppState {
     pub db: SqlitePool,
     pub root: PathBuf,
+    pub models: PathBuf,
+    pub models_read_only: bool,
     pub tools: PathBuf,
     pub native_tools: Option<Arc<dyn crate::native::NativeTools>>,
     pub active_tools: Arc<std::sync::RwLock<Option<PathBuf>>>,
@@ -44,6 +46,7 @@ impl AppState {
             "models",
             "temporary",
             "watermarks",
+            "audio",
             "backups",
         ] {
             tokio::fs::create_dir_all(root.join(directory)).await?;
@@ -58,7 +61,7 @@ impl AppState {
                 "Another engine owns this data directory. Use its open studio window. {error}"
             )
         })?;
-        for directory in ["temporary", "sources", "watermarks"] {
+        for directory in ["temporary", "sources", "watermarks", "audio"] {
             let mut files = tokio::fs::read_dir(root.join(directory)).await?;
             while let Some(entry) = files.next_entry().await? {
                 if entry.file_type().await?.is_file()
@@ -81,6 +84,10 @@ impl AppState {
         let (events, _) = broadcast::channel(256);
         Ok(Self {
             db,
+            models: std::env::var_os("UC_MODELS_DIR")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| root.join("models")),
+            models_read_only: std::env::var("UC_MODELS_READ_ONLY").is_ok_and(|value| value == "1"),
             root,
             tools,
             native_tools: None,
@@ -112,6 +119,18 @@ impl AppState {
             .expect("Toolchain lock is available")
             .clone()
             .unwrap_or_else(|| self.tools.clone())
+    }
+
+    pub fn models_root(&self) -> PathBuf {
+        self.models.clone()
+    }
+
+    pub fn require_writable_models(&self) -> Result<()> {
+        anyhow::ensure!(
+            !self.models_read_only,
+            "This shared model store is read-only."
+        );
+        Ok(())
     }
 
     pub async fn idle(&self) -> Result<bool> {

@@ -26,6 +26,12 @@ fn finish(pending: &mut PendingWord, words: &mut Vec<Word>, duration_ms: i64) {
                 end_ms,
                 emphasis: false,
                 color: None,
+                timing: Some(crate::models::WordTiming {
+                    provenance: "estimated".into(),
+                    source_start_ms: start_ms,
+                    source_end_ms: end_ms,
+                    alignment_confidence: None,
+                }),
                 confidence: (pending.tokens > 0)
                     .then(|| (pending.probability / pending.tokens as f64).exp()),
             });
@@ -165,6 +171,14 @@ pub fn parse_transcript(value: &Value, duration_ms: i64) -> Vec<Word> {
         if let Some(next_start) = next_start.filter(|start| *start > word.start_ms) {
             word.end_ms = word.end_ms.min(next_start);
         }
+    }
+    for word in &mut words {
+        word.timing = Some(crate::models::WordTiming {
+            provenance: "estimated".into(),
+            source_start_ms: word.start_ms,
+            source_end_ms: word.end_ms,
+            alignment_confidence: None,
+        });
     }
     words
 }

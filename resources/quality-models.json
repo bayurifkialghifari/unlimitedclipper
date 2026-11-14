@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "filename": "alignment-id.onnx",
+      "size": 1262303914,
+      "sha256": "5f199a02b900af876783b001b32d9b61683f300bd8d7c9d024f11c9ff31bbcfe",
+      "license": "Apache-2.0"
+    },
+    {
+      "filename": "alignment-id.json",
+      "size": 680,
+      "sha256": "b0af0cf9dc75d7322294fbee0f20d4f37807938f8114b89627cbe2a43a02b1dc",
+      "license": "Apache-2.0"
+    },
+    {
+      "filename": "alignment-id-MODEL-CARD.md",
+      "size": 3953,
+      "sha256": "ae712b8b7cf241ed460ab7e43cae1342a5a7ba6563335c1349f1581f1708e4dd",
+      "license": "Apache-2.0"
+    },
+    {
+      "filename": "alignment-en.onnx",
+      "size": 377814551,
+      "sha256": "f0c73a604849e5af78f32941e95356fb6c3c31f99cb213a322ff75605d966ad5",
+      "license": "Apache-2.0"
+    },
+    {
+      "filename": "alignment-en.json",
+      "size": 697,
+      "sha256": "81dfa5b9bc356b97465ab8e2295a4c33c060f953d6ececaa3a9c304c5b6e843d",
+      "license": "Apache-2.0"
+    },
+    {
+      "filename": "alignment-en-MODEL-CARD.md",
+      "size": 4431,
+      "sha256": "fc52a0adfa64e446800f9944c6cf9b90da3127aba548860ea5714516ec8c18c7",
+      "license": "Apache-2.0"
+    },
+    {
+      "filename": "vad.onnx",
+      "size": 2327524,
+      "sha256": "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3",
+      "license": "MIT"
+    },
+    {
+      "filename": "vad-LICENSE.txt",
+      "size": 1075,
+      "sha256": "2e63e9a38b6e8fc0c7bc37ce174caca1862870856c6daf5697cfb785e925520b",
+      "license": "MIT"
+    },
+    {
+      "filename": "speaker.onnx",
+      "size": 83404709,
+      "sha256": "d216237e574ddd660917d991b6d75e2997f1a2427407a46d97b3ca2e2be80d4d",
+      "license": "Apache-2.0"
+    },
+    {
+      "filename": "speaker-MODEL-CARD.md",
+      "size": 5377,
+      "sha256": "00f58c3cbd7a7510de9374080da0e82a4c4e8f4df567f7338fe6efe108be705a",
+      "license": "Apache-2.0"
+    }
+  ],
+  "models": [
+    [
+      "alignment-id",
+      "cahya/wav2vec2-large-xlsr-indonesian",
+      "fe66c9f1114e958d0c08de5dcc7e82bb8001d4a1"
+    ],
+    ["alignment-en", "facebook/wav2vec2-base-960h", "22aad52d435eb6dbaf354bdad9b0da84ce7d6156"]
+  ],
+  "speaker_revision": "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286",
+  "vad_version": "v6.2.3"
+}

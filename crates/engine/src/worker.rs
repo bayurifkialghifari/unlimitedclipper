@@ -43,6 +43,8 @@ pub async fn run(state: AppState) -> Result<()> {
             "track" => crate::tracking::track(&state, &mut job, &cancellation).await,
             "component_update" => crate::updates::download(&state, &mut job, &cancellation).await,
             "export" => pipeline::render_batch(&state, &mut job, &cancellation).await,
+            "preview" => crate::render::preview_job(&state, &mut job, &cancellation).await,
+            "auto_edit" => crate::editorial::auto_edit(&state, &mut job, &cancellation).await,
             _ => Err(anyhow::anyhow!("Unknown job type.")),
         };
         let _gate = state.operation_gate.lock().await;

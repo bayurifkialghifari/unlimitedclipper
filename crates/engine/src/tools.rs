@@ -38,12 +38,12 @@ pub fn require_native_job(state: &AppState, kind: &str) -> Result<()> {
         return Ok(());
     };
     let required: &[&str] = match kind {
-        "import" | "export" => &["ffmpeg", "ffprobe"],
+        "import" | "export" | "preview" => &["ffmpeg", "ffprobe"],
         "generate" => &["ffmpeg", "whisper-cli", "llama-completion"],
         "captions" => &["ffmpeg", "whisper-cli"],
         "title" => &["llama-completion"],
         "youtube" => &["yt-dlp", "deno", "ffmpeg", "ffprobe"],
-        "track" | "model" | "component_update" => {
+        "track" | "model" | "component_update" | "auto_edit" => {
             bail!("This operation is unavailable in the current Android build.");
         }
         _ => &[],
@@ -422,6 +422,48 @@ pub struct Probe {
     pub width: u32,
     pub height: u32,
     pub has_audio: bool,
+}
+
+pub async fn probe_audio(
+    state: &AppState,
+    path: &Path,
+    cancellation: &CancellationToken,
+) -> Result<i64> {
+    let output = capture_managed(
+        state,
+        "ffmpeg",
+        "ffprobe",
+        &[
+            "-v".into(),
+            "error".into(),
+            "-show_streams".into(),
+            "-show_format".into(),
+            "-of".into(),
+            "json".into(),
+            path.to_string_lossy().into_owned(),
+        ],
+        cancellation,
+    )
+    .await?;
+    let data: serde_json::Value = serde_json::from_slice(&output)?;
+    let audio = data["streams"]
+        .as_array()
+        .and_then(|streams| {
+            streams
+                .iter()
+                .find(|stream| stream["codec_type"] == "audio")
+        })
+        .context("Choose a file containing audio")?;
+    let seconds = data["format"]["duration"]
+        .as_str()
+        .or_else(|| audio["duration"].as_str())
+        .and_then(|value| value.parse::<f64>().ok())
+        .context("Audio duration is unavailable")?;
+    anyhow::ensure!(
+        seconds.is_finite() && seconds > 0.0 && seconds <= 86400.0,
+        "Audio duration must be positive and at most 24 hours."
+    );
+    Ok((seconds * 1000.0).round() as i64)
 }
 
 pub async fn probe(

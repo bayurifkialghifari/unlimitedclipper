@@ -16,6 +16,23 @@ All persisted times are integer milliseconds. Source word timing remains immutab
 
 ## Persistence
 
+EditDocument v2 composes ordered source segments and output-relative layers. Rust owns remapping
+and splits layers at removed intervals, advancing their asset offsets. Version 1 loads as a single
+source range. WordTiming stores estimated/aligned/manual provenance, source anchors, and independent
+alignment confidence. Automatic proposals and render jobs freeze revisions; applying a proposal
+uses the editor transaction and autosave checks. Caption groups stop at source cuts.
+
+Edited preview and export share render_media, including AV concat, split framing, local B-roll,
+ASS graphics, and audio mixing. A preview omits captions for a live browser ASS overlay and creates
+no export record. Managed previews have a bounded cache. Audio imports use registered managed files
+and persisted durations, with no filesystem paths exposed through layer controls.
+
+UC_MODELS_DIR freezes a shared model-store path at startup. UC_MODELS_READ_ONLY=1 disables model
+imports/downloads for fixtures borrowing the canonical store. Optional native alignment uses
+pinned ONNX weights with staged checksum-verified activation. The speaker frontend is original
+Rust code; its reference parity remains pending. Cleanup retains retryable checkpoints and all
+registered temporary assets, including jobs outside the recent-history view.
+
 SQLite uses WAL, foreign keys, short transactions, busy timeout, and explicit migrations. Videos are files, not database blobs. Application data lives in the OS local-data directory, optionally overridden for development. Asset routes accept registered IDs; filenames and filesystem paths are not unrestricted API inputs.
 
 ## Local services

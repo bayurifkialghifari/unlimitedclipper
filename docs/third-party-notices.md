@@ -30,3 +30,12 @@ and Gradle glue derive from official Tauri framework templates, using the projec
 text icon rather than Tauri branding.
 
 Validation fixtures use the Whisper repository's JFK sample and scikit-image's NASA astronaut photograph. They remain in ignored test storage and are not product imagery or endorsements.
+
+The optional speech pack retains model cards for
+[Indonesian XLSR](https://huggingface.co/cahya/wav2vec2-large-xlsr-indonesian),
+[English Wav2Vec2](https://huggingface.co/facebook/wav2vec2-base-960h), and
+[ECAPA VoxCeleb](https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb), published with Apache-2.0
+metadata. Silero VAD retains its MIT license. Exact source revisions and binary hashes appear in
+resources/quality-models.json and scripts/export-quality-pack.py. Original export wrappers, CTC
+alignment, and speaker frontend code are maintained in this repository. Font metric files retain
+their OFL notices in resources/caption-fonts. Native runtime verification remains pending.

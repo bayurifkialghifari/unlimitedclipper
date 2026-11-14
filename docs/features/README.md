@@ -4,6 +4,8 @@
 - [Local AI setup](local-ai.md)
 - [Clip discovery](clip-discovery.md)
 - [Caption editor](caption-editor.md)
+- [Editorial timeline](editorial-timeline.md)
+- [Speech quality pack](speech-quality-pack.md)
 - [Title editor](title-editor.md)
 - [Smart crop](smart-crop.md)
 - [Gaming split layout](gaming-layout.md)

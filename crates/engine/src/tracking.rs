@@ -12,6 +12,91 @@ struct Face {
     score: f64,
 }
 
+pub async fn sample_faces(
+    state: &AppState,
+    project: &Project,
+    document: &EditDocument,
+    cancellation: &CancellationToken,
+) -> Result<Vec<(i64, Vec<CropRect>)>> {
+    let (source, _, _) = db::asset(&state.db, &state.root, &project.asset_id).await?;
+    let span = document.end_ms - document.start_ms;
+    let interval = (span as f64 / 48.0).max(500.0);
+    let frames = tools::capture_managed(
+        state,
+        "ffmpeg",
+        "ffmpeg",
+        &[
+            "-hide_banner".into(),
+            "-loglevel".into(),
+            "error".into(),
+            "-ss".into(),
+            format!("{:.3}", document.start_ms as f64 / 1000.0),
+            "-i".into(),
+            source.to_string_lossy().into_owned(),
+            "-t".into(),
+            format!("{:.3}", span as f64 / 1000.0),
+            "-vf".into(),
+            format!(
+                "fps={:.6},scale=640:640:force_original_aspect_ratio=decrease,pad=640:640:0:0",
+                1000.0 / interval
+            ),
+            "-frames:v".into(),
+            "48".into(),
+            "-pix_fmt".into(),
+            "bgr24".into(),
+            "-f".into(),
+            "rawvideo".into(),
+            "pipe:1".into(),
+        ],
+        cancellation,
+    )
+    .await?;
+    let runtime = state.tools_root().join("onnxruntime/onnxruntime.dll");
+    let model = state.tools_root().join("yunet.onnx");
+    let project = project.clone();
+    let document = document.clone();
+    let cancellation = cancellation.clone();
+    tokio::task::spawn_blocking(move || -> Result<_> {
+        let environment = ort::init_from(runtime)?.build()?;
+        let mut session = Session::builder(&environment)?
+            .with_intra_threads(4)
+            .map_err(|error| anyhow::anyhow!(error.to_string()))?
+            .commit_from_file(model)?;
+        let scale = (640.0 / project.width as f64).min(640.0 / project.height as f64);
+        let mut samples = Vec::new();
+        for (index, frame) in frames.as_chunks::<{ 640 * 640 * 3 }>().0.iter().enumerate() {
+            anyhow::ensure!(!cancellation.is_cancelled(), "Job cancelled.");
+            let source = document.start_ms + (index as f64 * interval).round() as i64;
+            let Some(time) = document.source_to_output(source) else {
+                continue;
+            };
+            let mut faces = detect(&mut session, frame)?;
+            faces.sort_by(|a, b| a.x.total_cmp(&b.x));
+            let crops = faces
+                .into_iter()
+                .take(2)
+                .map(|face| {
+                    let width = document.crop.width;
+                    let height = document.crop.height;
+                    CropRect {
+                        x: ((face.x + face.width / 2.0) / scale / project.width as f64
+                            - width / 2.0)
+                            .clamp(0.0, 1.0 - width),
+                        y: ((face.y + face.height / 2.0) / scale / project.height as f64
+                            - height / 2.0)
+                            .clamp(0.0, 1.0 - height),
+                        width,
+                        height,
+                    }
+                })
+                .collect();
+            samples.push((time, crops));
+        }
+        Ok(samples)
+    })
+    .await?
+}
+
 fn overlap(a: &Face, b: &Face) -> f64 {
     let width = (a.x + a.width).min(b.x + b.width) - a.x.max(b.x);
     let height = (a.y + a.height).min(b.y + b.height) - a.y.max(b.y);

@@ -4,15 +4,46 @@ pub fn caption_groups(document: &EditDocument) -> Vec<&[Word]> {
     let mut groups = Vec::new();
     let mut start = 0;
     let maximum = document.captions.words_per_line.max(1);
+    let available = document.layout.dimensions(document.resolution).0 as f64 * 0.78;
+    let mut measured = 0.0;
+    let mut cut = 0;
+    let cuts: Vec<_> = document
+        .source_segments()
+        .iter()
+        .map(|segment| {
+            cut += segment.end_ms - segment.start_ms;
+            cut
+        })
+        .collect();
     for index in 0..document.words.len() {
         let word = &document.words[index];
+        measured += crate::caption_metrics::width(&word.text, document)
+            * if word.emphasis { 1.25 } else { 1.0 };
         let next = document.words.get(index + 1);
+        let overflow = next.is_some_and(|next| {
+            measured + crate::caption_metrics::width(&format!(" {}", next.text), document) * 1.25
+                > available
+        });
         let ends_sentence = word.text.ends_with(['.', '!', '?', ';', ':']);
         let gap = next.is_some_and(|next| next.start_ms - word.end_ms > 450);
+        let crosses_cut = next.is_some_and(|next| {
+            cuts.iter()
+                .any(|cut| word.start_ms < *cut && next.start_ms >= *cut)
+        });
         let long = word.end_ms - document.words[start].start_ms >= 2200;
-        if index - start + 1 >= maximum || ends_sentence || gap || long || next.is_none() {
+        if index - start + 1 >= maximum
+            || ends_sentence
+            || gap
+            || crosses_cut
+            || long
+            || overflow
+            || next.is_none()
+        {
             groups.push(&document.words[start..=index]);
             start = index + 1;
+            measured = 0.0;
+        } else {
+            measured += crate::caption_metrics::width(" ", document);
         }
     }
     groups
@@ -109,8 +140,25 @@ fn styled_word(word: &Word, active: bool, document: &EditDocument) -> String {
     } else {
         String::new()
     };
+    let slash = char::from(92);
+    let emphasis_tags = if document.captions.preset == "kinetic" {
+        let (width, height) = document.layout.dimensions(document.resolution);
+        let size = document.captions.size as f64 * width.min(height) as f64 / 1080.0;
+        let scale = if word.emphasis { 1.25 } else { 1.0 };
+        format!(
+            "{slash}fs{:.1}{slash}fn{}",
+            size * scale,
+            if word.emphasis {
+                "Oswald"
+            } else {
+                &document.captions.font
+            }
+        )
+    } else {
+        String::new()
+    };
     format!(
-        "{{\\1c{}\\b{bold}{box_tags}}}{}",
+        "{{\\1c{}\\b{bold}{box_tags}{emphasis_tags}}}{}",
         override_color(chosen_color),
         escape_ass(&text)
     )
@@ -187,6 +235,21 @@ pub fn ass(document: &EditDocument) -> String {
     );
     if caption.enabled {
         for words in caption_groups(document) {
+            let phrase = words
+                .iter()
+                .map(|word| word.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" ");
+            let measured = crate::caption_metrics::width(&phrase, document) * 1.25;
+            let scale = (width as f64 * 0.78 / measured.max(1.0)).min(1.0);
+            let mut group_document = document.clone();
+            group_document.captions.size = (caption.size as f64 * scale).floor().max(12.0) as u32;
+            let slash = char::from(92);
+            let caption_position = format!(
+                "{caption_position}{slash}fs{}",
+                (group_document.captions.size as f64 * size_scale).round()
+            );
+            let document = &group_document;
             if caption.preset == "plain" {
                 let content = words
                     .iter()
@@ -230,11 +293,27 @@ pub fn ass(document: &EditDocument) -> String {
                         "Caption",
                         &format!("{{{caption_position}{animation}}}{content}"),
                     ));
+                    if caption.preset != "word"
+                        && let Some(next) = words.get(index + 1).filter(|next| next.start_ms > end)
+                    {
+                        let base = words
+                            .iter()
+                            .map(|word| styled_word(word, false, document))
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                        result.push_str(&dialogue(
+                            1,
+                            end,
+                            next.start_ms,
+                            "Caption",
+                            &format!("{{{caption_position}}}{base}"),
+                        ));
+                    }
                 }
             }
         }
     }
-    let duration = document.end_ms - document.start_ms;
+    let duration = document.duration_ms();
     if !title.text.is_empty() && title.duration_ms > 0 {
         let title_tags = format!(
             "\\an5\\pos({},{})\\b{}",
@@ -264,9 +343,64 @@ pub fn ass(document: &EditDocument) -> String {
             &format!("{{{tags}}}{}", escape_ass(&document.watermark.text)),
         ));
     }
+    result.push_str(&graphics(document));
     result
 }
+
+fn graphics(document: &EditDocument) -> String {
+    let (width, height) = document.layout.dimensions(document.resolution);
+    let slash = char::from(92);
+    let mut output = String::new();
+    for layer in document.visual_layers.iter().filter(|layer| layer.enabled) {
+        let x = layer.x * width as f64;
+        let y = layer.y * height as f64;
+        let size = layer.size as f64 * width.min(height) as f64 / 1080.0;
+        if ["text", "note"].contains(&layer.kind.as_str()) {
+            if layer.kind == "note" {
+                let note_width = (layer.text.chars().count() as f64 * size * 0.65)
+                    .clamp(size * 3.0, width as f64 * 0.75);
+                let note_height = size * 1.6;
+                output.push_str(&dialogue(4, layer.start_ms, layer.end_ms, "Title",
+                    &format!("{{{slash}an5{slash}pos({x:.1},{y:.1}){slash}p1{slash}bord0{slash}shad0{slash}1c{}}}m 0 0 l {note_width:.1} 0 {note_width:.1} {note_height:.1} 0 {note_height:.1}",
+                        override_color(&layer.color))));
+            }
+            let text_color = if layer.kind == "note" {
+                "#181818"
+            } else {
+                &layer.color
+            };
+            output.push_str(&dialogue(5, layer.start_ms, layer.end_ms, "Title",
+                &format!("{{{slash}an5{slash}pos({x:.1},{y:.1}){slash}fs{size:.1}{slash}1c{}{slash}bord1{slash}fad(70,70)}}{}",
+                    override_color(text_color), escape_ass(&layer.text))));
+        } else if layer.kind == "camera_frame" {
+            let inset = width as f64 * 0.055;
+            let right = width as f64 - inset;
+            let bottom = height as f64 - inset;
+            let arm = width as f64 * 0.08;
+            let path = format!(
+                "m {inset:.1} {:.1} l {inset:.1} {inset:.1} {:.1} {inset:.1} m {:.1} {inset:.1} l {right:.1} {inset:.1} {right:.1} {:.1} m {right:.1} {:.1} l {right:.1} {bottom:.1} {:.1} {bottom:.1} m {:.1} {bottom:.1} l {inset:.1} {bottom:.1} {inset:.1} {:.1}",
+                inset + arm,
+                inset + arm,
+                right - arm,
+                inset + arm,
+                bottom - arm,
+                right - arm,
+                inset + arm,
+                bottom - arm
+            );
+            output.push_str(&dialogue(4, layer.start_ms, layer.end_ms, "Title",
+                &format!("{{{slash}an7{slash}pos(0,0){slash}p1{slash}1a&HFF&{slash}3c{}{slash}bord2{slash}shad0}}{path}",
+                    override_color(&layer.color))));
+        }
+    }
+    output
+}
+
 pub fn vtt(document: &EditDocument) -> String {
+    vtt_timeline(document, false)
+}
+
+pub fn vtt_timeline(document: &EditDocument, output_time: bool) -> String {
     let timestamp = |milliseconds: i64| {
         format!(
             "{:02}:{:02}:{:02}.{:03}",
@@ -278,8 +412,22 @@ pub fn vtt(document: &EditDocument) -> String {
     };
     let mut content = String::from("WEBVTT\n\n");
     for words in caption_groups(document) {
-        let start = document.start_ms + words[0].start_ms;
-        let end = document.start_ms + words.last().expect("Nonempty word group").end_ms;
+        let start = if output_time {
+            words[0].start_ms
+        } else {
+            document
+                .output_to_source(words[0].start_ms)
+                .unwrap_or(document.start_ms)
+        };
+        let local_end = words.last().expect("Nonempty word group").end_ms;
+        let end = if output_time {
+            local_end
+        } else {
+            document
+                .output_to_source(local_end - 1)
+                .unwrap_or(document.end_ms - 1)
+                + 1
+        };
         let text = words
             .iter()
             .map(|word| {

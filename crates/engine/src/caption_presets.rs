@@ -40,6 +40,17 @@ pub fn presets() -> Vec<CaptionPreset> {
         ("impact", impact),
         ("boxed", boxed),
         ("word", word),
+        (
+            "kinetic",
+            CaptionStyle {
+                preset: "kinetic".into(),
+                size: 92,
+                words_per_line: 4,
+                animation: "pop".into(),
+                highlight_color: "#FFCB66".into(),
+                ..CaptionStyle::default()
+            },
+        ),
     ]
     .into_iter()
     .map(|(id, style)| CaptionPreset {

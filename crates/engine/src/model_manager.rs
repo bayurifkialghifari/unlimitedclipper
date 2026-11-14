@@ -8,7 +8,7 @@ use tokio_util::sync::CancellationToken;
 pub async fn statuses(state: &AppState) -> Result<Vec<ModelStatus>> {
     let mut result = Vec::new();
     for spec in model_specs() {
-        let path = state.root.join("models").join(&spec.filename);
+        let path = state.models_root().join(&spec.filename);
         let size = tokio::fs::metadata(&path)
             .await
             .map(|metadata| metadata.len())
@@ -68,7 +68,7 @@ pub async fn model_path(state: &AppState, id: &str) -> Result<std::path::PathBuf
             model.spec.name
         );
     }
-    Ok(state.root.join("models").join(model.spec.filename))
+    Ok(state.models_root().join(model.spec.filename))
 }
 
 pub async fn verify(
@@ -103,6 +103,7 @@ pub async fn download(
     job: &mut Job,
     cancellation: &CancellationToken,
 ) -> Result<()> {
+    state.require_writable_models()?;
     let id = job.payload["model_id"]
         .as_str()
         .context("Missing model selection")?;
@@ -110,7 +111,8 @@ pub async fn download(
         .into_iter()
         .find(|spec| spec.id == id)
         .context("Unknown local model")?;
-    let final_path = state.root.join("models").join(&spec.filename);
+    tokio::fs::create_dir_all(state.models_root()).await?;
+    let final_path = state.models_root().join(&spec.filename);
     if final_path.is_file() {
         state
             .progress(

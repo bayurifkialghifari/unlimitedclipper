@@ -234,12 +234,31 @@ pub async fn remove_unused_assets(
         referenced.extend(project.thumbnail_id);
         for clip in clips(pool, &project.id).await? {
             referenced.extend(clip.document.watermark.asset_id);
+            referenced.extend(
+                clip.document
+                    .visual_layers
+                    .into_iter()
+                    .filter_map(|layer| layer.asset_id),
+            );
+            referenced.extend(
+                clip.document
+                    .audio_layers
+                    .into_iter()
+                    .filter_map(|layer| layer.asset_id),
+            );
         }
     }
     for export in exports(pool).await? {
         referenced.extend([export.asset_id, export.ass_asset_id, export.srt_asset_id]);
     }
     let canonical_root = tokio::fs::canonicalize(root).await?;
+    let checkpoint_data: Vec<(String,)> =
+        sqlx::query_as("SELECT data FROM jobs WHERE status != 'completed'")
+            .fetch_all(pool)
+            .await?;
+    for (data,) in checkpoint_data {
+        collect_asset_ids(&serde_json::from_str(&data)?, &mut referenced);
+    }
     for id in candidates {
         if referenced.contains(&id) {
             continue;
@@ -266,4 +285,29 @@ pub async fn remove_unused_assets(
         }
     }
     Ok(())
+}
+
+fn collect_asset_ids(
+    value: &serde_json::Value,
+    referenced: &mut std::collections::HashSet<String>,
+) {
+    match value {
+        serde_json::Value::Object(object) => {
+            for (key, value) in object {
+                if key == "asset_id" || key.ends_with("_asset_id") {
+                    if let Some(id) = value.as_str() {
+                        referenced.insert(id.to_string());
+                    }
+                } else {
+                    collect_asset_ids(value, referenced);
+                }
+            }
+        }
+        serde_json::Value::Array(values) => {
+            for value in values {
+                collect_asset_ids(value, referenced);
+            }
+        }
+        _ => {}
+    }
 }

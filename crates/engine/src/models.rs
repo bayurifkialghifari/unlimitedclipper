@@ -13,6 +13,60 @@ pub struct Word {
     pub color: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timing: Option<WordTiming>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct WordTiming {
+    pub provenance: String,
+    pub source_start_ms: i64,
+    pub source_end_ms: i64,
+    pub alignment_confidence: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AudioAsset {
+    pub asset_id: String,
+    pub name: String,
+    pub duration_ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SourceSegment {
+    pub start_ms: i64,
+    pub end_ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct VisualLayer {
+    pub id: String,
+    pub enabled: bool,
+    pub start_ms: i64,
+    pub end_ms: i64,
+    pub kind: String,
+    pub text: String,
+    pub crop: Option<CropRect>,
+    pub secondary_crop: Option<CropRect>,
+    pub x: f64,
+    pub y: f64,
+    pub color: String,
+    pub size: u32,
+    #[serde(default)]
+    pub asset_id: Option<String>,
+    #[serde(default)]
+    pub source_start_ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AudioLayer {
+    pub id: String,
+    pub enabled: bool,
+    pub start_ms: i64,
+    pub end_ms: i64,
+    pub asset_id: Option<String>,
+    pub source_start_ms: i64,
+    pub gain: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -183,6 +237,12 @@ impl Default for Watermark {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct EditDocument {
     pub version: u32,
+    #[serde(default)]
+    pub segments: Vec<SourceSegment>,
+    #[serde(default)]
+    pub visual_layers: Vec<VisualLayer>,
+    #[serde(default)]
+    pub audio_layers: Vec<AudioLayer>,
     pub start_ms: i64,
     pub end_ms: i64,
     pub layout: Layout,
@@ -204,7 +264,10 @@ impl EditDocument {
     pub fn new(project: &Project, start_ms: i64, end_ms: i64) -> Self {
         let crop_width = (project.height as f64 * 9.0 / 16.0 / project.width as f64).min(1.0);
         Self {
-            version: 1,
+            version: 2,
+            segments: vec![SourceSegment { start_ms, end_ms }],
+            visual_layers: Vec::new(),
+            audio_layers: Vec::new(),
             start_ms,
             end_ms,
             layout: Layout::Portrait,
@@ -242,7 +305,7 @@ impl EditDocument {
     }
 
     pub fn validate(&self, source_duration: i64) -> Result<(), String> {
-        if self.version != 1
+        if ![1, 2].contains(&self.version)
             || self.start_ms < 0
             || self.end_ms <= self.start_ms
             || self.end_ms > source_duration
@@ -266,7 +329,8 @@ impl EditDocument {
                 return Err("Crop rectangles must remain inside the source.".into());
             }
         }
-        let duration = self.end_ms - self.start_ms;
+        self.validate_timeline(source_duration)?;
+        let duration = self.duration_ms();
         let mut previous = -1;
         for keyframe in &self.keyframes {
             if keyframe.time_ms <= previous
@@ -301,6 +365,17 @@ impl EditDocument {
             {
                 return Err("Caption confidence must be between zero and one.".into());
             }
+            if let Some(timing) = &word.timing
+                && (!["estimated", "aligned", "manual"].contains(&timing.provenance.as_str())
+                    || timing.source_start_ms < 0
+                    || timing.source_end_ms <= timing.source_start_ms
+                    || timing.source_end_ms > source_duration
+                    || timing
+                        .alignment_confidence
+                        .is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value)))
+            {
+                return Err("Caption timing needs valid source bounds and provenance.".into());
+            }
             previous = word.start_ms;
         }
         for color in [
@@ -322,7 +397,8 @@ impl EditDocument {
             || !(1..=10).contains(&self.captions.words_per_line)
             || !self.captions.outline.is_finite()
             || !(0.0..=12.0).contains(&self.captions.outline)
-            || !["plain", "highlight", "box", "word"].contains(&self.captions.preset.as_str())
+            || !["plain", "highlight", "box", "word", "kinetic"]
+                .contains(&self.captions.preset.as_str())
             || !["none", "fade", "pop"].contains(&self.captions.animation.as_str())
             || !["bold", "plain", "boxed"].contains(&self.title.preset.as_str())
             || self.title.text.chars().count() > 300

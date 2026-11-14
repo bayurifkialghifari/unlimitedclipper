@@ -60,6 +60,24 @@ pub struct RefineCaptionsRequest {
 }
 
 #[derive(Deserialize, ToSchema)]
+pub struct RevisionRequest {
+    pub revision: i64,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct AutoEditRequest {
+    pub revision: i64,
+    pub profile: String,
+    pub remove_silence: bool,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct TimelineRequest {
+    pub document: EditDocument,
+    pub segments: Vec<SourceSegment>,
+}
+
+#[derive(Deserialize, ToSchema)]
 pub struct CreateClipRequest {
     pub name: String,
     pub start_ms: i64,
@@ -119,9 +137,16 @@ pub struct Health {
         delete_project,
         delete_clip,
         upload_image,
+        upload_audio,
+        list_audio_assets,
         import_model,
         clip_subtitles,
         preview_subtitles,
+        preview_render,
+        timeline_preview,
+        auto_edit,
+        quality_pack_status,
+        import_quality_pack,
         serve_asset,
         fonts,
         serve_font,
@@ -135,6 +160,11 @@ pub struct Health {
         Clip,
         EditDocument,
         Word,
+        WordTiming,
+        SourceSegment,
+        VisualLayer,
+        AudioLayer,
+        AudioAsset,
         CropRect,
         Keyframe,
         CaptionStyle,
@@ -151,6 +181,10 @@ pub struct Health {
         LocalImportRequest,
         GenerateRequest,
         RefineCaptionsRequest,
+        RevisionRequest,
+        AutoEditRequest,
+        TimelineRequest,
+        crate::quality_pack::PackStatus,
         crate::caption_presets::CaptionPreset,
         CreateClipRequest,
         UpdateClipRequest,
@@ -249,6 +283,7 @@ pub fn router(state: AppState) -> Router {
         .route("/imports/youtube", post(youtube_source))
         .route("/imports/local", post(local_source))
         .route("/assets/upload", post(upload_image))
+        .route("/assets/audio", get(list_audio_assets).post(upload_audio))
         .route(
             "/clips/{id}",
             get(get_clip).put(update_clip).delete(delete_clip),
@@ -260,10 +295,15 @@ pub fn router(state: AppState) -> Router {
         .route("/caption-presets", get(caption_presets))
         .route("/clips/{id}/subtitles", get(clip_subtitles))
         .route("/clips/{id}/preview", post(preview_subtitles))
+        .route("/clips/{id}/preview-render", post(preview_render))
+        .route("/clips/{id}/timeline-preview", post(timeline_preview))
+        .route("/clips/{id}/auto-edit", post(auto_edit))
         .route("/jobs", get(list_jobs))
         .route("/jobs/{id}/cancel", post(cancel_job))
         .route("/jobs/{id}/retry", post(retry_job))
         .route("/models", get(list_models))
+        .route("/models/quality-pack", get(quality_pack_status))
+        .route("/models/import-pack", post(import_quality_pack))
         .route("/models/{id}/download", post(download_model))
         .route("/models/{id}/import", post(import_model))
         .route("/settings", get(get_settings).put(put_settings))
@@ -467,7 +507,9 @@ async fn receive_file(
         .map_err(|error| ApiError::bad_request(error.to_string()))?
     {
         size += chunk.len() as u64;
-        let maximum = if directory == "watermarks" {
+        let maximum = if allowed == ["zip"] {
+            2_500_000_000
+        } else if directory == "watermarks" {
             32 * 1024 * 1024
         } else {
             2_000_000_000_000
@@ -617,6 +659,66 @@ async fn upload_image(
     };
     let id = db::register_asset(&state.db, &relative, &name, "image").await?;
     Ok(Json(json!({"asset_id": id,"width":width,"height":height})))
+}
+
+#[utoipa::path(get, path = "/api/v1/assets/audio", responses((status = 200, body = Vec<AudioAsset>)))]
+async fn list_audio_assets(State(state): State<AppState>) -> ApiResult<Json<Vec<AudioAsset>>> {
+    use sqlx::Row;
+    let rows = sqlx::query("SELECT id, name, duration_ms FROM assets WHERE kind = 'audio' AND duration_ms IS NOT NULL ORDER BY created_at DESC")
+        .fetch_all(&state.db).await?;
+    Ok(Json(
+        rows.iter()
+            .map(|row| AudioAsset {
+                asset_id: row.get("id"),
+                name: row.get("name"),
+                duration_ms: row.get("duration_ms"),
+            })
+            .collect(),
+    ))
+}
+
+#[utoipa::path(post, path = "/api/v1/assets/audio", responses((status = 200, body = AudioAsset)))]
+async fn upload_audio(
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> ApiResult<Json<AudioAsset>> {
+    let (relative, name) = receive_file(
+        &state,
+        &mut multipart,
+        "audio",
+        &["wav", "mp3", "m4a", "aac", "ogg", "flac", "opus"],
+    )
+    .await?;
+    let result = async {
+        let _gate = state.operation_gate.lock().await;
+        if !db::active_jobs(&state.db).await?.is_empty() {
+            return Err(ApiError::bad_request(
+                "Wait for processing to finish before importing audio.",
+            ));
+        }
+        let duration_ms = crate::tools::probe_audio(
+            &state,
+            &state.root.join(&relative),
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .await?;
+        let asset_id = db::register_asset(&state.db, &relative, &name, "audio").await?;
+        sqlx::query("UPDATE assets SET duration_ms = ? WHERE id = ?")
+            .bind(duration_ms)
+            .bind(&asset_id)
+            .execute(&state.db)
+            .await?;
+        Ok::<_, ApiError>(AudioAsset {
+            asset_id,
+            name,
+            duration_ms,
+        })
+    }
+    .await;
+    if result.is_err() {
+        let _ = tokio::fs::remove_file(state.root.join(&relative)).await;
+    }
+    Ok(Json(result?))
 }
 
 #[utoipa::path(post, path = "/api/v1/projects/{id}/generate", request_body = GenerateRequest, responses((status = 200, body = Job)))]
@@ -808,7 +910,7 @@ async fn track_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
 async fn ensure_no_clip_edit_job(state: &AppState, clip_id: &str) -> ApiResult<()> {
     if db::active_jobs(&state.db).await?.iter().any(|job| {
         job.clip_id.as_deref() == Some(clip_id)
-            && ["title", "track", "captions"].contains(&job.kind.as_str())
+            && ["title", "track", "captions", "auto_edit"].contains(&job.kind.as_str())
     }) {
         return Err(ApiError::bad_request(
             "This clip already has an editing job. Wait for it to finish.",
@@ -937,6 +1039,7 @@ async fn download_model(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<Job>> {
+    state.require_writable_models()?;
     let _gate = state.operation_gate.lock().await;
     if !model_specs().iter().any(|spec| spec.id == id) {
         return Err(ApiError::not_found());
@@ -961,6 +1064,7 @@ async fn import_model(
     Path(id): Path<String>,
     mut multipart: Multipart,
 ) -> ApiResult<Json<serde_json::Value>> {
+    state.require_writable_models()?;
     crate::tools::require_native_job(&state, "model")?;
     let _gate = state.operation_gate.lock().await;
     if !db::active_jobs(&state.db).await?.is_empty() {
@@ -975,7 +1079,8 @@ async fn import_model(
     let (relative, _) = receive_file(&state, &mut multipart, "temporary", &["bin", "gguf"]).await?;
     let path = state.root.join(relative);
     model_manager::verify(&path, &spec, &tokio_util::sync::CancellationToken::new()).await?;
-    let final_path = state.root.join("models").join(&spec.filename);
+    tokio::fs::create_dir_all(state.models_root()).await?;
+    let final_path = state.models_root().join(&spec.filename);
     if final_path.exists() {
         tokio::fs::remove_file(&final_path).await?;
     }
@@ -1039,7 +1144,10 @@ async fn clip_subtitles(
     if query.get("format").map(String::as_str) == Some("vtt") {
         return Ok((
             [("content-type", "text/vtt; charset=utf-8")],
-            subtitles::vtt(&clip.document),
+            subtitles::vtt_timeline(
+                &clip.document,
+                query.get("timeline").is_some_and(|value| value == "output"),
+            ),
         )
             .into_response());
     }
@@ -1069,13 +1177,117 @@ async fn preview_subtitles(
         .into_response())
 }
 
+#[utoipa::path(post, path = "/api/v1/clips/{id}/preview-render", request_body = RevisionRequest,
+    responses((status = 200, body = Job), (status = 409)))]
+async fn preview_render(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<RevisionRequest>,
+) -> ApiResult<Json<Job>> {
+    let _gate = state.operation_gate.lock().await;
+    let clip = db::clip(&state.db, &id).await?;
+    if clip.revision != request.revision {
+        return Err(ApiError::conflict());
+    }
+    if clip.document.duration_ms() > 1_800_000 {
+        return Err(ApiError::bad_request(
+            "Preview rendering supports clips up to 30 minutes.",
+        ));
+    }
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "preview",
+                Some(clip.project_id.clone()),
+                Some(id),
+                json!({"snapshot": clip}),
+            )
+            .await?,
+    ))
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/auto-edit", request_body = AutoEditRequest,
+    responses((status = 200, body = Job), (status = 409)))]
+async fn auto_edit(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<AutoEditRequest>,
+) -> ApiResult<Json<Job>> {
+    let _gate = state.operation_gate.lock().await;
+    let clip = db::clip(&state.db, &id).await?;
+    if clip.revision != request.revision {
+        return Err(ApiError::conflict());
+    }
+    ensure_no_clip_edit_job(&state, &id).await?;
+    if !["editorial", "reaction"].contains(&request.profile.as_str()) {
+        return Err(ApiError::bad_request(
+            "Choose an editorial or reaction profile.",
+        ));
+    }
+    if request.remove_silence && !crate::quality_pack::status(&state).await.ready {
+        return Err(ApiError::bad_request(
+            "Install the local quality pack before removing silence.",
+        ));
+    }
+    model_manager::model_path(&state, "qwen3-4b").await?;
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "auto_edit",
+                Some(clip.project_id.clone()),
+                Some(id),
+                json!({"snapshot": clip, "profile": request.profile,
+            "remove_silence": request.remove_silence}),
+            )
+            .await?,
+    ))
+}
+
+#[utoipa::path(get, path = "/api/v1/models/quality-pack",
+    responses((status = 200, body = crate::quality_pack::PackStatus)))]
+async fn quality_pack_status(
+    State(state): State<AppState>,
+) -> Json<crate::quality_pack::PackStatus> {
+    Json(crate::quality_pack::status(&state).await)
+}
+
+#[utoipa::path(post, path = "/api/v1/models/import-pack", responses((status = 200)))]
+async fn import_quality_pack(
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> ApiResult<Json<crate::quality_pack::PackStatus>> {
+    state.require_writable_models()?;
+    crate::tools::require_native_job(&state, "model")?;
+    let _gate = state.operation_gate.lock().await;
+    if !db::active_jobs(&state.db).await?.is_empty() {
+        return Err(ApiError::bad_request(
+            "Finish processing before installing the quality pack.",
+        ));
+    }
+    let (relative, _) = receive_file(&state, &mut multipart, "temporary", &["zip"]).await?;
+    let path = state.root.join(relative);
+    let result = crate::quality_pack::import(&state, path.clone()).await;
+    tokio::fs::remove_file(path).await?;
+    result?;
+    Ok(Json(crate::quality_pack::status(&state).await))
+}
+
 #[utoipa::path(get, path = "/api/v1/assets/{id}", responses((status = 200)))]
 async fn serve_asset(
     State(state): State<AppState>,
     Path(id): Path<String>,
     request: Request,
 ) -> ApiResult<Response> {
-    let (path, name, _) = db::asset(&state.db, &state.root, &id).await?;
+    let gate = state.operation_gate.lock().await;
+    let (path, name, kind) = db::asset(&state.db, &state.root, &id).await?;
+    if kind == "preview" {
+        state
+            .activity
+            .lock()
+            .await
+            .insert(format!("preview:{id}"), now_ms() + 120_000);
+    }
+    drop(gate);
     let download = request
         .uri()
         .query()
@@ -1173,15 +1385,10 @@ async fn cleanup(State(state): State<AppState>) -> ApiResult<Json<serde_json::Va
             "Finish active jobs before clearing temporary processing files.",
         ));
     }
-    let path = state.root.join("temporary");
-    let canonical = tokio::fs::canonicalize(&path).await?;
-    let root = tokio::fs::canonicalize(&state.root).await?;
-    if !canonical.starts_with(root) {
-        return Err(ApiError::bad_request("Invalid temporary directory."));
-    }
-    tokio::fs::remove_dir_all(&canonical).await?;
-    tokio::fs::create_dir_all(path).await?;
-    Ok(Json(json!({"cleared": true})))
+    Ok(Json(
+        serde_json::to_value(crate::storage::cleanup(&state).await?)
+            .map_err(anyhow::Error::from)?,
+    ))
 }
 
 #[utoipa::path(delete, path = "/api/v1/projects/{id}", responses((status = 200)))]
@@ -1219,6 +1426,39 @@ async fn delete_project(
     db::remove_unused_assets(&state.db, &state.root, assets).await?;
     state.emit("projects", None);
     Ok(Json(json!({"deleted": true})))
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/timeline-preview", request_body = TimelineRequest,
+    responses((status = 200, body = EditDocument)))]
+async fn timeline_preview(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<TimelineRequest>,
+) -> ApiResult<Json<EditDocument>> {
+    let clip = db::clip(&state.db, &id).await?;
+    let project = db::project(&state.db, &clip.project_id).await?;
+    request
+        .document
+        .validate(project.duration_ms)
+        .map_err(ApiError::bad_request)?;
+    let mut envelope = request.document.clone();
+    envelope.version = 2;
+    envelope.segments = request.segments.clone();
+    envelope.start_ms = request
+        .segments
+        .first()
+        .map_or(-1, |segment| segment.start_ms);
+    envelope.end_ms = request.segments.last().map_or(-1, |segment| segment.end_ms);
+    envelope.visual_layers.clear();
+    envelope.audio_layers.clear();
+    envelope
+        .validate_timeline(project.duration_ms)
+        .map_err(ApiError::bad_request)?;
+    let result = request.document.replace_segments(request.segments);
+    result
+        .validate(project.duration_ms)
+        .map_err(ApiError::bad_request)?;
+    Ok(Json(result))
 }
 
 #[utoipa::path(delete, path = "/api/v1/clips/{id}", responses((status = 200)))]

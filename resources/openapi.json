@@ -3,9 +3,7 @@
   "info": {
     "title": "unlimitedclipper-engine",
     "description": "",
-    "license": {
-      "name": ""
-    },
+    "license": { "name": "" },
     "version": "0.1.0"
   },
   "paths": {
@@ -15,17 +13,40 @@
         "operationId": "editor_activity",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Activity"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/Activity" } }
           },
           "required": true
         },
+        "responses": { "200": { "description": "" } }
+      }
+    },
+    "/api/v1/assets/audio": {
+      "get": {
+        "tags": [],
+        "operationId": "list_audio_assets",
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/AudioAsset" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "operationId": "upload_audio",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AudioAsset" } }
+            }
           }
         }
       }
@@ -34,11 +55,7 @@
       "post": {
         "tags": [],
         "operationId": "upload_image",
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/assets/{id}": {
@@ -46,20 +63,9 @@
         "tags": [],
         "operationId": "serve_asset",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/caption-presets": {
@@ -73,9 +79,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CaptionPreset"
-                  }
+                  "items": { "$ref": "#/components/schemas/CaptionPreset" }
                 }
               }
             }
@@ -88,25 +92,12 @@
         "tags": [],
         "operationId": "get_clip",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Clip"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Clip" } } }
           }
         }
       },
@@ -114,58 +105,50 @@
         "tags": [],
         "operationId": "update_clip",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateClipRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateClipRequest" } }
           },
           "required": true
         },
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Clip"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Clip" } } }
           },
-          "409": {
-            "description": ""
-          }
+          "409": { "description": "" }
         }
       },
       "delete": {
         "tags": [],
         "operationId": "delete_clip",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
+        "responses": { "200": { "description": "" } }
+      }
+    },
+    "/api/v1/clips/{id}/auto-edit": {
+      "post": {
+        "tags": [],
+        "operationId": "auto_edit",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AutoEditRequest" } }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
-            "description": ""
-          }
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          },
+          "409": { "description": "" }
         }
       }
     },
@@ -174,21 +157,12 @@
         "tags": [],
         "operationId": "caption_job",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefineCaptionsRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/RefineCaptionsRequest" }
             }
           },
           "required": true
@@ -196,17 +170,9 @@
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           },
-          "409": {
-            "description": ""
-          }
+          "409": { "description": "" }
         }
       }
     },
@@ -215,25 +181,12 @@
         "tags": [],
         "operationId": "export_clip",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -243,36 +196,41 @@
         "tags": [],
         "operationId": "preview_subtitles",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EditDocument"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/EditDocument" } }
           },
           "required": true
         },
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "content": { "text/plain": { "schema": { "type": "string" } } }
           }
+        }
+      }
+    },
+    "/api/v1/clips/{id}/preview-render": {
+      "post": {
+        "tags": [],
+        "operationId": "preview_render",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RevisionRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          },
+          "409": { "description": "" }
         }
       }
     },
@@ -281,24 +239,34 @@
         "tags": [],
         "operationId": "clip_subtitles",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
+            "content": { "text/plain": { "schema": { "type": "string" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/clips/{id}/timeline-preview": {
+      "post": {
+        "tags": [],
+        "operationId": "timeline_preview",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/TimelineRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
             "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/EditDocument" } }
             }
           }
         }
@@ -309,25 +277,12 @@
         "tags": [],
         "operationId": "title_job",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -337,25 +292,12 @@
         "tags": [],
         "operationId": "track_job",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -364,23 +306,11 @@
       "get": {
         "tags": [],
         "operationId": "diagnostics",
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/events": {
-      "get": {
-        "tags": [],
-        "operationId": "events",
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
+      "get": { "tags": [], "operationId": "events", "responses": { "200": { "description": "" } } }
     },
     "/api/v1/exports": {
       "get": {
@@ -391,12 +321,7 @@
             "description": "",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Export"
-                  }
-                }
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Export" } }
               }
             }
           }
@@ -411,14 +336,7 @@
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
+              "application/json": { "schema": { "type": "array", "items": { "type": "string" } } }
             }
           }
         }
@@ -429,20 +347,9 @@
         "tags": [],
         "operationId": "serve_font",
         "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/health": {
@@ -453,11 +360,7 @@
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Health"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Health" } }
             }
           }
         }
@@ -469,24 +372,14 @@
         "operationId": "local_source",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LocalImportRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/LocalImportRequest" } }
           },
           "required": true
         },
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -498,13 +391,7 @@
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -515,24 +402,14 @@
         "operationId": "youtube_source",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/YoutubeRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/YoutubeRequest" } }
           },
           "required": true
         },
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -546,12 +423,7 @@
             "description": "",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Job"
-                  }
-                }
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Job" } }
               }
             }
           }
@@ -563,25 +435,12 @@
         "tags": [],
         "operationId": "cancel_job",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -591,25 +450,12 @@
         "tags": [],
         "operationId": "retry_job",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -625,11 +471,30 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ModelStatus"
-                  }
+                  "items": { "$ref": "#/components/schemas/ModelStatus" }
                 }
               }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models/import-pack": {
+      "post": {
+        "tags": [],
+        "operationId": "import_quality_pack",
+        "responses": { "200": { "description": "" } }
+      }
+    },
+    "/api/v1/models/quality-pack": {
+      "get": {
+        "tags": [],
+        "operationId": "quality_pack_status",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PackStatus" } }
             }
           }
         }
@@ -640,25 +505,12 @@
         "tags": [],
         "operationId": "download_model",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -668,20 +520,9 @@
         "tags": [],
         "operationId": "import_model",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/projects": {
@@ -693,12 +534,7 @@
             "description": "",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Project"
-                  }
-                }
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } }
               }
             }
           }
@@ -710,24 +546,13 @@
         "tags": [],
         "operationId": "get_project",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDetail"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProjectDetail" } }
             }
           }
         }
@@ -736,20 +561,9 @@
         "tags": [],
         "operationId": "delete_project",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/projects/{id}/clips": {
@@ -757,35 +571,18 @@
         "tags": [],
         "operationId": "create_clip",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateClipRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateClipRequest" } }
           },
           "required": true
         },
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Clip"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Clip" } } }
           }
         }
       }
@@ -795,25 +592,12 @@
         "tags": [],
         "operationId": "export_project",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -823,35 +607,18 @@
         "tags": [],
         "operationId": "generate",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/GenerateRequest" } }
           },
           "required": true
         },
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -862,19 +629,11 @@
         "operationId": "session",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SessionRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/SessionRequest" } }
           },
           "required": true
         },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/settings": {
@@ -885,11 +644,7 @@
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Settings"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Settings" } }
             }
           }
         }
@@ -899,11 +654,7 @@
         "operationId": "put_settings",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Settings"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/Settings" } }
           },
           "required": true
         },
@@ -911,11 +662,7 @@
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Settings"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Settings" } }
             }
           }
         }
@@ -925,11 +672,7 @@
       "post": {
         "tags": [],
         "operationId": "cleanup",
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/updates": {
@@ -940,11 +683,7 @@
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateState"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UpdateState" } }
             }
           }
         }
@@ -957,13 +696,7 @@
         "responses": {
           "200": {
             "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
           }
         }
       }
@@ -976,11 +709,7 @@
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateState"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UpdateState" } }
             }
           }
         }
@@ -990,11 +719,7 @@
       "post": {
         "tags": [],
         "operationId": "restart_updates",
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
+        "responses": { "200": { "description": "" } }
       }
     },
     "/api/v1/updates/rollback": {
@@ -1005,11 +730,7 @@
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateState"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UpdateState" } }
             }
           }
         }
@@ -1021,25 +742,45 @@
       "Activity": {
         "type": "object",
         "required": ["client_id", "dirty"],
+        "properties": { "client_id": { "type": "string" }, "dirty": { "type": "boolean" } }
+      },
+      "AudioAsset": {
+        "type": "object",
+        "required": ["asset_id", "name", "duration_ms"],
         "properties": {
-          "client_id": {
-            "type": "string"
-          },
-          "dirty": {
-            "type": "boolean"
-          }
+          "asset_id": { "type": "string" },
+          "duration_ms": { "type": "integer", "format": "int64" },
+          "name": { "type": "string" }
+        }
+      },
+      "AudioLayer": {
+        "type": "object",
+        "required": ["id", "enabled", "start_ms", "end_ms", "source_start_ms", "gain"],
+        "properties": {
+          "asset_id": { "type": ["string", "null"] },
+          "enabled": { "type": "boolean" },
+          "end_ms": { "type": "integer", "format": "int64" },
+          "gain": { "type": "number", "format": "double" },
+          "id": { "type": "string" },
+          "source_start_ms": { "type": "integer", "format": "int64" },
+          "start_ms": { "type": "integer", "format": "int64" }
+        }
+      },
+      "AutoEditRequest": {
+        "type": "object",
+        "required": ["revision", "profile", "remove_silence"],
+        "properties": {
+          "profile": { "type": "string" },
+          "remove_silence": { "type": "boolean" },
+          "revision": { "type": "integer", "format": "int64" }
         }
       },
       "CaptionPreset": {
         "type": "object",
         "required": ["id", "style"],
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "style": {
-            "$ref": "#/components/schemas/CaptionStyle"
-          }
+          "id": { "type": "string" },
+          "style": { "$ref": "#/components/schemas/CaptionStyle" }
         }
       },
       "CaptionStyle": {
@@ -1058,50 +799,19 @@
           "animation"
         ],
         "properties": {
-          "animation": {
-            "type": "string"
-          },
-          "bold": {
-            "type": "boolean"
-          },
-          "color": {
-            "type": "string"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "font": {
-            "type": "string"
-          },
-          "highlight_color": {
-            "type": "string"
-          },
-          "outline": {
-            "type": "number",
-            "format": "double"
-          },
-          "outline_color": {
-            "type": "string"
-          },
-          "position_y": {
-            "type": "number",
-            "format": "double"
-          },
-          "preset": {
-            "type": "string"
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "uppercase": {
-            "type": "boolean"
-          },
-          "words_per_line": {
-            "type": "integer",
-            "minimum": 0
-          }
+          "animation": { "type": "string" },
+          "bold": { "type": "boolean" },
+          "color": { "type": "string" },
+          "enabled": { "type": "boolean" },
+          "font": { "type": "string" },
+          "highlight_color": { "type": "string" },
+          "outline": { "type": "number", "format": "double" },
+          "outline_color": { "type": "string" },
+          "position_y": { "type": "number", "format": "double" },
+          "preset": { "type": "string" },
+          "size": { "type": "integer", "format": "int32", "minimum": 0 },
+          "uppercase": { "type": "boolean" },
+          "words_per_line": { "type": "integer", "minimum": 0 }
         }
       },
       "Clip": {
@@ -1116,73 +826,33 @@
           "created_at"
         ],
         "properties": {
-          "created_at": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "document": {
-            "$ref": "#/components/schemas/EditDocument"
-          },
-          "explanation": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "project_id": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "score": {
-            "type": ["integer", "null"],
-            "format": "int32",
-            "minimum": 0
-          }
+          "created_at": { "type": "integer", "format": "int64" },
+          "document": { "$ref": "#/components/schemas/EditDocument" },
+          "explanation": { "type": "string" },
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "project_id": { "type": "string" },
+          "revision": { "type": "integer", "format": "int64" },
+          "score": { "type": ["integer", "null"], "format": "int32", "minimum": 0 }
         }
       },
       "CreateClipRequest": {
         "type": "object",
         "required": ["name", "start_ms", "end_ms"],
         "properties": {
-          "end_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string"
-          },
-          "start_ms": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "end_ms": { "type": "integer", "format": "int64" },
+          "name": { "type": "string" },
+          "start_ms": { "type": "integer", "format": "int64" }
         }
       },
       "CropRect": {
         "type": "object",
         "required": ["x", "y", "width", "height"],
         "properties": {
-          "height": {
-            "type": "number",
-            "format": "double"
-          },
-          "width": {
-            "type": "number",
-            "format": "double"
-          },
-          "x": {
-            "type": "number",
-            "format": "double"
-          },
-          "y": {
-            "type": "number",
-            "format": "double"
-          }
+          "height": { "type": "number", "format": "double" },
+          "width": { "type": "number", "format": "double" },
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" }
         }
       },
       "EditDocument": {
@@ -1204,64 +874,33 @@
           "words"
         ],
         "properties": {
-          "caption_model": {
-            "type": ["string", "null"]
-          },
-          "captions": {
-            "$ref": "#/components/schemas/CaptionStyle"
-          },
-          "crop": {
-            "$ref": "#/components/schemas/CropRect"
-          },
-          "end_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "facecam_crop": {
-            "$ref": "#/components/schemas/CropRect"
-          },
-          "gameplay_crop": {
-            "$ref": "#/components/schemas/CropRect"
-          },
-          "keyframes": {
+          "audio_layers": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Keyframe"
-            }
+            "items": { "$ref": "#/components/schemas/AudioLayer" }
           },
-          "layout": {
-            "$ref": "#/components/schemas/Layout"
-          },
-          "resolution": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "split_ratio": {
-            "type": "number",
-            "format": "double"
-          },
-          "start_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "title": {
-            "$ref": "#/components/schemas/TitleStyle"
-          },
-          "version": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "watermark": {
-            "$ref": "#/components/schemas/Watermark"
-          },
-          "words": {
+          "caption_model": { "type": ["string", "null"] },
+          "captions": { "$ref": "#/components/schemas/CaptionStyle" },
+          "crop": { "$ref": "#/components/schemas/CropRect" },
+          "end_ms": { "type": "integer", "format": "int64" },
+          "facecam_crop": { "$ref": "#/components/schemas/CropRect" },
+          "gameplay_crop": { "$ref": "#/components/schemas/CropRect" },
+          "keyframes": { "type": "array", "items": { "$ref": "#/components/schemas/Keyframe" } },
+          "layout": { "$ref": "#/components/schemas/Layout" },
+          "resolution": { "type": "integer", "format": "int32", "minimum": 0 },
+          "segments": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Word"
-            }
-          }
+            "items": { "$ref": "#/components/schemas/SourceSegment" }
+          },
+          "split_ratio": { "type": "number", "format": "double" },
+          "start_ms": { "type": "integer", "format": "int64" },
+          "title": { "$ref": "#/components/schemas/TitleStyle" },
+          "version": { "type": "integer", "format": "int32", "minimum": 0 },
+          "visual_layers": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/VisualLayer" }
+          },
+          "watermark": { "$ref": "#/components/schemas/Watermark" },
+          "words": { "type": "array", "items": { "$ref": "#/components/schemas/Word" } }
         }
       },
       "Export": {
@@ -1278,90 +917,41 @@
           "created_at"
         ],
         "properties": {
-          "ass_asset_id": {
-            "type": "string"
-          },
-          "asset_id": {
-            "type": "string"
-          },
-          "clip_id": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "project_id": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "srt_asset_id": {
-            "type": "string"
-          }
+          "ass_asset_id": { "type": "string" },
+          "asset_id": { "type": "string" },
+          "clip_id": { "type": "string" },
+          "created_at": { "type": "integer", "format": "int64" },
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "project_id": { "type": "string" },
+          "revision": { "type": "integer", "format": "int64" },
+          "srt_asset_id": { "type": "string" }
         }
       },
       "GenerateRequest": {
         "type": "object",
         "required": ["clip_count", "duration_ms", "language"],
         "properties": {
-          "clip_count": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "duration_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "focus": {
-            "type": "string"
-          },
-          "language": {
-            "type": "string"
-          },
-          "minimum_score": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
+          "clip_count": { "type": "integer", "minimum": 0 },
+          "duration_ms": { "type": "integer", "format": "int64" },
+          "focus": { "type": "string" },
+          "language": { "type": "string" },
+          "minimum_score": { "type": "integer", "format": "int32", "minimum": 0 }
         }
       },
       "Health": {
         "type": "object",
         "required": ["version", "platform", "native", "tools", "models"],
         "properties": {
-          "models": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ModelStatus"
-            }
-          },
-          "native": {
-            "type": "boolean"
-          },
-          "platform": {
-            "type": "string"
-          },
+          "models": { "type": "array", "items": { "$ref": "#/components/schemas/ModelStatus" } },
+          "native": { "type": "boolean" },
+          "platform": { "type": "string" },
           "tools": {
             "type": "object",
-            "additionalProperties": {
-              "type": "boolean"
-            },
-            "propertyNames": {
-              "type": "string"
-            }
+            "additionalProperties": { "type": "boolean" },
+            "propertyNames": { "type": "string" }
           },
-          "version": {
-            "type": "string"
-          }
+          "version": { "type": "string" }
         }
       },
       "Job": {
@@ -1378,61 +968,27 @@
           "updated_at"
         ],
         "properties": {
-          "clip_id": {
-            "type": ["string", "null"]
-          },
-          "created_at": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "error": {
-            "type": ["string", "null"]
-          },
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
+          "clip_id": { "type": ["string", "null"] },
+          "created_at": { "type": "integer", "format": "int64" },
+          "error": { "type": ["string", "null"] },
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "message": { "type": "string" },
           "payload": {},
-          "progress": {
-            "type": "number",
-            "format": "double"
-          },
-          "project_id": {
-            "type": ["string", "null"]
-          },
-          "stage": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "updated_at": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "progress": { "type": "number", "format": "double" },
+          "project_id": { "type": ["string", "null"] },
+          "stage": { "type": "string" },
+          "status": { "type": "string" },
+          "updated_at": { "type": "integer", "format": "int64" }
         }
       },
       "Keyframe": {
         "type": "object",
         "required": ["time_ms", "x", "y"],
         "properties": {
-          "time_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "x": {
-            "type": "number",
-            "format": "double"
-          },
-          "y": {
-            "type": "number",
-            "format": "double"
-          }
+          "time_ms": { "type": "integer", "format": "int64" },
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" }
         }
       },
       "Layout": {
@@ -1442,64 +998,43 @@
       "LocalImportRequest": {
         "type": "object",
         "required": ["path"],
-        "properties": {
-          "path": {
-            "type": "string"
-          }
-        }
+        "properties": { "path": { "type": "string" } }
       },
       "ModelSpec": {
         "type": "object",
         "required": ["id", "name", "kind", "filename", "url", "size", "sha256", "license"],
         "properties": {
-          "filename": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "license": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "sha256": {
-            "type": "string"
-          },
-          "size": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 0
-          },
-          "url": {
-            "type": "string"
-          }
+          "filename": { "type": "string" },
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "license": { "type": "string" },
+          "name": { "type": "string" },
+          "sha256": { "type": "string" },
+          "size": { "type": "integer", "format": "int64", "minimum": 0 },
+          "url": { "type": "string" }
         }
       },
       "ModelStatus": {
         "allOf": [
-          {
-            "$ref": "#/components/schemas/ModelSpec"
-          },
+          { "$ref": "#/components/schemas/ModelSpec" },
           {
             "type": "object",
             "required": ["ready", "downloaded_bytes"],
             "properties": {
-              "downloaded_bytes": {
-                "type": "integer",
-                "format": "int64",
-                "minimum": 0
-              },
-              "ready": {
-                "type": "boolean"
-              }
+              "downloaded_bytes": { "type": "integer", "format": "int64", "minimum": 0 },
+              "ready": { "type": "boolean" }
             }
           }
         ]
+      },
+      "PackStatus": {
+        "type": "object",
+        "required": ["ready", "size_bytes", "languages"],
+        "properties": {
+          "languages": { "type": "array", "items": { "type": "string" } },
+          "ready": { "type": "boolean" },
+          "size_bytes": { "type": "integer", "format": "int64", "minimum": 0 }
+        }
       },
       "Project": {
         "type": "object",
@@ -1516,104 +1051,50 @@
           "words"
         ],
         "properties": {
-          "asset_id": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "duration_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "has_audio": {
-            "type": "boolean"
-          },
-          "height": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "id": {
-            "type": "string"
-          },
-          "language": {
-            "type": ["string", "null"]
-          },
-          "name": {
-            "type": "string"
-          },
-          "preview_asset_id": {
-            "type": ["string", "null"]
-          },
-          "source_kind": {
-            "type": "string"
-          },
-          "source_url": {
-            "type": ["string", "null"]
-          },
-          "thumbnail_id": {
-            "type": ["string", "null"]
-          },
-          "transcript_configuration": {
-            "type": ["string", "null"]
-          },
-          "width": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "words": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Word"
-            }
-          }
+          "asset_id": { "type": "string" },
+          "created_at": { "type": "integer", "format": "int64" },
+          "duration_ms": { "type": "integer", "format": "int64" },
+          "has_audio": { "type": "boolean" },
+          "height": { "type": "integer", "format": "int32", "minimum": 0 },
+          "id": { "type": "string" },
+          "language": { "type": ["string", "null"] },
+          "name": { "type": "string" },
+          "preview_asset_id": { "type": ["string", "null"] },
+          "source_kind": { "type": "string" },
+          "source_url": { "type": ["string", "null"] },
+          "thumbnail_id": { "type": ["string", "null"] },
+          "transcript_configuration": { "type": ["string", "null"] },
+          "width": { "type": "integer", "format": "int32", "minimum": 0 },
+          "words": { "type": "array", "items": { "$ref": "#/components/schemas/Word" } }
         }
       },
       "ProjectDetail": {
         "type": "object",
         "required": ["project", "clips"],
         "properties": {
-          "clips": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Clip"
-            }
-          },
-          "project": {
-            "$ref": "#/components/schemas/Project"
-          }
+          "clips": { "type": "array", "items": { "$ref": "#/components/schemas/Clip" } },
+          "project": { "$ref": "#/components/schemas/Project" }
         }
       },
       "RefineCaptionsRequest": {
         "type": "object",
         "required": ["revision", "speech_model", "language"],
         "properties": {
-          "language": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "speech_model": {
-            "type": "string"
-          },
-          "vocabulary": {
-            "type": "string"
-          }
+          "language": { "type": "string" },
+          "revision": { "type": "integer", "format": "int64" },
+          "speech_model": { "type": "string" },
+          "vocabulary": { "type": "string" }
         }
+      },
+      "RevisionRequest": {
+        "type": "object",
+        "required": ["revision"],
+        "properties": { "revision": { "type": "integer", "format": "int64" } }
       },
       "SessionRequest": {
         "type": "object",
         "required": ["token"],
-        "properties": {
-          "token": {
-            "type": "string"
-          }
-        }
+        "properties": { "token": { "type": "string" } }
       },
       "Settings": {
         "type": "object",
@@ -1629,182 +1110,142 @@
           "component_feed"
         ],
         "properties": {
-          "auto_update": {
-            "type": "boolean"
-          },
-          "clip_count": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "clip_duration_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "component_feed": {
-            "type": "string"
-          },
-          "language": {
-            "type": "string"
-          },
-          "resolution": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "speech_model": {
-            "type": "string"
-          },
-          "transcription_language": {
-            "type": "string"
-          },
-          "update_feed": {
-            "type": "string"
-          }
+          "auto_update": { "type": "boolean" },
+          "clip_count": { "type": "integer", "minimum": 0 },
+          "clip_duration_ms": { "type": "integer", "format": "int64" },
+          "component_feed": { "type": "string" },
+          "language": { "type": "string" },
+          "resolution": { "type": "integer", "format": "int32", "minimum": 0 },
+          "speech_model": { "type": "string" },
+          "transcription_language": { "type": "string" },
+          "update_feed": { "type": "string" }
+        }
+      },
+      "SourceSegment": {
+        "type": "object",
+        "required": ["start_ms", "end_ms"],
+        "properties": {
+          "end_ms": { "type": "integer", "format": "int64" },
+          "start_ms": { "type": "integer", "format": "int64" }
+        }
+      },
+      "TimelineRequest": {
+        "type": "object",
+        "required": ["document", "segments"],
+        "properties": {
+          "document": { "$ref": "#/components/schemas/EditDocument" },
+          "segments": { "type": "array", "items": { "$ref": "#/components/schemas/SourceSegment" } }
         }
       },
       "TitleStyle": {
         "type": "object",
         "required": ["text", "preset", "font", "size", "color", "position_y", "duration_ms"],
         "properties": {
-          "color": {
-            "type": "string"
-          },
-          "duration_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "font": {
-            "type": "string"
-          },
-          "position_y": {
-            "type": "number",
-            "format": "double"
-          },
-          "preset": {
-            "type": "string"
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "text": {
-            "type": "string"
-          }
+          "color": { "type": "string" },
+          "duration_ms": { "type": "integer", "format": "int64" },
+          "font": { "type": "string" },
+          "position_y": { "type": "number", "format": "double" },
+          "preset": { "type": "string" },
+          "size": { "type": "integer", "format": "int32", "minimum": 0 },
+          "text": { "type": "string" }
         }
       },
       "UpdateClipRequest": {
         "type": "object",
         "required": ["revision", "name", "document"],
         "properties": {
-          "document": {
-            "$ref": "#/components/schemas/EditDocument"
-          },
-          "name": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "document": { "$ref": "#/components/schemas/EditDocument" },
+          "name": { "type": "string" },
+          "revision": { "type": "integer", "format": "int64" }
         }
       },
       "UpdateState": {
         "type": "object",
         "required": ["version", "directory", "ready"],
         "properties": {
-          "directory": {
-            "type": "string"
+          "directory": { "type": "string" },
+          "previous_directory": { "type": ["string", "null"] },
+          "previous_version": { "type": ["string", "null"] },
+          "ready": { "type": "boolean" },
+          "restart_required": { "type": "boolean" },
+          "version": { "type": "string" }
+        }
+      },
+      "VisualLayer": {
+        "type": "object",
+        "required": [
+          "id",
+          "enabled",
+          "start_ms",
+          "end_ms",
+          "kind",
+          "text",
+          "x",
+          "y",
+          "color",
+          "size"
+        ],
+        "properties": {
+          "asset_id": { "type": ["string", "null"] },
+          "color": { "type": "string" },
+          "crop": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/CropRect" }] },
+          "enabled": { "type": "boolean" },
+          "end_ms": { "type": "integer", "format": "int64" },
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "secondary_crop": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/CropRect" }]
           },
-          "previous_directory": {
-            "type": ["string", "null"]
-          },
-          "previous_version": {
-            "type": ["string", "null"]
-          },
-          "ready": {
-            "type": "boolean"
-          },
-          "restart_required": {
-            "type": "boolean"
-          },
-          "version": {
-            "type": "string"
-          }
+          "size": { "type": "integer", "format": "int32", "minimum": 0 },
+          "source_start_ms": { "type": "integer", "format": "int64" },
+          "start_ms": { "type": "integer", "format": "int64" },
+          "text": { "type": "string" },
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" }
         }
       },
       "Watermark": {
         "type": "object",
         "required": ["mode", "text", "x", "y", "scale", "opacity", "color"],
         "properties": {
-          "asset_id": {
-            "type": ["string", "null"]
-          },
-          "color": {
-            "type": "string"
-          },
-          "mode": {
-            "type": "string"
-          },
-          "opacity": {
-            "type": "number",
-            "format": "double"
-          },
-          "scale": {
-            "type": "number",
-            "format": "double"
-          },
-          "text": {
-            "type": "string"
-          },
-          "x": {
-            "type": "number",
-            "format": "double"
-          },
-          "y": {
-            "type": "number",
-            "format": "double"
-          }
+          "asset_id": { "type": ["string", "null"] },
+          "color": { "type": "string" },
+          "mode": { "type": "string" },
+          "opacity": { "type": "number", "format": "double" },
+          "scale": { "type": "number", "format": "double" },
+          "text": { "type": "string" },
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" }
         }
       },
       "Word": {
         "type": "object",
         "required": ["id", "text", "start_ms", "end_ms"],
         "properties": {
-          "color": {
-            "type": ["string", "null"]
-          },
-          "confidence": {
-            "type": ["number", "null"],
-            "format": "double"
-          },
-          "emphasis": {
-            "type": "boolean"
-          },
-          "end_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "id": {
-            "type": "string"
-          },
-          "start_ms": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "text": {
-            "type": "string"
-          }
+          "color": { "type": ["string", "null"] },
+          "confidence": { "type": ["number", "null"], "format": "double" },
+          "emphasis": { "type": "boolean" },
+          "end_ms": { "type": "integer", "format": "int64" },
+          "id": { "type": "string" },
+          "start_ms": { "type": "integer", "format": "int64" },
+          "text": { "type": "string" },
+          "timing": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/WordTiming" }] }
+        }
+      },
+      "WordTiming": {
+        "type": "object",
+        "required": ["provenance", "source_start_ms", "source_end_ms"],
+        "properties": {
+          "alignment_confidence": { "type": ["number", "null"], "format": "double" },
+          "provenance": { "type": "string" },
+          "source_end_ms": { "type": "integer", "format": "int64" },
+          "source_start_ms": { "type": "integer", "format": "int64" }
         }
       },
       "YoutubeRequest": {
         "type": "object",
         "required": ["url"],
-        "properties": {
-          "url": {
-            "type": "string"
-          }
-        }
+        "properties": { "url": { "type": "string" } }
       }
     }
   }

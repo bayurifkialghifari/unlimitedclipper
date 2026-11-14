@@ -475,15 +475,78 @@ pub async fn refine_captions(
     anyhow::ensure!(!cancellation.is_cancelled(), "Job cancelled.");
     let clip_start = clip.document.start_ms - input_start;
     let clip_end = clip.document.end_ms - input_start;
-    let words = parse_transcript(&data, input_duration)
+    let mut recognized = parse_transcript(&data, input_duration);
+    let detected_language = if language == "auto" {
+        data["result"]["language"].as_str().unwrap_or("unknown")
+    } else {
+        &language
+    };
+    state
+        .progress(
+            job,
+            "alignment",
+            0.65,
+            "Checking word boundaries against local acoustic models.",
+        )
+        .await?;
+    let alignment = crate::alignment::align(
+        state,
+        &mut recognized,
+        &directory.join("speech.wav"),
+        input_start,
+        detected_language,
+        cancellation,
+    )
+    .await?;
+    job.payload["alignment"] = serde_json::to_value(&alignment)?;
+    let manual = clip
+        .document
+        .words
+        .iter()
+        .filter(|word| {
+            word.timing
+                .as_ref()
+                .is_some_and(|timing| timing.provenance == "manual")
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut words = recognized
         .into_iter()
+        .filter(|word| {
+            !alignment.available
+                || alignment.regions.iter().any(|region| {
+                    input_start + word.start_ms < region.end_ms
+                        && input_start + word.end_ms > region.start_ms
+                })
+        })
         .filter(|word| word.start_ms >= clip_start && word.start_ms < clip_end)
-        .map(|mut word| {
-            word.start_ms -= clip_start;
-            word.end_ms = (word.end_ms - clip_start).min(clip_end - clip_start);
-            word
+        .filter_map(|mut word| {
+            let source_start = input_start + word.start_ms;
+            let source_end = (input_start + word.end_ms).min(clip.document.end_ms);
+            word.start_ms = clip.document.source_to_output(source_start)?;
+            word.end_ms = clip.document.source_to_output(source_end - 1)? + 1;
+            if word
+                .timing
+                .as_ref()
+                .is_none_or(|timing| timing.provenance != "aligned")
+            {
+                word.timing = Some(WordTiming {
+                    provenance: "estimated".into(),
+                    source_start_ms: source_start,
+                    source_end_ms: source_end,
+                    alignment_confidence: None,
+                });
+            }
+            Some(word)
+        })
+        .filter(|word| {
+            !manual
+                .iter()
+                .any(|manual| word.start_ms < manual.end_ms && word.end_ms > manual.start_ms)
         })
         .collect::<Vec<_>>();
+    words.extend(manual);
+    words.sort_by_key(|word| word.start_ms);
     anyhow::ensure!(
         !words.is_empty(),
         "No speech was found in this clip. Existing captions were preserved."
@@ -496,7 +559,14 @@ pub async fn refine_captions(
             .count()
     );
     clip.document.words = words;
-    clip.document.caption_model = Some(format!("{model_id}:{language}:dtw"));
+    clip.document.caption_model = Some(format!(
+        "{model_id}:{language}:{}",
+        if alignment.available {
+            "ctc"
+        } else {
+            "estimated"
+        }
+    ));
     clip.document
         .validate(project.duration_ms)
         .map_err(anyhow::Error::msg)?;
@@ -656,7 +726,7 @@ pub async fn infer(
     Ok(String::from_utf8_lossy(&result?).into_owned())
 }
 
-fn extract_json<T: serde::de::DeserializeOwned>(output: &str) -> Result<T> {
+pub(crate) fn extract_json<T: serde::de::DeserializeOwned>(output: &str) -> Result<T> {
     for (index, _) in output.match_indices('{') {
         let mut stream = serde_json::Deserializer::from_str(&output[index..]).into_iter::<T>();
         if let Some(Ok(value)) = stream.next() {
@@ -972,10 +1042,7 @@ pub async fn generate(
             break;
         }
     }
-    anyhow::ensure!(
-        !accepted.is_empty(),
-        "No moments passed the interest filter. Try another focus or lower the threshold, or create a clip manually."
-    );
+    job.payload["qualifying_moments"] = json!(accepted.len());
     let mut plan = Vec::new();
     for suggestion in accepted {
         let mut document = EditDocument::new(&project, suggestion.start_ms, suggestion.end_ms);
@@ -1196,6 +1263,7 @@ mod tests {
                 emphasis: false,
                 color: None,
                 confidence: None,
+                timing: None,
             })
             .collect::<Vec<_>>();
         let windows = transcript_windows(&words).unwrap();

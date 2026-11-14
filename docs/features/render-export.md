@@ -12,6 +12,12 @@ The recovery fixture cancels after the first completed item, retries the remaind
 
 ## Interface
 
+Version 2 timelines concatenate video and audio together, normalize sample aspect ratio, and
+share composition with 720p edited previews. Split layers use the selected output geometry.
+Local B-roll keeps the soundtrack; registered audio layers use bounded offsets and limiting.
+Multi-cut rendering with notes, punch-ins, split framing, B-roll, and imported audio passed a
+six-layout Windows ARM64 media fixture. See editorial-timeline.md for timing and cache behavior.
+
 POST /api/v1/clips/{id}/export; POST /api/v1/projects/{id}/export; GET /api/v1/exports
 
 ## States and failure handling

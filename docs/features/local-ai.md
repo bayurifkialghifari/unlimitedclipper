@@ -12,6 +12,11 @@ Word alignment uses Whisper DTW on the original audio with flash attention disab
 
 ## Interface
 
+The optional native [speech quality pack](speech-quality-pack.md) adds a separate source-timed
+CTC/VAD pass rather than combining CLI VAD with DTW offsets. Its native frontend and real accuracy
+checks are pending. Development fixtures can borrow one canonical model directory with
+UC_MODELS_DIR and prevent mutations using UC_MODELS_READ_ONLY=1.
+
 GET /api/v1/models; POST /api/v1/models/{id}/download; POST /api/v1/models/{id}/import
 
 ## States and failure handling

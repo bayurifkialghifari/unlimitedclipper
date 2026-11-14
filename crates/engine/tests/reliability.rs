@@ -96,6 +96,102 @@ fn project() -> Project {
     })).unwrap()
 }
 
+#[test]
+fn timeline_remapping_preserves_manual_words_and_audio_source_offsets() {
+    let mut document = EditDocument::new(&project(), 2000, 8000);
+    document.words[0].timing = Some(WordTiming {
+        provenance: "manual".into(),
+        source_start_ms: 3000,
+        source_end_ms: 3500,
+        alignment_confidence: None,
+    });
+    document.audio_layers.push(AudioLayer {
+        id: "music".into(),
+        enabled: true,
+        start_ms: 500,
+        end_ms: 5000,
+        asset_id: Some("managed-audio".into()),
+        source_start_ms: 100,
+        gain: 0.1,
+    });
+    let result = document.replace_segments(vec![
+        SourceSegment {
+            start_ms: 2000,
+            end_ms: 4000,
+        },
+        SourceSegment {
+            start_ms: 6000,
+            end_ms: 8000,
+        },
+    ]);
+    assert!(result.validate(10000).is_ok());
+    assert_eq!(result.duration_ms(), 4000);
+    assert_eq!(
+        result.words[0].timing.as_ref().unwrap().provenance,
+        "manual"
+    );
+    assert_eq!(result.audio_layers.len(), 2);
+    assert_eq!(
+        (
+            result.audio_layers[0].start_ms,
+            result.audio_layers[0].end_ms
+        ),
+        (500, 2000)
+    );
+    assert_eq!(
+        (
+            result.audio_layers[1].start_ms,
+            result.audio_layers[1].end_ms
+        ),
+        (2000, 3000)
+    );
+    assert_eq!(result.audio_layers[1].source_start_ms, 3600);
+    assert_ne!(result.audio_layers[0].id, result.audio_layers[1].id);
+}
+
+#[test]
+fn legacy_edits_and_invalid_word_provenance_have_explicit_boundaries() {
+    let mut document = EditDocument::new(&project(), 2000, 5000);
+    document.version = 1;
+    document.segments.clear();
+    let legacy: EditDocument =
+        serde_json::from_value(serde_json::to_value(&document).unwrap()).unwrap();
+    assert_eq!(legacy.output_to_source(1000), Some(3000));
+    assert!(legacy.validate(10000).is_ok());
+    document.words[0].timing = Some(WordTiming {
+        provenance: "invented".into(),
+        source_start_ms: 3000,
+        source_end_ms: 3500,
+        alignment_confidence: None,
+    });
+    assert!(document.validate(10000).is_err());
+}
+
+#[test]
+fn captions_keep_phrases_visible_but_never_group_across_a_cut() {
+    let mut document = EditDocument::new(&project(), 0, 4000);
+    document.segments = vec![
+        SourceSegment {
+            start_ms: 0,
+            end_ms: 1000,
+        },
+        SourceSegment {
+            start_ms: 3000,
+            end_ms: 4000,
+        },
+    ];
+    document.words = serde_json::from_value(json!([
+        {"id":"a", "text":"First", "start_ms":100, "end_ms":200},
+        {"id":"b", "text":"phrase", "start_ms":400, "end_ms":500},
+        {"id":"c", "text":"Next", "start_ms":1000, "end_ms":1200}
+    ]))
+    .unwrap();
+    assert_eq!(subtitles::caption_groups(&document).len(), 2);
+    let track = subtitles::ass(&document);
+    assert!(track.contains("Dialogue: 1,0:00:00.32,0:00:00.40,Caption"));
+    assert!(!subtitles::srt(&document).contains("phrase Next"));
+}
+
 #[tokio::test]
 async fn stale_edit_cannot_overwrite_a_new_revision() {
     let root = tempfile::tempdir().unwrap();
