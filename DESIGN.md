@@ -12,10 +12,14 @@ Reading this as a video editing studio for independent creators, using a matte c
 | Caption fonts      | Bundled Noto Sans and licensed selectable fonts                           | Keep preview and exports consistent and render multilingual text.           |
 | Radius             | 8px controls, 14px panels, 20px preview                                   | Distinguish controls, groups, and the footage.                              |
 | Motion             | Short state transitions, no decorative loops                              | Show selection and processing changes without distracting from playback.    |
-| Branding           | UnlimitedClipper text wordmark                                            | Identify the product honestly without inventing a final logo.               |
+| Branding           | Approved original frame/cut icon with UnlimitedClipper text               | Make the application recognizable in the taskbar and project documentation. |
 
 Desktop layouts keep the preview beside the inspector. Narrow layouts use a stacked preview and tabbed settings without horizontal overflow. Use native controls where possible, minimum 44px touch targets, meaningful labels, and visible focus rings. Project galleries show real thumbnails and records, never invented usage statistics.
 
 The editorial reference workspace is the functional reference. Its assets, logo, promotional claims, and screenshots are not product assets.
+
+The owner approved the original graphite/lime frame-and-cut mark for the app, installer, browser,
+and README. Its master is resources/brand/app-icon.svg. Run npm run generate:icons to derive native
+icon formats and synchronize browser/README assets. Competitor marks are not reused.
 
 Captions use short stable phrases so viewers can anticipate surrounding words while tracking the spoken word. Bold DM Sans is the default; compact uppercase Oswald provides a stronger reaction style. A red active-word box follows the reference's demonstrated interaction without importing its assets. Preset previews use the current clip's real words. Position and visibility remain separate from the chosen look. Accuracy controls sit next to caption edits because uncertain recognition needs an immediate correction path.

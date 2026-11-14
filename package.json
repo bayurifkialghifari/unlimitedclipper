@@ -29,6 +29,7 @@
     "setup:tools": "node scripts/setup-tools.mjs",
     "setup:compiler": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-compiler.ps1",
     "generate:api": "node scripts/generate-api.mjs",
+    "generate:icons": "node scripts/generate-icons.mjs",
     "release:manifest": "node scripts/release-manifest.mjs"
   },
   "devDependencies": {

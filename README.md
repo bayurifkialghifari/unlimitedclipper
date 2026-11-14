@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/media/app-icon.svg" alt="UnlimitedClipper's original video frame and cut icon" width="88" height="88" />
+
 # UnlimitedClipper
 
 **Find the moment. Fix the captions. Keep the processing on your computer.**

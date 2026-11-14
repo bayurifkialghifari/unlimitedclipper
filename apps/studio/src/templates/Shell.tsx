@@ -14,6 +14,7 @@ import styles from '../styles/Studio.module.css';
 import { UpdateNotice } from '../organisms/UpdateNotice';
 import { isAndroidHost } from '../lib/native';
 import { ActivityCenter } from '../organisms/ActivityCenter';
+import { AppIcon } from '../atoms/AppIcon';
 
 export function Shell({ children }: { children: ReactNode }) {
   const text = useText();
@@ -38,9 +39,7 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <span className={styles.wordmark} aria-label="UnlimitedClipper">
-          UC
-        </span>
+        <AppIcon className={styles.wordmark} />
         <nav className={styles.nav} aria-label={text.studio}>
           {links.map(({ to, label, icon: Icon }) => (
             <NavLink
