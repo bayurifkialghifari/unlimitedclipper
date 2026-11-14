@@ -80,7 +80,8 @@ started zero validation/build steps because GitHub reported failed account payme
 spending-limit restriction. Hosted quality/media checks were blocked for the same reason.
 Local results are recorded independently. Installer install/uninstall, native updater installation,
 physical x64 runtime, complete accessibility certification, and Android runtime remain pending.
-The private repository provides manual preview downloads, not a public automatic-update feed.
+The repository was private at publication; it became public later that day at the owner's request.
+Automatic installation still requires a configured publisher update feed.
 
 ## Processing-row alignment, 2026-11-14
 
@@ -421,8 +422,8 @@ variable when the manifest signer receives an explicit key-file argument.
 | Other platform runtime          | Pending      | Physical x64, Linux/macOS packages, and Android runtime are outside this preview verification.                                       |
 
 The ARM64 installer is 225,562,120 bytes (215.11 MiB); the x64 installer is 286,362,857 bytes
-(273.10 MiB). The private repository requires GitHub access and provides manual preview downloads.
-It is not a public automatic-update feed. Windows Authenticode signing is not configured. Some
+(273.10 MiB). These previews were initially published privately; downloads are now public.
+Automatic installation requires a configured publisher update feed. Windows Authenticode signing is not configured. Some
 Tauri-specific installer messages fall back to English when Indonesian is selected.
 
 Local evidence: .cache/preview-signature-validation.json, .cache/preview-published.json,

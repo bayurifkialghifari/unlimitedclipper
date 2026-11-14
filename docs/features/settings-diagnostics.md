@@ -12,8 +12,9 @@ diagnostics, and temporary-cache cleanup. Update server addresses remain in the 
 and publisher configuration; the normal UI does not ask users to enter them. Unrestricted active-job
 checks protect cleanup even when a job is older than the recent-history list.
 
-The private preview has no public automatic-update service. Its automatic-update toggle is disabled
-with a plain explanation, and Check for updates opens the GitHub release page. Native desktop uses
+Preview downloads are public. Automatic installation requires a configured publisher update feed;
+without one, its toggle is disabled with an explanation, and Check for updates opens the public
+GitHub release page. Native desktop uses
 a fixed-URL command; browser uses a new tab. A running older development host can open the browser
 studio when it does not yet support that command. Configured deployments retain signed, idle-only
 update checks and installation. No unavailable update service is presented as working.

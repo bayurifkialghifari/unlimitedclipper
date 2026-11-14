@@ -31,8 +31,8 @@ for Snapdragon/ARM PCs, or
 for Intel/AMD PCs. Both belong to the same
 [preview release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.3).
 
-GitHub access is required because the repository is private. Install the local models from the
-dropdown in Settings after installation; manual model-file import remains optional. Updater
+The repository and preview downloads are public; no GitHub account is required. Install local models
+from the dropdown in Settings after installation; manual model-file import remains optional. Updater
 artifacts have verified publisher signatures and SHA-256 checksums. Windows Authenticode signing
 is not configured, so an unknown-publisher prompt is possible. Install/uninstall certification
 and physical x64 runtime checks remain pending.

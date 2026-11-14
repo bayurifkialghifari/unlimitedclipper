@@ -2,6 +2,11 @@
 
 ## 0.1.0-preview.4 (2026-11-14)
 
+### Added
+
+- Public repository and preview downloads. Standard hosted CI can run without the private
+  repository billing restriction; quality and native-media workflows were restarted.
+
 ### Fixed
 
 - Processing titles, progress meters, and percentages now align across completed, failed,
