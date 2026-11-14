@@ -11,7 +11,24 @@ The current NSIS package installs for the current Windows user. Production relea
 
 ## Update signing
 
-The tag workflow validates the frontend and Rust engine before building Windows ARM64 and x64 NSIS installers. It synchronizes the package version to the tag, signs version-bound updater artifacts, merges the architecture entries into application.json, and publishes the files to the matching GitHub release. No release tag was created during development validation.
+The tag workflow validates the frontend and Rust engine before building Windows ARM64 and x64 NSIS installers. It synchronizes the package version and workspace lockfile to the tag, signs version-bound updater artifacts, merges the architecture entries into application.json, and publishes the files with SHA256SUMS to the matching GitHub release.
+
+The v0.1.0-preview.1 workflow was cancelled before publication. The
+[v0.1.0-preview.2 workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43577933322)
+could not start because GitHub reported failed account payments or a spending-limit restriction.
+It ran no validation or build steps. Local validation passed separately; local installer production
+uses an isolated checkout of source commit 961e30143bc6e8f0c013138f424fb2511042e075 with the same
+tag-version transformation and publisher keys. This is not a successful hosted CI run.
+
+The [published Windows preview](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.2)
+contains ARM64 and x64 installers, their version-bound signatures, two architecture manifests,
+the merged application.json, and SHA256SUMS. The installers are 225,562,120 and 286,362,857 bytes
+respectively. Staging uses the fix in b3e0d84 to prevent the string-key environment from conflicting
+with the signer's explicit file-key argument. Node's Ed25519/BLAKE2b verifier checked both
+signatures, signed versions, and file hashes; GitHub's eight asset digests matched the local files.
+The optimized ARM64 host was tested separately from installer execution. Install/uninstall,
+native application-update installation, and physical x64 runtime certification remain pending.
+Some Tauri-specific installer messages fall back to English when Indonesian is selected.
 
 Configure APP_UPDATE_PRIVATE_KEY and APP_UPDATE_PUBLIC_KEY repository secrets before tagging. APP_UPDATE_KEY_PASSWORD is optional for an encrypted key. COMPONENT_UPDATE_PUBLIC_KEY embeds the separate component verifier when configured. Missing publisher keys stop the workflow before an unsigned updater release can be published. Development fixture keys are not publisher keys.
 

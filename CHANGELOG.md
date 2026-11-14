@@ -2,12 +2,16 @@
 
 ## Unreleased
 
+## 0.1.0-preview.2 (2026-11-14)
+
 ### Added
 
 - A compact global progress popup for video uploads/imports, AI model downloads, clip processing,
   and exports, with actual stages, percentages, cancellation, and terminal alerts.
 - A model-registry dropdown with in-app download and optional manual file import.
 - Simple update controls and a fixed native release-page opener for private preview downloads.
+- Published Windows ARM64 and x64 NSIS previews with verified version-bound updater signatures,
+  architecture manifests, and SHA256SUMS. Installer runtime certification remains pending.
 
 - Version 2 editorial timelines with ordered source segments, source/output time mapping,
   source-preserving word/layer remapping, and legacy single-range edit support.
@@ -28,7 +32,7 @@
 ### Fixed
 
 - Release signing no longer passes both a string key and a file key to the Tauri signer.
-  The real ARM64 preview installer passed version-bound signature and checksum verification.
+  Both Windows preview installers passed version-bound signature and checksum verification.
 - Caption/layer timing after removing source ranges, split output geometry, concat sample aspect
   ratio, original soundtrack preservation under B-roll, and proposal timing provenance.
 - Retryable temporary checkpoints hidden by recent-history limits; cleanup now reports reclaimed

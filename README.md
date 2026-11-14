@@ -21,6 +21,20 @@ Import a long recording, find or choose a cut, review its words, and export a ca
 Speech recognition and clip selection run locally after the models are installed. No cloud AI
 account or API key is required.
 
+## Download the Windows preview
+
+[Download Windows ARM64 (215 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.2/UnlimitedClipper_0.1.0-preview.2_arm64-setup.exe)
+for Snapdragon/ARM PCs, or
+[download Windows x64 (273 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.2/UnlimitedClipper_0.1.0-preview.2_x64-setup.exe)
+for Intel/AMD PCs. Both belong to the same
+[preview release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.2).
+
+GitHub access is required because the repository is private. Install the local models from the
+dropdown in Settings after installation; manual model-file import remains optional. Updater
+artifacts have verified publisher signatures and SHA-256 checksums. Windows Authenticode signing
+is not configured, so an unknown-publisher prompt is possible. Install/uninstall certification
+and physical x64 runtime checks remain pending.
+
 ## Clip examples
 
 Two actual exports from [Windah Basudara's Sunnybrook recording](https://www.youtube.com/watch?v=qTJIbYC2mFc).
@@ -66,7 +80,7 @@ and edit revisions.
 
 ### Caption editing
 
-Four looks, the current clip's real words, and a preview of the active word. Styles, timing, and
+Five looks, the current clip's real words, and a preview of the active word. Styles, timing, and
 manual corrections become part of the saved edit.
 
 <img src="docs/media/captions.png" alt="Native caption editor with the Word box look selected and the real escape clip in the preview" width="1800" height="1468" />
@@ -78,6 +92,17 @@ Imported recordings and their edits persist locally. This screenshot shows the a
 recording, with no invented projects or usage numbers.
 
 <img src="docs/media/projects.png" alt="Project library containing the imported 84-minute Windah recording" width="1800" height="1120" />
+
+</details>
+
+<details>
+<summary>See model setup and update settings</summary>
+
+Choose a supported model and download it in the app. Manual model import remains optional.
+Import, download, clipping, and export activity appear in a collapsible popup at the top right.
+The preview's update button opens the download page.
+
+<img src="docs/media/settings.png" alt="Browser settings with the actual installed Whisper and Qwen models, optional manual import, and simple update controls" width="1440" height="1511" />
 
 </details>
 
@@ -144,8 +169,8 @@ imports, and automatic updates are disabled. Read the [requirements and limitati
 before installing. GitHub retains this artifact for 30 days; the workflow can rebuild it afterward.
 
 See [validation evidence](docs/validation.md) and [platform support](docs/platform-support.md) for the
-scope of those checks. Production update signing and a current verified release installer remain
-pending.
+scope of those checks. The Windows preview provides publisher-signed updater artifacts; a public
+automatic-update service and full installer/updater runtime certification remain pending.
 
 ## For contributors
 

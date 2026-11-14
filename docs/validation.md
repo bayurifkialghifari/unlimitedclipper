@@ -266,26 +266,79 @@ The global activity popup reports durable engine jobs and the transfer phase bef
 Its percentage is overall job completion. Inference stages without incremental tool telemetry
 retain their checkpoint percentage until another milestone completes.
 
-| Check                       | Status       | Evidence                                                                                                                                                                                                                                       |
-| --------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Source quality              | PASS         | npm run check; 26 engine tests; workspace Rustfmt check; engine and desktop Clippy with warnings denied.                                                                                                                                       |
-| Browser interactions        | PASS, scoped | Three onboarding Playwright tests cover immediate submission, queue/download/proxy, transcription/render, navigation, cancellation confirmation, completion/failure dismissal, collapse/expand, and a 390 px viewport.                         |
-| Model and update controls   | PASS, scoped | Tests select Whisper medium and verify the POST endpoint, installed state, optional manual import, absent feed fields, disabled unconfigured automatic updates, the fixed release page, and compatibility with an older native command bridge. |
-| Fresh large model download  | Pending      | Browser tests use controlled network responses and isolated data with read-only canonical models. They do not certify a new multi-gigabyte transfer.                                                                                           |
-| Current native host refresh | Pending      | The user's existing ARM64 host and active selection job were preserved. New source compiles, but this pass has not verified the changed controls in a freshly built native host.                                                               |
-| Release installer runtime   | Pending      | Signing and installer production are separate from install/uninstall, native opener execution, and physical x64 runtime certification.                                                                                                         |
+| Check                       | Status       | Evidence                                                                                                                                                                                                                                                                                           |
+| --------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source quality              | PASS         | npm run check; 26 engine tests; workspace Rustfmt check; engine and desktop Clippy with warnings denied.                                                                                                                                                                                           |
+| Browser interactions        | PASS, scoped | Three onboarding Playwright tests cover immediate submission, queue/download/proxy, transcription/render, navigation, cancellation confirmation, completion/failure dismissal, collapse/expand, and a 390 px viewport.                                                                             |
+| Model and update controls   | PASS, scoped | Tests select Whisper medium and verify the POST endpoint, installed state, optional manual import, absent feed fields, disabled unconfigured automatic updates, the fixed release page, and compatibility with an older native command bridge.                                                     |
+| Fresh large model download  | Pending      | Browser tests use controlled network responses and isolated data with read-only canonical models. They do not certify a new multi-gigabyte transfer.                                                                                                                                               |
+| Current native preview host | PASS, scoped | The idle older host was closed normally, then the optimized 0.1.0-preview.2 ARM64 host was opened. Its native bridge, model selector, actual transcription popup at 20%, queued model repair, and cancellation of that test job passed. The user's new clip job was preserved and later completed. |
+| Release installer runtime   | Pending      | Signing and installer production are separate from install/uninstall, native opener execution, and physical x64 runtime certification.                                                                                                                                                             |
 
 Evidence: tests/browser/onboarding.spec.ts, test-results/onboarding-progress.png, and
 test-results/onboarding-settings.png. Run with node scripts/validate-browser.mjs onboarding.spec.ts.
 The final run passed three tests in 16.5 seconds after the production build completed. An earlier
 run started against the previous built assets and failed the new native compatibility scenario;
-the rebuilt assets passed. No real processing was submitted to the user's active engine.
+the rebuilt assets passed. The browser suite submitted no processing to the user's active engine.
+The shared browser Settings page was also inspected against the real library: small, medium, and
+Qwen were ready, manual import remained optional, and the update server fields were absent.
+Evidence: .cache/live-settings.png and docs/media/settings.png. The existing clip-generation job
+completed while the native host remained alive. A new session correctly showed no popup for jobs
+that had already finished before the session opened.
+
+Native preview evidence: .cache/native-preview-validation.json, .cache/native-preview-settings.png,
+and .cache/native-preview-progress.png. The production host requires an authenticated browser
+session, so its diagnostics were read through the native page rather than an unauthenticated Node
+request. A new user transcription job started during this check. The model-repair completion
+check timed out because its job correctly waited behind that transcription; only the queued test
+job was cancelled. Real model download/repair completion and native opener execution remain unrun
+for this pass. No active user job was stopped to refresh or test the host.
 
 Anti-slop During gate, scoped to the changed controls: the matte popup uses elevation to separate
 running work from the editor, restrained lime for progress, a bounded scroll region, native labeled
 controls, and no decorative animation. The model selector reflects the actual registry. Working
 controls and loading/disabled/error states passed the controlled interactions above. Complete
 contrast, screen-reader, and native runtime audits remain pending.
+
+## Published Windows preview, 2026-11-14
+
+The [v0.1.0-preview.2 release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.2)
+contains eight assets, including both Windows installers. Application binaries use tagged source
+961e30143bc6e8f0c013138f424fb2511042e075 with the release-version transformation. Staging uses
+the signer-environment fix in b3e0d84. This fix removes the inherited string-key environment
+variable when the manifest signer receives an explicit key-file argument.
+
+| Check                           | Status       | Evidence                                                                                                                             |
+| ------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Local source quality            | PASS         | npm run check after the signer fix; 26 Rust tests, Rustfmt check, and engine/desktop Clippy with warnings denied for the Rust edits. |
+| Optimized Windows builds        | PASS         | ARM64 and x64 application compilation and NSIS packaging completed locally.                                                          |
+| Architecture and version        | PASS         | PE machine headers aa64 and 8664; Windows file/product versions and manifests match 0.1.0-preview.2.                                 |
+| Publisher updater signatures    | PASS         | Independent Ed25519/BLAKE2b verification of both installer signatures, including their signed version.                               |
+| Published artifact integrity    | PASS         | SHA256SUMS verified locally; all eight GitHub server SHA-256 asset digests match the local release files.                            |
+| Optimized native ARM64 host     | PASS, scoped | Native bridge, model selection, actual transcription progress, and queued-test cancellation; the user job completed afterward.       |
+| Final library and host state    | PASS, scoped | The host stayed open, all three canonical models remained ready, and the final authenticated API read showed no active jobs.         |
+| Hosted release CI               | Blocked      | Run 43577933322 could not start because GitHub reported failed account payments or a spending-limit restriction.                     |
+| Installer and updater execution | Pending      | Install/uninstall, native updater installation, and native release-page opener execution were not tested in this pass.               |
+| Other platform runtime          | Pending      | Physical x64, Linux/macOS packages, and Android runtime are outside this preview verification.                                       |
+
+The ARM64 installer is 225,562,120 bytes (215.11 MiB); the x64 installer is 286,362,857 bytes
+(273.10 MiB). The private repository requires GitHub access and provides manual preview downloads.
+It is not a public automatic-update feed. Windows Authenticode signing is not configured. Some
+Tauri-specific installer messages fall back to English when Indonesian is selected.
+
+Local evidence: .cache/preview-signature-validation.json, .cache/preview-published.json,
+.cache/native-preview-validation.json, and .cache/native-preview-final.json. The latter confirms
+the user clip-generation job completed and only the queued model test was cancelled. Fresh large
+model download/repair completion remains untested; the test waited behind actual user processing.
+The [hosted release run](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43577933322)
+performed no validation or build steps; local results are recorded separately.
+
+After retaining both installers, audited release cleanup removed 6,812,226,113 bytes (6.34 GiB)
+of temporary checkouts, copied x64 tools, duplicate bundles, and build caches. The helper checked
+resolved target paths, refused symlinks, and protected the running executable and its linked copy.
+Original videos, exports, canonical models, ARM64 tools, and publisher keys outside the workspace
+were preserved. The final workspace measurement was 20,099,667,194 bytes (18.72 GiB), excluding
+symlink traversal. Evidence: .cache/release-cleanup.json and .cache/release-storage-final.json.
 
 ## Required scenarios
 
