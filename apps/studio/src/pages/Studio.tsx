@@ -204,9 +204,9 @@ export function Studio() {
       </div>
       <div className={styles.editorBody}>
         <aside className={styles.leftPanel} data-visible={activePanel === 'transcript'}>
-          <section className={styles.library} aria-label={text.library}>
+          <section className={styles.library} aria-label={text.clipLibrary}>
             <h2>
-              {text.library} · {project.data?.clips.length ?? 0}
+              {text.clipLibrary} · {project.data?.clips.length ?? 0}
             </h2>
             {!project.data?.clips.length ? (
               <p className={styles.hint}>

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 const en = {
+  clipLibrary: 'Clips',
   transcript: 'Transcript',
   scenes: 'Scenes',
   scene: 'Scene',
@@ -288,6 +289,7 @@ const en = {
 };
 
 const id: typeof en = {
+  clipLibrary: 'Klip',
   transcript: 'Transkrip',
   scenes: 'Scene',
   scene: 'Scene',
