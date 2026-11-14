@@ -12,6 +12,10 @@ player, right inspector, and bottom timeline. The inspector and transcript scrol
 At narrower widths the side panels use labeled toggles; phones stack the player and selected
 panel. Project, processing, export, and settings pages use the full content width.
 
+The right inspector has one themed scrollbar in its body, with fixed tabs and an outer
+panel that does not scroll. Desktop, narrow, and phone layouts retain keyboard tab navigation.
+Forced-color mode uses the native scrollbar for accessibility.
+
 ## Transcript and scenes
 
 Click a transcript word to seek its output time. Shift-click selects a continuous word range.

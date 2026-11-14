@@ -606,3 +606,71 @@ is bundled in the application.
 | Purpose gate                  | Defined | One-line design purposes in DESIGN.md; recheck actual implementation.                                                        |
 | Liveliness                    | Partial | Browser and native studio screens inspected. The complete screen and motion review remains pending.                          |
 | Craftsmanship                 | Partial | Build, native behavior, and batch recovery passed. Expanded styling parity and release checks remain pending.                |
+
+## Economy discovery and scene framing, 2026-11-15
+
+ESLint, Prettier, TypeScript, frontend unit tests, and the production studio build passed.
+The engine passed 43 tests, workspace Rustfmt, and engine/desktop Clippy with warnings denied.
+New checks cover bounded overlapping windows, sparse batching, grounded review dimensions,
+face association, cut anchors, optimistic tracking commits, stale/missing-job rollback,
+censored speech, and instance-lock-protected abandoned inference-key cleanup.
+
+All 11 browser scenarios passed, including real clip creation followed by one inspector
+scrollbar at 1920, 1280, 1024, and 390 pixels, keyboard tab navigation, forced-color fallback,
+persisted Economy/Gaming settings, and the pinned 1.7B option. Evidence: tests/browser/studio-scroll.spec.ts
+and .cache/economy-browser.log. Controlled UI responses do not establish AI selection quality.
+
+The actual 1.7B model downloaded through the app's worker and independently passed its pinned
+SHA-256 and 1,282,439,264-byte size. A real 180-second podcast excerpt exercised 1.7B proposals,
+4B full-transcript review, exact quotes, shortfall reporting, bounded recovery, and idempotent
+clip insertion. This early run found zero qualifying cuts; it validates rejection/recovery,
+not selection quality. Its observed process-tree working sets peaked at 2,875,072,512 bytes
+in the 1.7B stage and 5,886,414,848 bytes in 4B review on the tested 16 GB ARM64 PC. Later
+recovery uses 4B proposals and numbered phrase IDs; the completed full-recording run is below.
+Evidence: .cache/economy-model-download.log and .cache/economy-discovery-validation.json.
+
+The controlled moving-face fixture passed Follow and Two-face split across reordered scenes,
+paired cut anchors, full 720 x 1280 / 8-second export decoding, interrupted-commit recovery
+without another revision, and constrained Facecam preserving gameplay. Its split frame was
+visually inspected. This fixture uses an astronaut photo with controlled motion and JFK audio;
+it is not a natural podcast identity benchmark. Evidence: scripts/validate-framing.mjs,
+.cache/economy-framing-validation.json, and .cache/economy-framing-proof.png.
+
+A separate full-recording fixture restored 8,894 words from the existing raw recognition,
+compared with 2,410 previously persisted words. Censored text had suppressed the later
+segments despite complete 48-minute recognition output. No speech inference was needed.
+Cancellation stopped the inference server before retry. The final phrase-selection path
+accepted four of the requested four clips from this 2,908,354 ms recording in 595,864 ms
+(about 9.93 minutes). This reused recognition and is not a full import/transcription benchmark.
+All four source ranges, opening/ending quotes, independent dimension sums, minimum dimension
+scores, and persisted boundaries passed checks. Scores were 86, 78, 84, and 83; durations
+were 53.52, 42.48, 28.22, and 39.52 seconds. The bounded pipeline completed 51 inference
+calls and 42 proposal sections. Titles and editorial usefulness still require human review;
+one title was generic. Evidence: scripts/validate-complete-discovery.mjs and
+.cache/economy-complete-discovery-validation.json.
+
+The first natural clip completed automatic medium caption refinement, Follow fallback from
+the requested split mode, and a 720 x 1280 / 53.52-second export with full decoding. Tracking
+reported 89 detections and 59 missing samples in one shot, with no stable two-face split.
+The inspected frame has readable captions and the subject framed; this does not certify
+all-frame tracking or natural two-face identity accuracy. Immutable export retry preserved
+one export record. Evidence: scripts/validate-discovered-export.mjs,
+.cache/economy-natural-export-validation.json, and .cache/economy-natural-export.png.
+
+This natural export exposed excessive nesting in the old crop expression. Balanced
+interpolation and managed graph files fixed it. A separate 300-anchor / 46,812-byte graph
+then passed both edited preview and export at 720 x 1280 / 8 seconds, with full decoding
+and the saved anchors/revision unchanged. The graph exceeds the Windows command-line limit.
+Evidence: scripts/validate-motion-render.mjs and .cache/economy-motion-render-validation.json.
+
+The ARM64 development desktop build opened against the canonical library only after idle,
+unsaved-page, transfer, and native-modal guards passed. Native WebView2 at 1920 x 1009 has one
+themed inspector scrollbar and no horizontal overflow. Economy/profile controls and all four
+ready model options are visible. Evidence: .cache/economy-native-validation.json and
+.cache/economy-native-caption.png. This is distinct from packaged release verification.
+
+Anti-slop During gate, scoped: original palette, actual data, fixed tabs, one themed rail,
+accessible keyboard controls, forced-color fallback, and explicit job failures/shortfalls
+passed the stated checks. Active speaker detection, broad recognition/selection accuracy,
+physical Android/x64/macOS/Linux runtime, installer execution, and automatic updater execution
+remain unverified.

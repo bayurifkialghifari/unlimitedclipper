@@ -1,33 +1,79 @@
 # Clip discovery
 
-Requirement: AI-02. Status: implemented; validation coverage is recorded in ../validation.md.
+Requirement: AI-02. Status: implemented; runtime evidence and limitations are in ../validation.md.
 
 ## Behavior
 
-Extract audio, transcribe timed words, analyze bounded transcript windows locally, and suggest valid clips with titles and explanations. Users can create and resize clips manually.
+Whisper small Q5_1 or optional medium Q5_0 supplies immutable source-timed words. New desktop
+jobs offer Podcast/interview and Gaming/reaction profiles. Balanced is the default threshold
+(70); Strict (85) and Broad (50) remain explicit choices. Count is a quality-bounded target.
+The engine never adds weak filler to satisfy it, and zero results is valid.
 
-Whisper small Q5_1 or medium Q5_0 supplies source-timed words. Qwen3 4B Q4_K_M processes bounded transcript windows with a JSON schema, validates boundaries, ranks non-overlapping suggestions, and saves a durable insertion plan. Inference uses llama-completion with an explicit ChatML prompt. Speech configuration is frozen for retries. Suggestions require editorial review; scores describe model preference.
+Economy uses installed Qwen3 1.7B Q4_K_M for proposals and installed 4B for final review. With
+one installed Qwen model, that model handles both stages. Quality prefers 4B for both stages.
+Each stage loads its model once in a private supervised llama-server process; only one model
+is resident at a time. Context is 4,096 tokens with 1,024 reserved for output and exact
+tokenizer admission. CPU threads are half the available cores, clamped to 1–4.
 
-Selection groups up to twelve words into timed phrases and limits each window to 4,000 UTF-8 bytes. The full prompt reserves 2,048 tokens for JSON within the 8,192-token context. Completed sections persist a source-word offset; retries reuse the transcription and completed suggestions even when an application update changes window sizing. The progress display includes the current section and total.
+Core transcript windows cover at most 60 seconds with up to 15 seconds of neighboring context
+and byte limits. Sparse neighbors can share a batch up to 240 seconds of source time and
+2,650 transcript bytes. Each prompt proposes up to four complete moments. Candidate spans
+remain at most 60 seconds regardless of batch duration. The candidate pool is bounded by
+max(12, 3 × requested count), with overlap removal and proposal ranking.
+The proposal model chooses inclusive numbered phrase IDs instead of computing timestamps or
+copying quotes. The engine maps those IDs to absolute source-word times and extracts opening/
+ending quotes from the selected words. Phrase IDs, title, range bounds, and complete transcript
+review are validated. Proposal priority combines word coverage and complete punctuation, with
+part of the pool reserved for source-time diversity; it is not a displayed potential score.
+Podcast candidates must last at least eight seconds; Gaming can retain shorter reactions.
 
-Clip count is a maximum; duration is an editorial target. The prompt prefers complete 8–60-second moments and allows shorter complete reactions. It must not pad a cut with filler or fill a quota. The engine adjusts boundaries toward nearby complete phrases, adds 120 ms of lead and 180 ms of tail, rejects spans over 60 seconds, and resolves overlaps after adjustment.
+Candidates quote their hook and payoff from inside the proposed range. Boundaries move toward
+complete nearby phrases once, adding 120 ms lead and 180 ms tail. Independent final review
+receives the entire candidate transcript, including its ending, without its proposal score.
+Four dimensions—hook, clarity, flow, and payoff—each require an exact quote and a 0–25 score.
+Acceptance requires the chosen total threshold and at least 10 in every dimension. One
+correction attempt handles invalid review quotes. Oversized complete candidates are rejected
+with a context-limit reason rather than reviewed from a truncated excerpt.
 
-Moment focus accepts up to 400 characters describing desired events. Strict, balanced, and broad interest filters use thresholds of 85, 70, and 50; new requests default to strict. Each candidate must quote a hook and payoff that occur as whole words inside its source range. A second local review receives those quotes and a bounded transcript excerpt, applies a common rubric, and can reject all candidates. Review batches and accepted results persist for retries. A no-result job explains that the user can adjust focus/filter or create a clip manually.
+If non-overlapping accepted clips fall short, one extra adjacent-context pass examines at most
+eight windows, excluding accepted ranges. It uses installed 4B for recovery proposals as well
+as review, or the sole installed model. Podcast recovery samples neighbors across the recording;
+Gaming prioritizes audio-change hints. Review stops once the requested count is reached.
+Results expose the actual accepted/target count, below-threshold rejections, invalid evidence,
+and duration/context limits. Windows, offsets, transcript snapshots, model IDs/hashes, evidence,
+accepted results, and the insertion plan persist. Retry retains completed work and clip IDs.
 
-Selection currently analyzes speech transcripts. It does not understand silent gameplay events, facial expressions, or visual action the way a multimodal service may. Scores are editorial model preferences and cannot guarantee an interesting result or predict views. Review the source and refine individual captions before publication.
+Gaming adds source-timed RMS/audio-change hints from the original mono audio without another
+AI model. Loudness does not prove an interesting moment. Newly generated cuts with more than
+10% low-confidence words can queue optional medium refinement on those cuts only; deterministic
+child job IDs prevent duplicate refinement on retries.
+Availability is frozen with the insertion plan, and a later manual clip revision prevents
+automatic refinement from being queued by an old discovery retry.
 
-## Interface
+## Limits
 
-POST /api/v1/projects/{id}/generate; POST /api/v1/projects/{id}/clips
+Selection is transcript-based. It cannot understand silent action, expressions, or active
+speakers, and poor recognition can produce poor suggestions. Small models may miss good clips
+or provide invalid evidence. Scores do not predict views. Review the source, edit captions,
+and adjust boundaries before publishing. Requested duration is an editorial target, not
+padding. Android's unverified native path and old queued jobs retain the legacy CLI selector.
 
-## States and failure handling
+## Interface and recovery
 
-Every data view provides empty, loading, success, and error states. Disabled actions explain their prerequisites. Use durable transcript and selection checkpoints. Validate model output against transcript/source boundaries. No speech returns a manual-edit path. Scores are suggestions, not predictions of views.
+POST /api/v1/projects/{id}/generate accepts count, duration, language, focus, interest threshold,
+and optional content_profile. Settings persist ai_mode and content_profile. Manual clipping
+remains available through POST /api/v1/projects/{id}/clips. Missing models, invalid output,
+cancelled children, and context errors expose actionable job states. A registry hash change
+requires a new discovery job instead of mixing model versions across a retry.
+
+The current speech parser preserves censored words such as s*** and only suppresses bounded,
+closed decoder annotations. New jobs can rebuild old project words from matching saved
+Whisper JSON without inference; the parser version is part of transcript configuration.
+Existing clip edits and frozen discovery retries keep their saved words. If matching raw
+recognition was cleaned up, the normal speech transcription path runs again.
 
 ## Acceptance scenarios
 
-Exercise long inputs, invalid structured output, selected languages, empty speech, manual boundaries, cancellation, and stage recovery.
-
-## Evidence
-
-Record completed runtime and interaction checks in ../validation.md. This document specifies required behavior; it does not claim unrun checks have passed.
+Exercise real speech, grounded quote validation, shortfalls, overlapping candidates, selected
+languages, empty speech, cancellation, and durable recovery. See ../validation.md for checks
+actually executed; this specification does not certify AI accuracy.

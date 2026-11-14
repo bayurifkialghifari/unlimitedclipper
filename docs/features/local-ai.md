@@ -9,13 +9,20 @@ Install hash-verified Whisper and Qwen models. Downloads resume from partial fil
 Installed models have a readiness marker bound to their SHA-256 and modification timestamp. Repair rehashes the bytes. Importing replacement models is blocked during active processing. Small, medium, and Qwen3 4B have real Windows ARM64 inference evidence in ../validation.md. This does not establish word-perfect recognition or verification on other systems.
 
 Settings provides one dropdown for the supported model registry: Whisper small, Whisper medium,
-and Qwen3 4B. Each option shows its actual size and readiness. Download model queues the selected
+Qwen3 1.7B, and Qwen3 4B. Each option shows its actual size and readiness. Download model queues the selected
 model through the existing hash-verified downloader. The global popup displays queue/download/
 verification progress. Installed models expose repair; manual file import remains in a disclosure
 and stays disabled during processing. The optional speech pack remains experimental and uses its
 separate manual ZIP import under Advanced caption timing.
 
 Word alignment uses Whisper DTW on the original audio with flash attention disabled. Do not combine CLI VAD with direct DTW token offsets: the tested CLI remaps segment times to the source but leaves token DTW times on a compressed speech timeline. VAD requires an explicit tested mapping before it can be enabled.
+
+Economy discovery uses the 1.7B model for proposals and installed 4B for final review. One
+installed Qwen model handles both stages; Quality prefers 4B. The pinned 1.7B Q4_K_M download
+is 1,282,439,264 bytes under Apache-2.0. Model/hash readiness is checked before starting a
+private inference session. Models load sequentially with a 4,096-token context and at most
+four CPU threads. This bounds memory demand without guaranteeing speed or selection quality.
+Android does not use this executable server path and remains untested.
 
 ## Interface
 

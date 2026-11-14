@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { cargoEnvironment, root } from './cargo.mjs';
 import { modelDirectory, toolDirectory } from './test-paths.mjs';
 
-export async function testEngine(port = 43186) {
+export async function testEngine(port = 43186, { writableModels = false, existingDirectory } = {}) {
   const environment = cargoEnvironment();
   const engine =
     process.env.UC_TEST_ENGINE ??
@@ -16,9 +16,17 @@ export async function testEngine(port = 43186) {
       'debug/unlimitedclipper-engine' + (process.platform === 'win32' ? '.exe' : ''),
     );
   await mkdir(path.join(root, '.cache'), { recursive: true });
-  const directory = await mkdtemp(path.join(root, '.cache/editorial-'));
+  const directory = existingDirectory
+    ? await realpath(existingDirectory)
+    : await mkdtemp(path.join(root, '.cache/editorial-'));
+  assert.ok(directory.startsWith(path.join(root, '.cache') + path.sep));
+  assert.ok(/^editorial-[\w-]+$/.test(path.basename(directory)));
+  const runtime = path.join(directory, 'runtime');
+  await mkdir(runtime, { recursive: true });
+  const snapshot = path.join(runtime, path.basename(engine));
+  await copyFile(engine, snapshot);
   const origin = 'http://127.0.0.1:' + port;
-  const child = spawn(engine, [], {
+  const child = spawn(snapshot, [], {
     cwd: root,
     windowsHide: true,
     env: {
@@ -27,7 +35,7 @@ export async function testEngine(port = 43186) {
       UC_DATA_DIR: directory,
       UC_PORT: String(port),
       UC_MODELS_DIR: modelDirectory,
-      UC_MODELS_READ_ONLY: '1',
+      UC_MODELS_READ_ONLY: writableModels ? '0' : '1',
       UC_TOOLS_DIR: toolDirectory,
     },
     stdio: ['ignore', 'ignore', 'pipe'],
@@ -77,7 +85,7 @@ export async function testEngine(port = 43186) {
     assert.equal(child.exitCode, null, errors);
     try {
       await api('/health');
-      return { api, wait, stop, directory, origin };
+      return { api, wait, stop, directory, origin, pid: child.pid };
     } catch {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }

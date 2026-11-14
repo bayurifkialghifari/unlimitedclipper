@@ -65,20 +65,26 @@ copies of the original 1080 × 1920 exports, with audio preserved.
 | In the studio          | What it does                                                                                                               |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                              |
-| Find a moment          | Give local AI a focus and interest filter, or set the boundaries yourself. Clip count is a maximum, not a quota.           |
+| Find a moment          | Choose Podcast/Gaming, give AI a focus and interest filter, and review the actual accepted/target count.                   |
 | Make captions readable | Choose from 18 looks, including Reveal and Underline. Edit words and timing, customize styling, and save your own presets. |
 | Review clip potential  | Get a local 0–100 editorial score with quoted evidence and editing suggestions. It does not predict views or virality.     |
 | Edit on the timeline   | Select transcript ranges, reorder/split/trim scenes, and move or trim layers with snapping, keyboard controls, and undo.   |
 | Build an editorial cut | Add text notes, punch-ins, split framing, local B-roll, and optional audio layers.                                         |
 | Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.                    |
 | Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.                       |
-| Frame the clip         | Use portrait, square, landscape, preserved framing, blur, or a gaming split. Adjust crops and keyframes.                   |
+| Frame the clip         | Follow faces across edited scenes, add two-face split layers, or constrain a gaming facecam. Review crops and keyframes.   |
 | Finish the edit        | Add a hook title or image/text watermark, with revisioned autosave and undo/redo.                                          |
 | Export the result      | Render a single cut or a batch to MP4 with SRT and ASS sidecars. Retries keep completed exports.                           |
 
 The desktop window and localhost browser use the same Rust engine and saved library. The interface
 supports Indonesian and English. Video files stay in managed folders; SQLite stores project data
 and edit revisions.
+
+For a constrained PC, choose Economy in Settings: 1.7B proposes moments and installed 4B reviews
+the complete candidates. Models load one at a time with a 4,096-token context. Start with
+Whisper small and 720p output; use optional medium only on uncertain cuts. This reduces the
+scope of expensive work but does not guarantee speed or accurate clip selection. See the
+[local processing strategy](docs/research/economy-processing.md) and [actual validation](docs/validation.md).
 
 ## Screenshots
 

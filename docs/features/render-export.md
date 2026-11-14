@@ -8,6 +8,12 @@ Render portrait, square, landscape, preserved composition, blur background, or g
 
 The render snapshot is captured when the job is queued. Export IDs derive from the job, clip, and revision, so a retry can reuse a committed export even if its job checkpoint was interrupted. Batch progress includes the current item. All six compositions passed a real 720p timing test; native 1080p export passed separately.
 
+Dense crop anchors use balanced piecewise expressions, preserving linear interpolation with
+logarithmic expression nesting. Desktop FFmpeg reads the graph from a managed temporary
+argument file through `-/filter_complex`, avoiding Windows command-line limits. Edited
+previews share this path. Android retains its embedded inline graph adapter; native Android
+rendering with dense motion is untested.
+
 The recovery fixture cancels after the first completed item, retries the remainder, and reproduces a lost job checkpoint after exports have been committed. All five immutable files retain their hashes and modification times after explicit restart recovery. Five thirty-second exports from an 84-minute Indonesian source also passed 1080 × 1920 geometry, audio, duration, and full-decoding checks.
 
 ## Interface

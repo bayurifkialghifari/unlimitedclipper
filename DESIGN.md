@@ -24,6 +24,13 @@ blue and amber distinguish media tracks, while amber outlines mark selection/pla
 previews have no decorative motion. Successful job notifications clear after six seconds to
 return access to the workspace; active processing and errors remain reviewable.
 
+Only the inspector body scrolls inside the right panel; tabs stay visible. The outer panel
+must never add a second scrollbar. Scroll thumbs use muted blue-gray against the inset
+surface, with an eight-pixel desktop rail and native forced-color fallback. Keyboard tab
+navigation and narrow-screen panel toggles remain available. Discovery results show the actual
+accepted/target count and rejection reasons. Framing controls name Follow, Two-face split, and
+Facecam modes and explain missing detections without claiming active speaker detection.
+
 The owner approved the original frame-and-cut mark and the current graphite/amber palette for the app, installer, browser,
 and README. Its master is resources/brand/app-icon.svg. Run npm run generate:icons to derive native
 icon formats and synchronize browser/README assets. Competitor marks are not reused.

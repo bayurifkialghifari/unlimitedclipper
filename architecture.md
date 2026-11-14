@@ -14,6 +14,32 @@ Discovery persists source-word offsets, transcript-grounded candidate quotes, re
 
 All persisted times are integer milliseconds. Source word timing remains immutable; clip edits contain local overrides. Crop rectangles are normalized source coordinates, with sorted clip-relative keyframes and linear interpolation. Rendering and preview consume the same document and output geometry.
 
+New desktop discovery jobs freeze the transcript, preferences, model identifiers/hashes, and
+bounded overlapping transcript windows. Sparse neighboring windows share a prompt when the
+combined transcript fits its byte budget. Each proposal/review stage owns one supervised
+llama-server process, with a 4,096-token context, exact tokenizer admission, 1,024-token output
+budget, one slot, and at most four CPU threads. The proposal server stops before final review
+loads. Review receives the complete candidate transcript and no proposal score. Exact quoted
+dimensions, offsets, candidate pools, accepted ranges, and shortfall counters persist for retry.
+Legacy jobs and the unverified Android native path retain the previous CLI selection path.
+Proposal models select numbered phrase ranges. Rust maps them to absolute source-word times,
+extracts opening/ending quotes, and ranks coverage with source-time diversity. Independent
+review supplies the displayed score. The bounded recovery pass uses the review model for proposals, sampling
+podcast context across the recording or prioritizing Gaming audio changes. Abandoned private
+inference-key files are removed only after acquiring the exclusive data-directory lock.
+The parser version participates in new transcript configuration. Matching saved Whisper JSON
+can restore source words previously lost after censored text without loading Whisper again.
+Bounded closed annotations cannot suppress the remainder of a recording. Frozen retries keep
+their original words and offsets.
+
+Tracking decodes edited scenes through a bounded two-frame channel instead of retaining raw
+frames. YuNet uses one process-wide ONNX environment and a per-scene session. Color descriptors,
+overlap, movement, and size associate faces within each shot. Output-relative crop anchors
+hold across missing detections; cut boundaries reset association. Automatic split layers have
+deterministic shot IDs. A successful optimistic clip update and transaction-backed committed
+revision are saved together; retries cannot infer success from a prewritten document or float
+equality. Later user edits invalidate that recovery marker.
+
 ## Persistence
 
 Caption recipes are engine-owned value objects. A separate caption_presets table stores up to
@@ -37,6 +63,10 @@ Edited preview and export share render_media, including AV concat, split framing
 ASS graphics, and audio mixing. A preview omits captions for a live browser ASS overlay and creates
 no export record. Managed previews have a bounded cache. Audio imports use registered managed files
 and persisted durations, with no filesystem paths exposed through layer controls.
+Dense crop anchors compile to balanced piecewise interpolation rather than a linear chain
+of nested conditions. Desktop media jobs write their graph to a managed temporary argument
+file consumed by the pinned FFmpeg build. This avoids expression-depth and Windows argument
+length failures without removing motion anchors. Native Android keeps its inline adapter.
 
 UC_MODELS_DIR freezes a shared model-store path at startup. UC_MODELS_READ_ONLY=1 disables model
 imports/downloads for fixtures borrowing the canonical store. Optional native alignment uses

@@ -6,7 +6,7 @@ Turn long YouTube videos or local files into editable, captioned clips using onl
 
 ## Audience and defaults
 
-Independent creators working on podcasts, education, interviews, and gaming videos. Default UI language is Indonesian; English is selectable. Default processing uses CPU, one heavy job at a time, multilingual Whisper small Q5_1, Qwen3 4B Q4_K_M, and 1080p exports. Models download once during setup. Local processing is available offline afterward.
+Independent creators working on podcasts, education, interviews, and gaming videos. Default UI language is Indonesian; English is selectable. Default processing uses CPU, one heavy job at a time, multilingual Whisper small Q5_1, Economy discovery, and 1080p exports. Economy uses installed Qwen3 1.7B Q4_K_M for proposals and installed 4B for final review; one installed Qwen model handles both stages. Models download once during setup. Local processing is available offline afterward.
 
 ## Requirements
 
@@ -46,7 +46,9 @@ composition. The optional quality pack must pass native inference and frontend c
 acoustic timing or speaker quality is described as verified. See docs/features/editorial-timeline.md
 and docs/features/speech-quality-pack.md for limits and actual validation boundaries.
 
-Discovery count is a maximum and duration is a target, with complete phrases and payoff taking priority. Users can specify moment focus and an interest threshold. Candidates require transcript-grounded hook/payoff evidence and a second review; zero qualifying moments is valid. Local selection is transcript-based and requires editorial review. Caption refinement can use the optional medium model on an individual cut, expose uncertain words, and save through revision checks.
+Discovery count is a target bounded by quality and duration is a target, with complete phrases and payoff taking priority. Podcast and Gaming profiles default to a balanced interest threshold of 70. Candidates require transcript-grounded hook/payoff evidence and independent full-transcript review. At most one bounded neighboring-context pass seeks a shortfall; the result reports rejection reasons without adding filler. Zero qualifying moments is valid. Gaming audio-energy changes are search hints rather than audiovisual understanding. Uncertain new cuts can queue optional medium caption refinement without retranscribing the source.
+
+Face framing follows edited scene order, keeps identities stable within a shot, and supports automatic two-face split layers or a constrained gaming facecam region. Manual composition layers remain editable. Active speaker detection is outside this release. Tracking commits its edit and recovery marker in one optimistic database transaction.
 
 Use explicit job states, monotonic progress, durable checkpoints, revision conflict detection, immutable render snapshots, and validated temporary exports. Missing speech allows manual clipping. AI scores are suggestions, not guarantees of reach or accuracy. No enabled control may be a placeholder.
 

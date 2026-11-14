@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.1.0-preview.6 (2026-11-15)
+
+### Added
+
+- Economy discovery with pinned Qwen3 1.7B proposals and installed 4B final review, sequential
+  stage-long model sessions, exact token budgets, Podcast/Gaming profiles, and audio-change hints.
+- Quality-bounded clip targets with independent quoted review dimensions, bounded extra search,
+  explicit shortfall reports, frozen model/transcript checkpoints, and optional short-cut refinement.
+- Scene-aware face following, stable two-face split layers, constrained gaming facecam search,
+  bounded frame streaming, and transaction-backed tracking recovery.
+
+### Fixed
+
+- Studio inspector now has one themed scrollbar with fixed tabs and a native forced-color fallback.
+- Censored spoken words no longer hide the rest of a transcript. Matching saved recognition
+  restores complete project words without running speech inference again.
+- Repeated ONNX jobs/scenes share the required process-wide environment. Reviewed clip boundaries
+  are saved without applying phrase padding a second time.
+- Small proposal models select numbered phrases; source timing and quotes come from the engine,
+  with source-time diversity and complete candidate review before acceptance.
+- Dense tracking anchors use balanced crop expressions and managed FFmpeg argument files,
+  avoiding expression nesting and Windows command-line limits in previews and exports.
+- Automatic short-cut caption refinement freezes its availability and uses deterministic child
+  IDs. Discovery retries preserve completed refinement and later manual clip revisions.
+
 ## 0.1.0-preview.5 (2026-11-14)
 
 ### Added
