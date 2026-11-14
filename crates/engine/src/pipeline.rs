@@ -1139,10 +1139,16 @@ pub async fn generate(
 
 async fn complete_plan(state: &AppState, job: &mut Job, project: &Project) -> Result<()> {
     let plan: Vec<Clip> = serde_json::from_value(job.payload["plan"].clone())?;
-    let refine = job.payload["selection_version"].as_u64().unwrap_or(2) >= 3
-        && model_manager::model_path(state, "whisper-medium")
-            .await
-            .is_ok();
+    if !job.payload["caption_refinement_enabled"].is_boolean() {
+        job.payload["caption_refinement_enabled"] = json!(
+            job.payload["selection_version"].as_u64().unwrap_or(2) >= 3
+                && model_manager::model_path(state, "whisper-medium")
+                    .await
+                    .is_ok()
+        );
+        db::save_job(&state.db, job).await?;
+    }
+    let refine = job.payload["caption_refinement_enabled"].as_bool() == Some(true);
     for clip in plan {
         clip.document
             .validate(project.duration_ms)
@@ -1158,6 +1164,9 @@ async fn complete_plan(state: &AppState, job: &mut Job, project: &Project) -> Re
             .count();
         if refine && uncertain * 10 > clip.document.words.len().max(1) {
             let gate = state.operation_gate.lock().await;
+            if db::clip(&state.db, &clip.id).await?.revision != clip.revision {
+                continue;
+            }
             let now = now_ms();
             let followup = Job {
                 id: Uuid::new_v5(
