@@ -660,9 +660,9 @@
 
 .jobRow {
   display: grid;
-  grid-template-columns: minmax(160px, 0.9fr) minmax(0, 2fr) auto auto;
+  grid-template-columns: minmax(160px, 24%) minmax(0, 1fr) 132px 44px;
   align-items: center;
-  gap: 16px;
+  gap: 4px 16px;
   min-width: 0;
   padding: 18px 20px;
   border: 1px solid var(--border);
@@ -684,16 +684,49 @@
 }
 
 .jobIdentity,
-.jobProgress,
+.jobMessage,
+.jobMeter,
 .jobDate,
 .jobActions {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.jobProgress {
-  display: grid;
-  gap: 10px;
+.jobIdentity {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.jobMessage {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.jobMeter {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.jobMeter span {
+  min-width: 4ch;
+  text-align: right;
+}
+
+.jobDate {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.jobActions {
+  grid-column: 4;
+  grid-row: 2;
+  min-height: 44px;
+}
+
+.jobAction {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
 }
 
 .progressWithValue {
@@ -715,6 +748,7 @@
 
 .jobError {
   grid-column: 1 / -1;
+  grid-row: 3;
   min-width: 0;
 }
 
@@ -856,11 +890,29 @@
 
 @media (max-width: 900px) {
   .jobRow {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) 44px;
   }
-  .jobProgress {
+  .jobIdentity {
+    grid-row: 1;
+  }
+  .jobMessage {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+  .jobMeter {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .jobDate {
+    grid-column: 1;
+    grid-row: 4;
+  }
+  .jobActions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .jobError {
+    grid-row: 5;
   }
   .workspace,
   .settingsGrid {

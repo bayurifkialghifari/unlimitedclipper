@@ -43,8 +43,46 @@ test('uses the window width, keeps long jobs readable, and plays a real export o
     created_at: Date.now(),
     revision: 3,
   };
+  const jobs: Job[] = [
+    job,
+    {
+      ...job,
+      id: 'layout-cancelled',
+      kind: 'model',
+      status: 'cancelled',
+      progress: 0,
+      error: undefined,
+    },
+    {
+      ...job,
+      id: 'layout-completed',
+      kind: 'generate',
+      status: 'completed',
+      progress: 1,
+      payload: { qualifying_moments: 0 },
+      error: undefined,
+    },
+    { ...job, id: 'layout-tracking', kind: 'track', progress: 0, error: undefined },
+    {
+      ...job,
+      id: 'layout-running',
+      kind: 'import',
+      status: 'running',
+      progress: 0.64,
+      error: undefined,
+    },
+  ];
+  let retryRequests = 0;
+  let finishRetry: (() => void) | undefined;
+  await page.route('**/api/v1/jobs/layout-job/retry', async (route) => {
+    retryRequests += 1;
+    await new Promise<void>((resolve) => {
+      finishRetry = resolve;
+    });
+    await route.fulfill({ json: { ...job, status: 'queued' } });
+  });
   await page.route('**/api/v1/projects', (route) => route.fulfill({ json: [project] }));
-  await page.route('**/api/v1/jobs', (route) => route.fulfill({ json: [job] }));
+  await page.route('**/api/v1/jobs', (route) => route.fulfill({ json: jobs }));
   await page.route('**/api/v1/exports', (route) => route.fulfill({ json: [exported] }));
   let videoRequests = 0;
   await page.route('**/api/v1/assets/layout-video', (route) => {
@@ -79,6 +117,43 @@ test('uses the window width, keeps long jobs readable, and plays a real export o
         await page.getByText('Error details', { exact: true }).click();
         await expect(page.getByText(job.error!, { exact: true })).toBeVisible();
         await expect(page.locator('main').getByText('42%', { exact: true })).toBeVisible();
+        const rows = page.locator('main article');
+        await expect(rows).toHaveCount(jobs.length);
+        if (viewport.width >= 1280) {
+          const geometry = await rows.evaluateAll((rows) =>
+            rows.map((row) => {
+              const title = row.querySelector('h2')!.getBoundingClientRect();
+              const meter = row.querySelector('progress')!.getBoundingClientRect();
+              return {
+                left: meter.left,
+                width: meter.width,
+                titleCenter: title.top + title.height / 2,
+                meterCenter: meter.top + meter.height / 2,
+              };
+            }),
+          );
+          for (const bounds of geometry) {
+            expect(Math.abs(bounds.left - geometry[0].left)).toBeLessThan(1);
+            expect(Math.abs(bounds.width - geometry[0].width)).toBeLessThan(1);
+            expect(Math.abs(bounds.titleCenter - bounds.meterCenter)).toBeLessThan(1);
+          }
+        }
+        const retry = rows.first().getByRole('button', { name: 'Retry', exact: true });
+        await expect(retry).toHaveText('');
+        await expect(retry).toHaveAttribute('title', 'Retry');
+        await expect(retry.locator('svg')).toHaveCount(1);
+        const retryBounds = await retry.boundingBox();
+        expect(retryBounds!.width).toBe(44);
+        expect(retryBounds!.height).toBe(44);
+        if (viewport.width === 1920) {
+          await retry.focus();
+          await page.keyboard.press('Enter');
+          await expect.poll(() => retryRequests).toBe(1);
+          await expect(retry).toBeDisabled();
+          finishRetry!();
+          await expect(retry).toBeEnabled();
+          await page.screenshot({ path: 'test-results/layout-jobs.png', fullPage: true });
+        }
       }
       if (route === '/settings') {
         await expect(
@@ -100,6 +175,7 @@ test('uses the window width, keeps long jobs readable, and plays a real export o
   }
   await page.goto('/exports');
   await expect(page.getByRole('heading', { name: exported.name })).toBeVisible();
+  await page.getByRole('button', { name: /Progress and alerts.*Minimize/ }).click();
   expect(videoRequests).toBe(0);
   await page.getByText('Preview video', { exact: true }).click();
   const video = page.getByLabel(exported.name, { exact: true });

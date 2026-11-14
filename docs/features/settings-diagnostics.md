@@ -25,6 +25,11 @@ Headers and sections follow the window width. Processing history uses compact re
 visible percentages, and expandable full error details. The activity popup anchors below the page
 header so it does not cover search or toolbar controls.
 
+Processing rows reserve the same title, meter, date, and action columns regardless of job status.
+On desktop the title and percentage share a row, with the stage message above the meter. Narrow
+screens stack the stage/meter under the title. Retry and cancellation use small labeled icons
+with native tooltips, visible focus, and 44-pixel hit areas; pending requests disable their action.
+
 Temporary cleanup reports reclaimed bytes and protected entries. It retains failed/cancelled job
 checkpoints for retry, nested temporary references, project transcription checkpoints, and every
 registered temporary asset. Originals, exports, and models are outside this cleanup scope.

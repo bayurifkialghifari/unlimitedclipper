@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-preview.4 (2026-11-14)
+
+### Fixed
+
+- Processing titles, progress meters, and percentages now align across completed, failed,
+  cancelled, and active jobs, with fixed date/action columns and stacked narrow-screen rows.
+- Retry and cancellation use compact accessible icons with tooltips and 44-pixel hit areas.
+  Pending requests disable the action while preserving keyboard activation.
+
 ## 0.1.0-preview.3 (2026-11-14)
 
 ### Added

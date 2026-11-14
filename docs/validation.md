@@ -82,6 +82,27 @@ Local results are recorded independently. Installer install/uninstall, native up
 physical x64 runtime, complete accessibility certification, and Android runtime remain pending.
 The private repository provides manual preview downloads, not a public automatic-update feed.
 
+## Processing-row alignment, 2026-11-14
+
+The expanded browser layout scenario passed at 390, 1280, 1920, and 2560 pixels with completed,
+cancelled, failed, and active jobs. It measured matching meter starts/widths and title/meter
+vertical centers on desktop, checked the 44-pixel icon controls and translated accessible
+names/tooltips, and activated retry with Enter while verifying its pending disabled state.
+Long error details and the actual MP4 preview remain covered. The running fixture keeps its
+activity popup visible; the test explicitly minimizes that popup before opening the export.
+Evidence: tests/browser/layout.spec.ts and test-results/layout-jobs.png.
+
+The live ARM64 host was refreshed only after confirming no active jobs or unsaved edits. All
+26 real history rows passed the same alignment measurements; retry contained only its icon,
+with no JavaScript errors. Evidence: .cache/jobs-alignment-native-validation.json and
+.cache/jobs-alignment-native.png. Frontend lint/format/types/unit/build checks passed.
+The engine was unchanged, so its existing 32-test, Rustfmt, and Clippy evidence remains applicable.
+
+Anti-slop During gate, scoped: uniform columns provide predictable scanning; translated icon
+names, native tooltips, visible focus, 44-pixel targets, pending disablement, and keyboard retry
+preserve usable actions. Compact controls retain real processing feedback and expandable errors.
+No invented status records are shipped. Full accessibility certification remains pending.
+
 ## Executed checks
 
 Environment: Windows 11 on Snapdragon X ARM64, eight logical cores, approximately 16 GB RAM. Native Rust 1.100 uses the workspace LLVM-MinGW linker. Node.js 24 runs as x64 under emulation. The minimum supported Rust version is 1.92 because of the ORT dependency.

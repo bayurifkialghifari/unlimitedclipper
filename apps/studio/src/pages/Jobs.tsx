@@ -54,32 +54,34 @@ export function Jobs() {
                 {jobKind(text, job)} · {jobStatus(text, job)}
               </h2>
             </div>
-            <div className={styles.jobProgress}>
-              <p>{jobMessage(text, job)}</p>
-              <div className={styles.progressWithValue}>
-                <progress max={1} value={job.progress} aria-label={jobMessage(text, job)} />
-                <span>{Math.round(job.progress * 100)}%</span>
-              </div>
+            <p className={styles.jobMessage}>{jobMessage(text, job)}</p>
+            <div className={`${styles.progressWithValue} ${styles.jobMeter}`}>
+              <progress max={1} value={job.progress} aria-label={jobMessage(text, job)} />
+              <span>{Math.round(job.progress * 100)}%</span>
             </div>
             <p className={styles.jobDate}>{date(job.created_at)}</p>
             <div className={styles.jobActions}>
               {['queued', 'running'].includes(job.status) && (
                 <Button
                   icon={<XIcon />}
+                  variant="ghost"
+                  className={styles.jobAction}
+                  aria-label={text.cancel}
+                  title={text.cancel}
                   disabled={pending === job.id}
                   onClick={() => void action(job.id, false)}
-                >
-                  {text.cancel}
-                </Button>
+                />
               )}
               {['failed', 'cancelled'].includes(job.status) && (
                 <Button
                   icon={<ArrowClockwiseIcon />}
+                  variant="ghost"
+                  className={styles.jobAction}
+                  aria-label={text.retry}
+                  title={text.retry}
                   disabled={pending === job.id}
                   onClick={() => void action(job.id, true)}
-                >
-                  {text.retry}
-                </Button>
+                />
               )}
             </div>
             {job.error && (
