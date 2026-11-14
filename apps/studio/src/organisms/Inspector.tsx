@@ -10,6 +10,8 @@ import { languages } from '../lib/format';
 import { CaptionPresetPicker } from '../molecules/CaptionPresetPicker';
 import { QueryState } from '../molecules/QueryState';
 import { CaptionRefinement } from './CaptionRefinement';
+import { EditorialPanel } from './EditorialPanel';
+import { TimelineEditor } from './TimelineEditor';
 import type { CropRect, Layout, Project } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -77,6 +79,7 @@ export function Inspector({
     ['crop', text.crop],
     ['title', text.title],
     ['branding', text.branding],
+    ['timeline', text.timelineSegments],
   ];
 
   async function action(operation: () => Promise<unknown>) {
@@ -162,15 +165,33 @@ export function Inspector({
       next.words = [
         ...sourceWords.map((word) => ({
           ...word,
+          ...overrides.get(word.id),
           text: overrides.get(word.id)?.text ?? word.text,
           emphasis: overrides.get(word.id)?.emphasis ?? word.emphasis,
           color: overrides.get(word.id)?.color ?? word.color,
-          start_ms: Math.max(0, word.start_ms - next.start_ms),
-          end_ms: Math.min(next.end_ms - next.start_ms, word.end_ms - next.start_ms),
+          start_ms: Math.max(
+            0,
+            (overrides.get(word.id)?.start_ms === undefined
+              ? word.start_ms
+              : oldStart + overrides.get(word.id)!.start_ms) - next.start_ms,
+          ),
+          end_ms: Math.min(
+            next.end_ms - next.start_ms,
+            (overrides.get(word.id)?.end_ms === undefined
+              ? word.end_ms
+              : oldStart + overrides.get(word.id)!.end_ms) - next.start_ms,
+          ),
         })),
         ...manualWords,
-      ].sort((a, b) => a.start_ms - b.start_ms);
-      next.keyframes = next.keyframes.filter((key) => key.time_ms <= next.end_ms - next.start_ms);
+      ]
+        .filter((word) => word.end_ms > word.start_ms)
+        .sort((a, b) => a.start_ms - b.start_ms);
+      next.keyframes = next.keyframes
+        .map((key) => ({
+          ...key,
+          time_ms: key.time_ms + oldStart - next.start_ms,
+        }))
+        .filter((key) => key.time_ms >= 0 && key.time_ms <= next.end_ms - next.start_ms);
     });
   }
 
@@ -303,6 +324,7 @@ export function Inspector({
             {document && (
               <>
                 <hr className={styles.separator} />
+                <EditorialPanel key={draft!.id} />
                 <Field
                   label={text.name}
                   value={draft!.name}
@@ -316,6 +338,10 @@ export function Inspector({
                     min={0}
                     step={0.1}
                     value={document.start_ms / 1000}
+                    disabled={
+                      (document.segments?.length ?? 1) > 1 ||
+                      Boolean(document.visual_layers?.length || document.audio_layers?.length)
+                    }
                     onChange={(event) =>
                       updateBoundary('start_ms', Number(event.target.value) * 1000)
                     }
@@ -326,6 +352,10 @@ export function Inspector({
                     step={0.1}
                     max={(project?.duration_ms ?? 0) / 1000}
                     value={document.end_ms / 1000}
+                    disabled={
+                      (document.segments?.length ?? 1) > 1 ||
+                      Boolean(document.visual_layers?.length || document.audio_layers?.length)
+                    }
                     onChange={(event) =>
                       updateBoundary('end_ms', Number(event.target.value) * 1000)
                     }
@@ -344,6 +374,10 @@ export function Inspector({
                     ),
                   )}
                 </Select>
+                {((document.segments?.length ?? 1) > 1 ||
+                  Boolean(document.visual_layers?.length || document.audio_layers?.length)) && (
+                  <p className={styles.hint}>{text.timelineBoundaryHint}</p>
+                )}
                 <Segmented
                   label={text.resolution}
                   value={String(document.resolution)}
@@ -999,6 +1033,7 @@ export function Inspector({
             )}
           </>
         )}
+        {tab === 'timeline' && document && <TimelineEditor key={draft!.id} />}
       </div>
     </aside>
   );

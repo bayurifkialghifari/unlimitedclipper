@@ -15,6 +15,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/assets/audio': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['list_audio_assets'];
+    put?: never;
+    post: operations['upload_audio'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/assets/upload': {
     parameters: {
       query?: never;
@@ -79,6 +95,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clips/{id}/auto-edit': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['auto_edit'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clips/{id}/captions': {
     parameters: {
       query?: never;
@@ -127,6 +159,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clips/{id}/preview-render': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['preview_render'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clips/{id}/subtitles': {
     parameters: {
       query?: never;
@@ -137,6 +185,22 @@ export interface paths {
     get: operations['clip_subtitles'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clips/{id}/timeline-preview': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['timeline_preview'];
     delete?: never;
     options?: never;
     head?: never;
@@ -375,6 +439,38 @@ export interface paths {
       cookie?: never;
     };
     get: operations['list_models'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/models/import-pack': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['import_quality_pack'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/models/quality-pack': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['quality_pack_status'];
     put?: never;
     post?: never;
     delete?: never;
@@ -631,6 +727,31 @@ export interface components {
       client_id: string;
       dirty: boolean;
     };
+    AudioAsset: {
+      asset_id: string;
+      /** Format: int64 */
+      duration_ms: number;
+      name: string;
+    };
+    AudioLayer: {
+      asset_id?: string | null;
+      enabled: boolean;
+      /** Format: int64 */
+      end_ms: number;
+      /** Format: double */
+      gain: number;
+      id: string;
+      /** Format: int64 */
+      source_start_ms: number;
+      /** Format: int64 */
+      start_ms: number;
+    };
+    AutoEditRequest: {
+      profile: string;
+      remove_silence: boolean;
+      /** Format: int64 */
+      revision: number;
+    };
     CaptionPreset: {
       id: string;
       style: components['schemas']['CaptionStyle'];
@@ -684,6 +805,7 @@ export interface components {
       y: number;
     };
     EditDocument: {
+      audio_layers?: components['schemas']['AudioLayer'][];
       caption_model?: string | null;
       captions: components['schemas']['CaptionStyle'];
       crop: components['schemas']['CropRect'];
@@ -695,6 +817,7 @@ export interface components {
       layout: components['schemas']['Layout'];
       /** Format: int32 */
       resolution: number;
+      segments?: components['schemas']['SourceSegment'][];
       /** Format: double */
       split_ratio: number;
       /** Format: int64 */
@@ -702,6 +825,7 @@ export interface components {
       title: components['schemas']['TitleStyle'];
       /** Format: int32 */
       version: number;
+      visual_layers?: components['schemas']['VisualLayer'][];
       watermark: components['schemas']['Watermark'];
       words: components['schemas']['Word'][];
     };
@@ -782,6 +906,12 @@ export interface components {
       downloaded_bytes: number;
       ready: boolean;
     };
+    PackStatus: {
+      languages: string[];
+      ready: boolean;
+      /** Format: int64 */
+      size_bytes: number;
+    };
     Project: {
       asset_id: string;
       /** Format: int64 */
@@ -814,6 +944,10 @@ export interface components {
       speech_model: string;
       vocabulary?: string;
     };
+    RevisionRequest: {
+      /** Format: int64 */
+      revision: number;
+    };
     SessionRequest: {
       token: string;
     };
@@ -829,6 +963,16 @@ export interface components {
       speech_model: string;
       transcription_language: string;
       update_feed: string;
+    };
+    SourceSegment: {
+      /** Format: int64 */
+      end_ms: number;
+      /** Format: int64 */
+      start_ms: number;
+    };
+    TimelineRequest: {
+      document: components['schemas']['EditDocument'];
+      segments: components['schemas']['SourceSegment'][];
     };
     TitleStyle: {
       color: string;
@@ -856,6 +1000,28 @@ export interface components {
       restart_required?: boolean;
       version: string;
     };
+    VisualLayer: {
+      asset_id?: string | null;
+      color: string;
+      crop?: null | components['schemas']['CropRect'];
+      enabled: boolean;
+      /** Format: int64 */
+      end_ms: number;
+      id: string;
+      kind: string;
+      secondary_crop?: null | components['schemas']['CropRect'];
+      /** Format: int32 */
+      size: number;
+      /** Format: int64 */
+      source_start_ms?: number;
+      /** Format: int64 */
+      start_ms: number;
+      text: string;
+      /** Format: double */
+      x: number;
+      /** Format: double */
+      y: number;
+    };
     Watermark: {
       asset_id?: string | null;
       color: string;
@@ -881,6 +1047,16 @@ export interface components {
       /** Format: int64 */
       start_ms: number;
       text: string;
+      timing?: null | components['schemas']['WordTiming'];
+    };
+    WordTiming: {
+      /** Format: double */
+      alignment_confidence?: number | null;
+      provenance: string;
+      /** Format: int64 */
+      source_end_ms: number;
+      /** Format: int64 */
+      source_start_ms: number;
     };
     YoutubeRequest: {
       url: string;
@@ -912,6 +1088,44 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  list_audio_assets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AudioAsset'][];
+        };
+      };
+    };
+  };
+  upload_audio: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AudioAsset'];
+        };
       };
     };
   };
@@ -1041,6 +1255,37 @@ export interface operations {
       };
     };
   };
+  auto_edit: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AutoEditRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
+      };
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   caption_job: {
     parameters: {
       query?: never;
@@ -1118,6 +1363,37 @@ export interface operations {
       };
     };
   };
+  preview_render: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RevisionRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
+      };
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   clip_subtitles: {
     parameters: {
       query?: never;
@@ -1135,6 +1411,31 @@ export interface operations {
         };
         content: {
           'text/plain': string;
+        };
+      };
+    };
+  };
+  timeline_preview: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TimelineRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EditDocument'];
         };
       };
     };
@@ -1432,6 +1733,42 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ModelStatus'][];
+        };
+      };
+    };
+  };
+  import_quality_pack: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  quality_pack_status: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PackStatus'];
         };
       };
     };

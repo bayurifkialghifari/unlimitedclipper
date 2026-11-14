@@ -12,6 +12,8 @@ export function jobKind(text: Copy, job: Job) {
     title: text.generateTitle,
     track: text.autoCrop,
     captions: text.refineCaptions,
+    auto_edit: text.autoEditTitle,
+    preview: text.renderPreview,
     component_update: text.updates,
     export: text.exports,
   };
@@ -31,6 +33,10 @@ export function jobStatus(text: Copy, job: Job) {
 }
 
 export function jobMessage(text: Copy, job: Job) {
+  const result = job.payload as { qualifying_moments?: number } | null;
+  if (job.kind === 'generate' && job.status === 'completed' && result?.qualifying_moments === 0) {
+    return text.noQualifyingMoments;
+  }
   if (job.status !== 'running') {
     return jobStatus(text, job);
   }
@@ -47,6 +53,7 @@ export function jobMessage(text: Copy, job: Job) {
     selection: text.phaseSelection,
     review: text.phaseReview,
     captions: text.phaseCaptions,
+    alignment: text.phaseCaptions,
     tracking: text.phaseTracking,
     render: text.phaseRender,
   };

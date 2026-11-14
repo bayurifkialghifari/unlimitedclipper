@@ -9,6 +9,9 @@ import type {
   Project,
   ProjectDetail,
   Settings,
+  PackStatus,
+  SourceSegment,
+  AudioAsset,
 } from '../types';
 
 export class ApiError extends Error {
@@ -38,6 +41,23 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 }
 
 export const api = {
+  audioAssets: () => request<AudioAsset[]>('/assets/audio'),
+  qualityPack: () => request<PackStatus>('/models/quality-pack'),
+  autoEdit: (id: string, revision: number, profile: string, remove_silence: boolean) =>
+    request<Job>('/clips/' + id + '/auto-edit', {
+      method: 'POST',
+      body: JSON.stringify({ revision, profile, remove_silence }),
+    }),
+  previewRender: (id: string, revision: number) =>
+    request<Job>('/clips/' + id + '/preview-render', {
+      method: 'POST',
+      body: JSON.stringify({ revision }),
+    }),
+  timelinePreview: (id: string, document: EditDocument, segments: SourceSegment[]) =>
+    request<EditDocument>('/clips/' + id + '/timeline-preview', {
+      method: 'POST',
+      body: JSON.stringify({ document, segments }),
+    }),
   health: () => request<Health>('/health'),
   projects: () => request<Project[]>('/projects'),
   project: (id: string) => request<ProjectDetail>('/projects/' + id),

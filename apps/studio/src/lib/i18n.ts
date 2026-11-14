@@ -1,6 +1,46 @@
 import { create } from 'zustand';
 
 const en = {
+  timelineBoundaryHint: 'Use Source segments to change boundaries after adding timeline layers.',
+  noQualifyingMoments:
+    'No moments passed review. Adjust the focus or interest filter, or create a clip manually.',
+  importAudio: 'Import local audio',
+  horizontalPosition: 'Horizontal position',
+  timingReviewHint:
+    'Estimated timing and low-confidence acoustic alignment need review. Manual corrections are preserved.',
+  speakerReviewHint:
+    'Speaker groups do not identify people. Review voice-to-face mapping, overlapping speech, and each proposed cut.',
+  selectClip: 'Select a clip to edit its timeline.',
+  visible: 'Enabled',
+  audioGain: 'Volume',
+  addBroll: 'Add local B-roll',
+  sourceOffset: 'Source offset',
+  autoEditTitle: 'Automatic editing',
+  editorialProfile: 'Editorial',
+  reactionProfile: 'Reaction',
+  removeSilence: 'Remove verified silence',
+  reviewProposal: 'Review the proposed cuts, framing, and emphasis before applying.',
+  applyProposal: 'Apply proposal',
+  proposalConflict: 'This clip changed. Generate a new proposal before applying.',
+  renderPreview: 'Render edited preview',
+  previewStale: 'Video edits changed. Refresh the preview to review the current edit.',
+  timelineSegments: 'Source segments',
+  addSegment: 'Add source segment',
+  removeSegment: 'Remove segment',
+  visualLayers: 'Visual layers',
+  addNote: 'Add text note',
+  addPunchIn: 'Add punch-in',
+  addCameraFrame: 'Add camera frame',
+  addSplit: 'Add split composition',
+  audioLayers: 'Audio layers',
+  addTap: 'Add optional tap',
+  sourceAsset: 'Local source',
+  qualityPack: 'Speech quality pack',
+  qualityPackDetail:
+    'Experimental Indonesian/English word alignment and speaker analysis. Native accuracy is not verified. Import the verified pack once for offline processing.',
+  importQualityPack: 'Import quality pack',
+  qualityPackMissing: 'Install the quality pack in Settings to enable verified silence removal.',
+  captionKinetic: 'Kinetic',
   androidUntested: 'Android preview · Not tested on a device',
   androidScope:
     'Import a local video, make a manual clip, and export it. Android AI, YouTube imports, and automatic updates are not available in this build.',
@@ -194,6 +234,48 @@ const en = {
 };
 
 const id: typeof en = {
+  timelineBoundaryHint:
+    'Gunakan Segmen sumber untuk mengubah batas setelah menambah layer timeline.',
+  noQualifyingMoments:
+    'Tidak ada momen yang lolos. Ubah fokus atau filter daya tarik, atau buat klip manual.',
+  importAudio: 'Impor audio lokal',
+  horizontalPosition: 'Posisi horizontal',
+  timingReviewHint:
+    'Periksa timing perkiraan dan alignment dengan keyakinan rendah. Koreksi manual dipertahankan.',
+  speakerReviewHint:
+    'Kelompok suara bukan identitas orang. Periksa kecocokan suara dengan wajah, suara bersamaan, dan setiap potongan.',
+  selectClip: 'Pilih klip untuk mengedit timeline.',
+  visible: 'Aktif',
+  audioGain: 'Volume',
+  addBroll: 'Tambah B-roll lokal',
+  sourceOffset: 'Offset sumber',
+  autoEditTitle: 'Editing otomatis',
+  editorialProfile: 'Editorial',
+  reactionProfile: 'Reaksi',
+  removeSilence: 'Potong keheningan terverifikasi',
+  reviewProposal: 'Review potongan, framing, dan penekanan yang diusulkan sebelum menerapkan.',
+  applyProposal: 'Terapkan usulan',
+  proposalConflict: 'Klip ini sudah berubah. Buat usulan baru sebelum menerapkan.',
+  renderPreview: 'Render preview hasil edit',
+  previewStale: 'Edit video sudah berubah. Perbarui preview untuk melihat edit terbaru.',
+  timelineSegments: 'Segmen sumber',
+  addSegment: 'Tambah segmen sumber',
+  removeSegment: 'Hapus segmen',
+  visualLayers: 'Layer visual',
+  addNote: 'Tambah catatan teks',
+  addPunchIn: 'Tambah punch-in',
+  addCameraFrame: 'Tambah bingkai kamera',
+  addSplit: 'Tambah komposisi split',
+  audioLayers: 'Layer audio',
+  addTap: 'Tambah tap opsional',
+  sourceAsset: 'Sumber lokal',
+  qualityPack: 'Paket kualitas ucapan',
+  qualityPackDetail:
+    'Alignment kata Indonesia/Inggris dan analisis pembicara eksperimental. Akurasi native belum diverifikasi. Impor paket terverifikasi sekali untuk proses offline.',
+  importQualityPack: 'Impor paket kualitas',
+  qualityPackMissing:
+    'Pasang paket kualitas di Pengaturan untuk mengaktifkan pemotongan keheningan terverifikasi.',
+  captionKinetic: 'Kinetic',
   androidUntested: 'Pratinjau Android · Belum dites di perangkat',
   androidScope:
     'Impor video lokal, buat clip manual, lalu ekspor. AI Android, impor YouTube, dan pembaruan otomatis belum tersedia di build ini.',

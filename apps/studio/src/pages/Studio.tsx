@@ -16,6 +16,7 @@ import { useProject } from '../hooks/use-engine';
 import { QueryState } from '../molecules/QueryState';
 import { ImportControls } from '../organisms/ImportControls';
 import { VideoPreview } from '../organisms/VideoPreview';
+import { ComposedPreview } from '../organisms/ComposedPreview';
 import { Inspector } from '../organisms/Inspector';
 import { ManualClipDialog } from '../organisms/ManualClipDialog';
 import type { Clip } from '../types';
@@ -64,6 +65,12 @@ export function Studio() {
     jobs.data?.find((job) => ['running', 'cancelling'].includes(job.status)) ??
     jobs.data?.find((job) => job.status === 'queued');
   const source = project.data?.project;
+  const lastDiscovery = jobs.data?.find(
+    (job) => job.kind === 'generate' && job.project_id === source?.id,
+  );
+  const noResults =
+    (lastDiscovery?.payload as { qualifying_moments?: number } | undefined)?.qualifying_moments ===
+    0;
   return (
     <>
       <header className={styles.header}>
@@ -103,7 +110,14 @@ export function Studio() {
         </div>
       )}
       <div className={styles.workspace}>
-        <VideoPreview project={source} onImport={() => input.current?.click()} />
+        {editor.draft &&
+        ((editor.draft.document.segments?.length ?? 0) > 1 ||
+          Boolean(editor.draft.document.visual_layers?.length) ||
+          Boolean(editor.draft.document.audio_layers?.length)) ? (
+          <ComposedPreview key={editor.draft.id} />
+        ) : (
+          <VideoPreview project={source} onImport={() => input.current?.click()} />
+        )}
         <Inspector project={source} onManualClip={() => setManual(true)} />
       </div>
       <section className={styles.clipPanel} aria-label={text.noClips}>
@@ -163,7 +177,11 @@ export function Studio() {
           </div>
         </div>
         {!project.data?.clips.length ? (
-          <p className={styles.hint}>{text.noClipsDetail}</p>
+          <p className={styles.hint}>
+            {lastDiscovery?.status === 'completed' && noResults
+              ? jobMessage(text, lastDiscovery)
+              : text.noClipsDetail}
+          </p>
         ) : (
           <div className={styles.clipRail}>
             {project.data.clips.map((clip) => (

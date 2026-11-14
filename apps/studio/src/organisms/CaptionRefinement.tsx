@@ -37,6 +37,10 @@ export function CaptionRefinement({
     draft?.document.words.filter(
       (word) =>
         (word.confidence !== undefined && word.confidence !== null && word.confidence < 0.65) ||
+        word.timing?.provenance === 'estimated' ||
+        (word.timing?.alignment_confidence !== undefined &&
+          word.timing.alignment_confidence !== null &&
+          word.timing.alignment_confidence < 0.5) ||
         word.end_ms - word.start_ms > 1500,
     ) ?? [];
 
@@ -62,6 +66,7 @@ export function CaptionRefinement({
     <section className={styles.captionRefinement} aria-label={text.captionQuality}>
       <h3>{text.captionQuality}</h3>
       <p className={styles.hint}>{text.captionRefineDetail}</p>
+      <p className={styles.hint}>{text.timingReviewHint}</p>
       {isAndroidHost() && <p className={styles.hint}>{text.androidUnavailable}</p>}
       <Select label={text.speechModel} value={model} onChange={setModel}>
         {speechModels.map((item) => (

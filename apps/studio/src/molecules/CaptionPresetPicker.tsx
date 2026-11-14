@@ -19,6 +19,7 @@ export function CaptionPresetPicker({
     impact: text.captionImpact,
     boxed: text.captionBoxed,
     word: text.captionSingle,
+    kinetic: text.captionKinetic,
   };
   const compared: (keyof CaptionStyle)[] = [
     'preset',

@@ -1,0 +1,248 @@
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@unlimitedclipper/ui';
+import JASSUB from 'jassub';
+import workerUrl from 'jassub/dist/worker/worker.js?worker&url';
+import wasmUrl from 'jassub/dist/wasm/jassub-worker.wasm?url';
+import modernWasmUrl from 'jassub/dist/wasm/jassub-worker-modern.wasm?url';
+import wasmWorkerUrl from 'jassub/dist/wasm/jassub-worker.js?url';
+import modernWasmWorkerUrl from 'jassub/dist/wasm/jassub-worker-modern.js?url';
+import { api, assetUrl } from '../lib/api';
+import { useEditor } from '../lib/editor-store';
+import { flushEditor } from '../lib/save';
+import { useText } from '../lib/i18n';
+import { outputDuration } from '../lib/timeline';
+import type { EditDocument, Job } from '../types';
+import styles from '../styles/Studio.module.css';
+
+function identity(document: EditDocument) {
+  const video = Object.fromEntries(
+    Object.entries(document).filter(
+      ([key]) => !['words', 'captions', 'caption_model'].includes(key),
+    ),
+  );
+  return JSON.stringify(video);
+}
+
+export function ComposedPreview() {
+  const text = useText();
+  const draft = useEditor((state) => state.draft);
+  const seek = useEditor((state) => state.seekRequest);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const video = useRef<HTMLVideoElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
+  const renderer = useRef<JASSUB | null>(null);
+  const jobs = useQuery({
+    queryKey: ['preview-jobs', jobId],
+    queryFn: api.jobs,
+    enabled: Boolean(jobId),
+    refetchInterval: 1000,
+  });
+  const fonts = useQuery({ queryKey: ['fonts'], queryFn: api.fonts });
+  const job = jobs.data?.find((job: Job) => job.id === jobId);
+  const payload = job?.payload as { preview_asset_id?: string } | undefined;
+  const asset = job?.status === 'completed' ? payload?.preview_asset_id : undefined;
+  const busy = pending || Boolean(job && ['queued', 'running', 'cancelling'].includes(job.status));
+  const document = draft?.document;
+  const clipId = draft?.id;
+  const duration = document ? outputDuration(document) : 0;
+  const stale = Boolean(document && snapshot && identity(document) !== snapshot);
+
+  useEffect(() => {
+    if (!asset) {
+      return;
+    }
+    const controller = new AbortController();
+    const renew = () => {
+      void fetch(assetUrl(asset), { method: 'HEAD', signal: controller.signal })
+        .then((response) => {
+          if (!response.ok) {
+            setError(text.previewError);
+          }
+        })
+        .catch((failure: Error) => {
+          if (!controller.signal.aborted) {
+            setError(failure.message);
+          }
+        });
+    };
+    renew();
+    const timer = window.setInterval(renew, 30_000);
+    return () => {
+      window.clearInterval(timer);
+      controller.abort();
+    };
+  }, [asset, text.previewError]);
+
+  async function render() {
+    if (!draft) {
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      await flushEditor();
+      const current = useEditor.getState().draft!;
+      const queued = await api.previewRender(current.id, current.revision);
+      setSnapshot(identity(current.document));
+      setJobId(queued.id);
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!canvas.current || !frame.current || !fonts.data || !asset) {
+      return;
+    }
+    const element = frame.current;
+    const subtitle = new JASSUB({
+      canvas: canvas.current,
+      subContent: '[Script Info]' + String.fromCharCode(10) + 'ScriptType: v4.00+',
+      workerUrl,
+      wasmUrl,
+      modernWasmUrl,
+      wasmWorkerUrl,
+      modernWasmWorkerUrl,
+      fonts: fonts.data.map((name) => '/api/v1/fonts/' + encodeURIComponent(name)),
+      defaultFont: 'Noto Sans',
+      queryFonts: false,
+    });
+    renderer.current = subtitle;
+    let handle = 0;
+    let working = false;
+    const update = () => {
+      if (!working && video.current) {
+        working = true;
+        void subtitle.ready
+          .then(() =>
+            subtitle.manualRender(
+              {
+                expectedDisplayTime: performance.now(),
+                width: element.clientWidth,
+                height: element.clientHeight,
+                mediaTime: video.current?.currentTime ?? 0,
+              },
+              true,
+            ),
+          )
+          .catch((failure: Error) => setError(failure.message))
+          .finally(() => {
+            working = false;
+          });
+      }
+      handle = requestAnimationFrame(update);
+    };
+    handle = requestAnimationFrame(update);
+    return () => {
+      cancelAnimationFrame(handle);
+      renderer.current = null;
+      void subtitle.destroy();
+    };
+  }, [fonts.data, asset]);
+
+  useEffect(() => {
+    if (!document || !draft || !asset) {
+      return;
+    }
+    const controller = new AbortController();
+    const track = structuredClone(document);
+    track.title.text = '';
+    track.watermark.mode = 'none';
+    track.visual_layers = [];
+    void api
+      .preview(draft.id, track, controller.signal)
+      .then(async (content) => {
+        const subtitle = renderer.current;
+        if (!subtitle) {
+          return;
+        }
+        await subtitle.ready;
+        if (!controller.signal.aborted) {
+          await subtitle.renderer.setTrack(content);
+        }
+      })
+      .catch((failure: Error) => {
+        if (failure.name !== 'AbortError') {
+          setError(failure.message);
+        }
+      });
+    return () => controller.abort();
+  }, [document, draft, asset, fonts.data]);
+
+  useEffect(() => {
+    if (video.current && seek && seek.clipId === clipId) {
+      video.current.currentTime = Math.min(duration, seek.positionMs) / 1000;
+    }
+  }, [seek, clipId, duration]);
+
+  const aspect =
+    document?.layout === 'square' ? 1 : document?.layout === 'landscape' ? 16 / 9 : 9 / 16;
+  return (
+    <section className={styles.previewPanel} aria-label={text.renderPreview}>
+      <div className={styles.previewTop}>
+        <Button onClick={() => void render()} disabled={busy}>
+          {text.renderPreview}
+        </Button>
+        {busy && <span role="status">{text.running}</span>}
+      </div>
+      <div
+        ref={frame}
+        style={{
+          position: 'relative',
+          aspectRatio: aspect,
+          width: 'min(100%, ' + 65 * aspect + 'vh)',
+        }}
+      >
+        {asset ? (
+          <video
+            ref={video}
+            src={assetUrl(asset)}
+            controls
+            playsInline
+            aria-label={text.renderPreview}
+            style={{ width: '100%', height: '100%' }}
+            onTimeUpdate={() =>
+              useEditor.getState().setPlayhead((video.current?.currentTime ?? 0) * 1000)
+            }
+            onError={() => setError(text.previewError)}
+          >
+            <track
+              kind="captions"
+              src={'/api/v1/clips/' + clipId + '/subtitles?format=vtt&timeline=output'}
+            />
+          </video>
+        ) : (
+          <p className={styles.hint}>{text.renderPreview}</p>
+        )}
+        <canvas
+          ref={canvas}
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+      {stale && (
+        <p role="status" className={styles.hint}>
+          {text.previewStale}
+        </p>
+      )}
+      {(error || job?.error) && (
+        <p role="alert" className={styles.error}>
+          {error ?? job?.error}
+        </p>
+      )}
+    </section>
+  );
+}

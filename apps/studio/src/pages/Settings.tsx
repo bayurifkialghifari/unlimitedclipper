@@ -7,6 +7,7 @@ import { useLanguage, useText } from '../lib/i18n';
 import { bytes, languages } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
 import { isAndroidHost } from '../lib/native';
+import { QualityPackSettings } from '../organisms/QualityPackSettings';
 import type { Settings } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -296,6 +297,7 @@ export function SettingsPage() {
           </Button>
         </section>
         {settings.data && <Preferences initial={settings.data} />}
+        <QualityPackSettings />
       </div>
     </div>
   );

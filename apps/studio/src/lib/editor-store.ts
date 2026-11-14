@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Clip, EditDocument } from '../types';
+import { outputToSource } from './timeline';
 
 type EditorState = {
   projectId: string | null;
@@ -16,7 +17,7 @@ type EditorState = {
   selectProject: (id: string) => void;
   selectClip: (clip: Clip) => void;
   acceptServer: (clip: Clip) => void;
-  change: (recipe: (document: EditDocument) => void) => void;
+  change: (recipe: (document: EditDocument) => void, preserveTiming?: boolean) => void;
   rename: (name: string) => void;
   acknowledge: (saved: Clip, snapshot: Clip) => void;
   setSaving: (saving: boolean, error?: string | null) => void;
@@ -70,13 +71,39 @@ export const useEditor = create<EditorState>((set, get) => ({
       set({ draft: structuredClone(clip) });
     }
   },
-  change: (recipe) => {
+  change: (recipe, preserveTiming = false) => {
     const current = get();
     if (!current.draft) {
       return;
     }
     const draft = structuredClone(current.draft);
     recipe(draft.document);
+    if (draft.document.version === 2 && draft.document.segments?.length === 1) {
+      draft.document.segments[0] = {
+        start_ms: draft.document.start_ms,
+        end_ms: draft.document.end_ms,
+      };
+    }
+    for (const word of draft.document.words) {
+      const previous = current.draft.document.words.find((previous) => previous.id === word.id);
+      const sourceStart = outputToSource(draft.document, word.start_ms);
+      const sourceEnd = outputToSource(draft.document, word.end_ms - 1);
+      const changed =
+        previous &&
+        (previous.text !== word.text ||
+          outputToSource(current.draft.document, previous.start_ms) !== sourceStart ||
+          outputToSource(current.draft.document, previous.end_ms - 1) !== sourceEnd);
+      if (!preserveTiming && (changed || (!previous && !word.timing))) {
+        if (sourceStart !== null && sourceEnd !== null) {
+          word.timing = {
+            provenance: 'manual',
+            source_start_ms: sourceStart,
+            source_end_ms: sourceEnd + 1,
+            alignment_confidence: null,
+          };
+        }
+      }
+    }
     set({
       draft,
       dirty: true,
