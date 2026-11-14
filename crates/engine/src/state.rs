@@ -64,11 +64,17 @@ impl AppState {
         for directory in ["temporary", "sources", "watermarks", "audio"] {
             let mut files = tokio::fs::read_dir(root.join(directory)).await?;
             while let Some(entry) = files.next_entry().await? {
+                let stale_inference_key = directory == "temporary"
+                    && entry.file_name().to_str().is_some_and(|name| {
+                        name.strip_suffix("-inference.key")
+                            .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
+                    });
                 if entry.file_type().await?.is_file()
-                    && entry
-                        .path()
-                        .extension()
-                        .is_some_and(|extension| extension == "upload")
+                    && (stale_inference_key
+                        || entry
+                            .path()
+                            .extension()
+                            .is_some_and(|extension| extension == "upload"))
                 {
                     tokio::fs::remove_file(entry.path()).await?;
                 }

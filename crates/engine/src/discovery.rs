@@ -167,7 +167,7 @@ fn windows(words: &[Word]) -> Vec<Window> {
     result
 }
 
-fn transcript(words: &[Word]) -> String {
+fn transcript(words: &[Word], origin: i64) -> String {
     let mut lines = String::new();
     let mut first = 0;
     while first < words.len() {
@@ -187,8 +187,8 @@ fn transcript(words: &[Word]) -> String {
             .join(" ");
         lines.push_str(&format!(
             "[{}-{}] {phrase}\n",
-            words[first].start_ms,
-            words[end - 1].end_ms
+            words[first].start_ms - origin,
+            words[end - 1].end_ms - origin
         ));
         first = end;
     }
@@ -200,7 +200,7 @@ fn batched_windows(words: &[Word]) -> Vec<Window> {
     for window in windows(words) {
         if let Some(previous) = batches.last_mut()
             && window.core_end_ms - previous.core_start_ms <= 240_000
-            && transcript(&words[previous.first..window.end]).len() <= 2650
+            && transcript(&words[previous.first..window.end], 0).len() <= 2650
         {
             previous.end = window.end;
             previous.core_end_ms = window.core_end_ms;
@@ -264,10 +264,16 @@ async fn propose(
     if offset >= plan.len() {
         return Ok(());
     }
-    let model = job.payload["proposal_model"]
+    let model_key = if job.payload["discovery_extra_pass"].as_bool() == Some(true) {
+        "review_model"
+    } else {
+        "proposal_model"
+    };
+    let model = job.payload[model_key]
         .as_str()
         .context("Missing proposal model")?
         .to_string();
+    job.payload["active_proposal_model"] = json!(model);
     state
         .progress(
             job,
@@ -329,6 +335,7 @@ async fn propose_windows(
             )
             .await?;
         let words = &project.words[window.first..window.end];
+        let origin = words[0].start_ms;
         let profile_instruction = if profile == "gaming" {
             "Prefer a surprising reaction, funny exchange, or tense outcome. Loud audio alone is not evidence of an interesting moment."
         } else {
@@ -339,7 +346,19 @@ async fn propose_windows(
             .map(|items| {
                 items
                     .iter()
-                    .map(|item| format!("{}-{}", item["start_ms"], item["end_ms"]))
+                    .filter(|item| {
+                        item["start_ms"]
+                            .as_i64()
+                            .is_some_and(|time| time <= words.last().map_or(0, |word| word.end_ms))
+                            && item["end_ms"].as_i64().is_some_and(|time| time >= origin)
+                    })
+                    .map(|item| {
+                        format!(
+                            "{}-{}",
+                            item["start_ms"].as_i64().unwrap_or(0) - origin,
+                            item["end_ms"].as_i64().unwrap_or(0) - origin
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join(", ")
             })
@@ -354,20 +373,30 @@ async fn propose_windows(
                     && cue.time_ms <= words.last().map_or(0, |word| word.end_ms)
             })
             .take(3)
-            .map(|cue| cue.time_ms.to_string())
+            .map(|cue| (cue.time_ms - origin).to_string())
             .collect::<Vec<_>>()
             .join(", ");
         let request = format!(
-            "Find up to 4 standalone video excerpts. {profile_instruction} Read the whole conversation before selecting. Prefer complete 8000-60000 ms moments. Include the setup AND its answer, outcome, or conclusion. Never suggest isolated fragments, unanswered questions, greetings, or repeated quotes. Target duration {duration} ms (0 means automatic); do not pad filler. Use integer SOURCE timestamps shown below. Focus: {focus}. Audio energy changes near source ms {cue_text} are search hints only, not semantic evidence. Avoid already selected ranges: {excluded}. Titles and explanations in {}. Hook and payoff must be short exact quotes INSIDE the range; they should describe its opening and completed ending. An empty array is valid. Prefer moments starting in {}-{}; neighboring text may complete their context. Transcript:\n{}",
+            "Find up to 4 standalone video excerpts. {profile_instruction} Read the whole conversation before selecting. Prefer complete 8000-60000 ms moments. Include the setup AND its answer, outcome, or conclusion. Never suggest isolated fragments, unanswered questions, greetings, or repeated quotes. Target duration {duration} ms (0 means automatic); do not pad filler. Use the integer WINDOW-RELATIVE timestamps shown below, not seconds or global video time. Focus: {focus}. Audio energy changes near window ms {cue_text} are search hints only, not semantic evidence. Avoid already selected ranges: {excluded}. Titles and explanations in {}. Hook and payoff must be short exact quotes INSIDE the range; they should describe its opening and completed ending. An empty array is valid. Prefer moments starting in {}-{}; neighboring text may complete their context. Transcript:\n{}",
             pipeline::output_language(project),
-            window.core_start_ms,
-            window.core_end_ms,
-            transcript(words)
+            window.core_start_ms - origin,
+            window.core_end_ms - origin,
+            transcript(words, origin)
         );
         let output = session.complete(&request, &schema, cancellation).await?;
         let response: Proposals = pipeline::extract_json(&output)?;
-        for candidate in response.clips {
+        for mut candidate in response.clips {
             increment(job, "proposed");
+            let Some(start) = candidate.start_ms.checked_add(origin) else {
+                increment(job, "invalid_evidence");
+                continue;
+            };
+            let Some(end) = candidate.end_ms.checked_add(origin) else {
+                increment(job, "invalid_evidence");
+                continue;
+            };
+            candidate.start_ms = start;
+            candidate.end_ms = end;
             if candidate.start_ms < words[0].start_ms
                 || candidate.end_ms > words.last().context("Empty transcript window")?.end_ms
                 || candidate.end_ms <= candidate.start_ms
@@ -378,7 +407,11 @@ async fn propose_windows(
                 continue;
             }
             if let Some(candidate) = pipeline::fit_suggestion(candidate, project) {
-                candidates.push(candidate);
+                if profile == "podcast" && candidate.end_ms - candidate.start_ms < 8000 {
+                    increment(job, "duration");
+                } else {
+                    candidates.push(candidate);
+                }
             } else {
                 increment(job, "duration");
             }
@@ -677,7 +710,22 @@ pub(crate) async fn select(
             };
             priority(b).total_cmp(&priority(a))
         });
-        for pair in pairs.into_iter().take(8) {
+        let selected = if job.payload["content_profile"].as_str() == Some("gaming") {
+            pairs.into_iter().take(8).collect::<Vec<_>>()
+        } else {
+            let total = pairs.len();
+            let count = total.min(8);
+            (0..count)
+                .map(|index| {
+                    pairs[if count <= 1 {
+                        0
+                    } else {
+                        index * (total - 1) / (count - 1)
+                    }]
+                })
+                .collect::<Vec<_>>()
+        };
+        for pair in selected {
             let first = pair[0].first.max(pair[0].end.saturating_sub(45));
             let end = pair[1]
                 .end

@@ -96,7 +96,7 @@ export function jobMessage(text: Copy, job: Job) {
     }
   }
   const model = (job.payload as Record<string, unknown> | null)?.[
-    job.stage === 'selection' ? 'proposal_model' : 'review_model'
+    job.stage === 'selection' ? 'active_proposal_model' : 'review_model'
   ];
   if (['selection', 'review'].includes(job.stage) && typeof model === 'string') {
     message += ' · ' + model;

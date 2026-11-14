@@ -518,15 +518,24 @@ async fn interrupted_uploads_are_removed_only_after_acquiring_the_instance_lock(
         .unwrap();
     let interrupted = root.path().join("sources/interrupted.upload");
     tokio::fs::write(&interrupted, b"partial").await.unwrap();
+    let stale_key = root
+        .path()
+        .join("temporary")
+        .join(format!("{}-inference.key", uuid::Uuid::new_v4()));
+    tokio::fs::write(&stale_key, b"controlled abandoned session")
+        .await
+        .unwrap();
     let second = AppState::new(root.path().to_path_buf(), root.path().join("tools")).await;
     assert!(second.is_err());
     assert!(interrupted.exists());
+    assert!(stale_key.exists());
     state.db.close().await;
     drop(state);
     let _restarted = AppState::new(root.path().to_path_buf(), root.path().join("tools"))
         .await
         .unwrap();
     assert!(!interrupted.exists());
+    assert!(!stale_key.exists());
 }
 
 #[tokio::test]
