@@ -104,6 +104,20 @@ names, native tooltips, visible focus, 44-pixel targets, pending disablement, an
 preserve usable actions. Compact controls retain real processing feedback and expandable errors.
 No invented status records are shipped. Full accessibility certification remains pending.
 
+## Public repository and runner extraction, 2026-11-14
+
+At the owner's explicit request, the repository became public. A read-only history scan examined
+450 text blobs for common credentials and private-key formats without finding matches. Cache,
+managed video data, tool binaries, and publisher keys were not tracked in Git. The visibility
+change was confirmed through GitHub, and quality/media workflows started on public standard runners.
+
+The media runner then exposed a Windows PowerShell ZIP-module failure: Expand-Archive attempted
+an unavailable three-argument ExtractToDirectory overload. Build-time extraction now streams ZIP
+entries with explicit destination containment. Local Windows PowerShell 5.1.26100.9711 checks passed
+for nested files, replacing existing contents, and rejecting traversal without creating an escaped
+file. Evidence: .cache/extract-compatibility-validation.json and
+.cache/ci-failure-43601628952.log. Hosted execution of the corrected extractor is pending.
+
 ## Executed checks
 
 Environment: Windows 11 on Snapdragon X ARM64, eight logical cores, approximately 16 GB RAM. Native Rust 1.100 uses the workspace LLVM-MinGW linker. Node.js 24 runs as x64 under emulation. The minimum supported Rust version is 1.92 because of the ORT dependency.

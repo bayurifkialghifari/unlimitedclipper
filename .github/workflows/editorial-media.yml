@@ -10,6 +10,9 @@ on:
       - 'scripts/validate-editorial.mjs'
       - 'scripts/validate-scenes.mjs'
       - 'scripts/validate-browser.mjs'
+      - 'scripts/setup-tools.mjs'
+      - 'scripts/setup-assets.mjs'
+      - 'scripts/extract.ps1'
       - 'tests/browser/**'
       - '.github/workflows/editorial-media.yml'
 

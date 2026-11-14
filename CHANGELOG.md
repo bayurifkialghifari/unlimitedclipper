@@ -13,6 +13,8 @@
   cancelled, and active jobs, with fixed date/action columns and stacked narrow-screen rows.
 - Retry and cancellation use compact accessible icons with tooltips and 44-pixel hit areas.
   Pending requests disable the action while preserving keyboard activation.
+- Build-time ZIP extraction on the Windows ARM64 runner, with nested-file overwrite support
+  and traversal rejection. Tool provisioning changes now trigger the native-media workflow.
 
 ## 0.1.0-preview.3 (2026-11-14)
 
