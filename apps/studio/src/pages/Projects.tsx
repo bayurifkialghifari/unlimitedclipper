@@ -8,6 +8,7 @@ import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { time, date } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
+import { PageHeader } from '../molecules/PageHeader';
 import styles from '../styles/Studio.module.css';
 
 export function Projects() {
@@ -31,15 +32,14 @@ export function Projects() {
   }
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>{text.library}</h1>
+      <PageHeader title={text.library}>
         <Field
           label={text.search}
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-      </header>
+      </PageHeader>
       <QueryState
         pending={query.isPending}
         error={query.error}

@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 
 const en = {
+  previewVideo: 'Preview video',
+  exportPreviewError: 'This export could not be played. Download it or reopen the preview.',
+  errorDetails: 'Error details',
   activityTitle: 'Progress and alerts',
   overallProgress: 'Overall progress',
   minimize: 'Minimize',
@@ -259,6 +262,9 @@ const en = {
 };
 
 const id: typeof en = {
+  previewVideo: 'Lihat video',
+  exportPreviewError: 'Hasil ekspor belum bisa diputar. Download atau buka ulang preview.',
+  errorDetails: 'Detail kesalahan',
   activityTitle: 'Progres dan notifikasi',
   overallProgress: 'Progres keseluruhan',
   minimize: 'Kecilkan',

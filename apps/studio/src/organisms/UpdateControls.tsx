@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@unlimitedclipper/ui';
+import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { useText } from '../lib/i18n';
 import { isAndroidHost, openReleasePage } from '../lib/native';
 import styles from '../styles/Studio.module.css';
@@ -30,7 +31,12 @@ export function UpdateControls({ configured }: { configured: boolean }) {
   return (
     <div>
       <p className={styles.hint}>{configured ? text.updateHelp : text.previewUpdateHelp}</p>
-      <Button type="button" disabled={pending || isAndroidHost()} onClick={() => void check()}>
+      <Button
+        icon={<ArrowClockwiseIcon />}
+        type="button"
+        disabled={pending || isAndroidHost()}
+        onClick={() => void check()}
+      >
         {pending ? text.checkingUpdates : text.checkUpdates}
       </Button>
       {message && <p role="status">{message}</p>}

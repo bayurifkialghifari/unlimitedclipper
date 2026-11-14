@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@unlimitedclipper/ui';
 import { api } from '../lib/api';
@@ -13,6 +14,37 @@ const activeStates = ['queued', 'running', 'cancelling'];
 
 export function ActivityCenter() {
   const text = useText();
+  const location = useLocation();
+  const [top, setTop] = useState(16);
+  useEffect(() => {
+    const header =
+      document.querySelector('[data-page-header]') ?? document.querySelector('main > header');
+    let frame = 0;
+    function update() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        setTop(
+          Math.max(
+            16,
+            Math.min((header?.getBoundingClientRect().bottom ?? 4) + 12, innerHeight - 120),
+          ),
+        );
+      });
+    }
+    const observer = new ResizeObserver(update);
+    if (header) {
+      observer.observe(header);
+    }
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    update();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+      cancelAnimationFrame(frame);
+    };
+  }, [location.pathname]);
   const client = useQueryClient();
   const query = useQuery({ queryKey: ['jobs'], queryFn: api.jobs, refetchInterval: 1000 });
   const models = useQuery({ queryKey: ['models'], queryFn: api.models });
@@ -68,7 +100,7 @@ export function ActivityCenter() {
     return null;
   }
   return (
-    <aside className={styles.activityCenter} aria-label={text.activityTitle}>
+    <aside className={styles.activityCenter} style={{ top }} aria-label={text.activityTitle}>
       <Button
         aria-expanded={expanded}
         aria-controls="activity-list"

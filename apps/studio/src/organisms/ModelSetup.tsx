@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Field, Select } from '@unlimitedclipper/ui';
+import { DownloadSimpleIcon, CheckIcon, WrenchIcon, UploadSimpleIcon } from '@phosphor-icons/react';
 import { api, uploadFile } from '../lib/api';
 import { useActivity } from '../lib/activity-store';
 import { useText } from '../lib/i18n';
@@ -105,7 +106,11 @@ export function ModelSetup() {
           <p className={styles.hint}>
             {bytes(model.size)} · {model.license} · {model.ready ? text.ready : text.missing}
           </p>
-          <Button disabled={busy || model.ready} onClick={() => void download()}>
+          <Button
+            icon={model.ready ? <CheckIcon /> : <DownloadSimpleIcon />}
+            disabled={busy || model.ready}
+            onClick={() => void download()}
+          >
             {pending || active
               ? text.running
               : model.ready
@@ -113,12 +118,14 @@ export function ModelSetup() {
                 : text.downloadModel}
           </Button>
           {model.ready && (
-            <Button disabled={busy} onClick={() => void download()}>
+            <Button icon={<WrenchIcon />} disabled={busy} onClick={() => void download()}>
               {text.repair}
             </Button>
           )}
           <details>
-            <summary>{text.manualModelImport}</summary>
+            <summary>
+              <UploadSimpleIcon aria-hidden="true" size={18} /> {text.manualModelImport}
+            </summary>
             {jobs.data?.some((job) => ['queued', 'running', 'cancelling'].includes(job.status)) && (
               <p className={styles.hint}>{text.manualModelBusy}</p>
             )}

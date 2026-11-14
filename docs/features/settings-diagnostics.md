@@ -20,6 +20,11 @@ update checks and installation. No unavailable update service is presented as wo
 
 ## Interface
 
+Settings action buttons use consistent Phosphor icons alongside their visible translated labels.
+Headers and sections follow the window width. Processing history uses compact responsive rows,
+visible percentages, and expandable full error details. The activity popup anchors below the page
+header so it does not cover search or toolbar controls.
+
 Temporary cleanup reports reclaimed bytes and protected entries. It retains failed/cancelled job
 checkpoints for retry, nested temporary references, project transcription checkpoints, and every
 registered temporary asset. Originals, exports, and models are outside this cleanup scope.

@@ -340,6 +340,25 @@ Original videos, exports, canonical models, ARM64 tools, and publisher keys outs
 were preserved. The final workspace measurement was 20,099,667,194 bytes (18.72 GiB), excluding
 symlink traversal. Evidence: .cache/release-cleanup.json and .cache/release-storage-final.json.
 
+## Fullscreen layout and export review, 2026-11-14
+
+The frontend check passed ESLint, Prettier, TypeScript, three unit tests, and production compilation.
+The three onboarding browser scenarios passed after the layout changes. A separate layout test
+passed at 390, 1280, 1920, and 2560 pixels, including content-edge search alignment, a long processing
+error, visible percentages, Settings icons, no horizontal document overflow, and opening an actual
+MP4 with its immutable subtitle sidecar. These browser scenarios use controlled records against an
+isolated engine. They do not generate exports or alter the active user's library.
+
+The initial narrow-layout test exposed a search field whose wrapper retained its intrinsic width;
+fixing the actual Field wrapper made the final run pass. Evidence: tests/browser/layout.spec.ts
+and test-results/layout-export.png. Fresh native fullscreen interaction remains pending until the
+new editor host is built. The complete accessibility/contrast audit remains pending.
+
+Anti-slop During gate, scoped: existing graphite/lime direction, real library records, labeled
+keyboard-operable actions, honest empty states, bounded popup placement, and responsive behavior
+were inspected through the controlled interactions above. No placeholder activity or export data
+is bundled in the application.
+
 ## Required scenarios
 
 - ARM64 and x64 imports, local speech inference, clip selection, and rendering.

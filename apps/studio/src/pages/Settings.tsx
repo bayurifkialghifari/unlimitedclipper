@@ -2,10 +2,19 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { Button, Field, Select, Toggle } from '@unlimitedclipper/ui';
+import {
+  GlobeIcon,
+  DownloadSimpleIcon,
+  FloppyDiskIcon,
+  ArrowCounterClockwiseIcon,
+  BroomIcon,
+  SlidersHorizontalIcon,
+} from '@phosphor-icons/react';
 import { api, request } from '../lib/api';
 import { useLanguage, useText } from '../lib/i18n';
 import { languages } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
+import { PageHeader } from '../molecules/PageHeader';
 import { isAndroidHost } from '../lib/native';
 import { QualityPackSettings } from '../organisms/QualityPackSettings';
 import { ModelSetup } from '../organisms/ModelSetup';
@@ -116,7 +125,7 @@ function Preferences({ initial }: { initial: Settings }) {
         />
       </fieldset>
       <UpdateControls configured={Boolean(settings.update_feed || settings.component_feed)} />
-      <Button variant="primary" type="submit" disabled={pending}>
+      <Button icon={<FloppyDiskIcon />} variant="primary" type="submit" disabled={pending}>
         {text.savePreferences}
       </Button>
       {message && <p role="status">{message}</p>}
@@ -157,10 +166,10 @@ export function SettingsPage() {
   }
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>{text.settings}</h1>
+      <PageHeader title={text.settings}>
         {isTauri() && !isAndroidHost() && (
           <Button
+            icon={<GlobeIcon />}
             disabled={pending !== null}
             onClick={() => void action('browser', () => invoke('open_browser'))}
           >
@@ -173,10 +182,11 @@ export function SettingsPage() {
             href="/api/v1/diagnostics"
             download="unlimitedclipper-diagnostics.json"
           >
+            <DownloadSimpleIcon aria-hidden="true" size={18} />
             {text.diagnostics}
           </a>
         )}
-      </header>
+      </PageHeader>
       <QueryState
         pending={settings.isPending}
         error={settings.error}
@@ -193,6 +203,7 @@ export function SettingsPage() {
         <section className={styles.settingsSection}>
           <h2>{text.tools}</h2>
           <Button
+            icon={<ArrowCounterClockwiseIcon />}
             disabled={
               isAndroidHost() || pending !== null || !updates.data?.version || updates.data.ready
             }
@@ -211,6 +222,7 @@ export function SettingsPage() {
             ))}
           </div>
           <Button
+            icon={<BroomIcon />}
             disabled={
               pending !== null ||
               jobs.data?.some((job) => ['queued', 'running', 'cancelling'].includes(job.status))
@@ -226,7 +238,9 @@ export function SettingsPage() {
         </section>
         {settings.data && <Preferences initial={settings.data} />}
         <details className={styles.settingsSection}>
-          <summary>{text.advancedSpeech}</summary>
+          <summary>
+            <SlidersHorizontalIcon aria-hidden="true" size={18} /> {text.advancedSpeech}
+          </summary>
           <QualityPackSettings />
         </details>
       </div>

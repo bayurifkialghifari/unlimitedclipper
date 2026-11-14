@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Window-width page headers, responsive export previews with immutable subtitle tracks, compact
+  processing history, and labeled Settings action icons.
+
 ## 0.1.0-preview.2 (2026-11-14)
 
 ### Added

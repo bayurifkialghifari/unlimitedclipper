@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@unlimitedclipper/ui';
+import { DownloadSimpleIcon } from '@phosphor-icons/react';
 import { assetUrl } from '../lib/api';
 import { isAndroidHost, saveAndroidAsset } from '../lib/native';
 import { useText } from '../lib/i18n';
@@ -28,6 +29,7 @@ export function ExportDownload({ assetId, label }: { assetId: string; label: str
   if (!isAndroidHost()) {
     return (
       <a className={styles.downloadLink} href={assetUrl(assetId, true)} download>
+        <DownloadSimpleIcon aria-hidden="true" size={18} />
         {label}
       </a>
     );
@@ -35,7 +37,7 @@ export function ExportDownload({ assetId, label }: { assetId: string; label: str
 
   return (
     <div>
-      <Button disabled={pending} onClick={() => void save()}>
+      <Button icon={<DownloadSimpleIcon />} disabled={pending} onClick={() => void save()}>
         {pending ? text.waiting : text.saveExport + ' ' + label}
       </Button>
       {saved && <p role="status">{text.exportSaved}</p>}

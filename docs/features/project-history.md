@@ -10,6 +10,12 @@ Search and deletion operate on persistent records. Cleanup removes unreferenced 
 
 ## Interface
 
+Page headers and galleries use the available window width. Project search stays aligned with the
+right content edge on desktop and spans the content width on narrow screens. The export gallery
+shows real immutable records with revision/date metadata, download links, and an on-demand video
+preview. Opening a preview loads the registered MP4 and converts its immutable SRT sidecar to a
+browser VTT track. Closed previews do not download video media.
+
 GET /api/v1/projects; GET /api/v1/projects/{id}; GET /api/v1/exports
 
 ## States and failure handling
