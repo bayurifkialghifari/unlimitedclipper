@@ -221,6 +221,92 @@ pub async fn ffmpeg_progress(
     Ok(())
 }
 
+pub(crate) async fn stream_frames(
+    state: &AppState,
+    args: &[String],
+    frame_size: usize,
+    sender: tokio::sync::mpsc::Sender<Vec<u8>>,
+    cancellation: &CancellationToken,
+) -> Result<Vec<i64>> {
+    anyhow::ensure!(
+        state.native_tools.is_none(),
+        "Face sampling is unavailable in this native build."
+    );
+    let mut command = Command::new(executable(state, "ffmpeg", "ffmpeg")?);
+    command
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+    #[cfg(windows)]
+    command.creation_flags(0x08000000);
+    let mut child = command.spawn()?;
+    #[cfg(windows)]
+    let _supervision = match attach_job(&child) {
+        Ok(guard) => guard,
+        Err(error) => {
+            let _ = child.kill().await;
+            let _ = child.wait().await;
+            return Err(error);
+        }
+    };
+    let mut stdout = child.stdout.take().context("Frame stream is unavailable")?;
+    let stderr = child
+        .stderr
+        .take()
+        .context("Frame diagnostics are unavailable")?;
+    let reader = tokio::spawn(async move {
+        let mut lines = BufReader::new(stderr).lines();
+        let mut cuts = Vec::new();
+        let mut tail = std::collections::VecDeque::new();
+        while let Some(line) = lines.next_line().await? {
+            if let Some((_, value)) = line.split_once("lavfi.scd.time=")
+                && let Ok(seconds) = value.trim().parse::<f64>()
+                && seconds.is_finite()
+                && seconds >= 0.0
+            {
+                cuts.push((seconds * 1000.0).round() as i64);
+            }
+            tail.push_back(line);
+            if tail.len() > 16 {
+                tail.pop_front();
+            }
+        }
+        Ok::<_, std::io::Error>((cuts, tail.into_iter().collect::<Vec<_>>().join("\n")))
+    });
+    let result = async {
+        loop {
+            let mut frame = vec![0_u8; frame_size];
+            let mut filled = 0;
+            while filled < frame.len() {
+                let read = tokio::select! {
+                    result = stdout.read(&mut frame[filled..]) => result?,
+                    _ = cancellation.cancelled() => bail!("Job cancelled."),
+                };
+                if read == 0 {
+                    anyhow::ensure!(filled == 0, "The decoder returned an incomplete video frame.");
+                    return Ok::<_, anyhow::Error>(());
+                }
+                filled += read;
+            }
+            tokio::select! {
+                result = sender.send(frame) => result.context("Face detection stopped before decoding completed")?,
+                _ = cancellation.cancelled() => bail!("Job cancelled."),
+            }
+        }
+    }.await;
+    if result.is_err() {
+        let _ = child.kill().await;
+    }
+    let status = child.wait().await;
+    drop(sender);
+    let diagnostics = reader.await;
+    result?;
+    let (cuts, tail) = diagnostics??;
+    anyhow::ensure!(status?.success(), "Video frame decoding failed: {tail}");
+    Ok(cuts)
+}
+
 pub async fn downloader_progress(
     state: &AppState,
     job: &mut Job,
@@ -365,7 +451,7 @@ async fn native_ffmpeg_progress(
 }
 
 #[cfg(windows)]
-struct ProcessJob(usize);
+pub(crate) struct ProcessJob(usize);
 
 #[cfg(windows)]
 impl Drop for ProcessJob {
@@ -377,7 +463,7 @@ impl Drop for ProcessJob {
 }
 
 #[cfg(windows)]
-fn attach_job(child: &tokio::process::Child) -> Result<ProcessJob> {
+pub(crate) fn attach_job(child: &tokio::process::Child) -> Result<ProcessJob> {
     use windows_sys::Win32::{
         Foundation::CloseHandle,
         System::{JobObjects::*, Threading::*},

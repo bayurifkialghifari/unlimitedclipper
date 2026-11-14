@@ -46,7 +46,7 @@ pub fn parse_transcript(value: &Value, duration_ms: i64) -> Vec<Word> {
     let Some(segments) = value["transcription"].as_array() else {
         return words;
     };
-    for segment in segments {
+    for (segment_index, segment) in segments.iter().enumerate() {
         let mut pending = PendingWord::default();
         let segment_start = segment["offsets"]["from"].as_i64().unwrap_or(0);
         let segment_end = segment["offsets"]["to"]
@@ -96,7 +96,7 @@ pub fn parse_transcript(value: &Value, duration_ms: i64) -> Vec<Word> {
             } else {
                 token["offsets"]["to"].as_i64().unwrap_or(segment_end)
             };
-            for character in text.chars() {
+            for (character_index, character) in text.char_indices() {
                 if let Some(end) = annotation_end {
                     if character == end {
                         annotation_end = None;
@@ -104,13 +104,28 @@ pub fn parse_transcript(value: &Value, duration_ms: i64) -> Vec<Word> {
                     continue;
                 }
                 match character {
-                    '[' | '(' | '*' => {
+                    '[' | '(' => {
+                        let closing = if character == '[' { ']' } else { ')' };
+                        let mut remainder = text[character_index + 1..].to_string();
+                        for token in &tokens[index + 1..] {
+                            remainder.push_str(token["text"].as_str().unwrap_or(""));
+                        }
+                        for next in segments.iter().skip(segment_index + 1).take(8) {
+                            if next["offsets"]["from"].as_i64().unwrap_or(segment_start)
+                                - segment_start
+                                > 3000
+                            {
+                                break;
+                            }
+                            remainder.push_str(next["text"].as_str().unwrap_or(""));
+                        }
+                        // Only bounded, closed decoder annotations may suppress text. Asterisks
+                        // inside censored speech are ordinary caption characters.
+                        if !remainder.chars().take(80).any(|value| value == closing) {
+                            continue;
+                        }
                         finish(&mut pending, &mut words, duration_ms);
-                        annotation_end = Some(match character {
-                            '[' => ']',
-                            '(' => ')',
-                            _ => '*',
-                        });
+                        annotation_end = Some(closing);
                     }
                     character if character.is_whitespace() => {
                         finish(&mut pending, &mut words, duration_ms);
@@ -236,5 +251,20 @@ mod tests {
         assert_eq!(words[1].text, "guys!");
         assert_eq!(words[1].start_ms, 10000);
         assert!(words[0].confidence.unwrap() > 0.8);
+    }
+
+    #[test]
+    fn censored_words_and_unclosed_annotations_cannot_drop_later_speech() {
+        let value = json!({"transcription": [
+            {"text": " s***", "offsets": {"from": 1000, "to": 1500}},
+            {"text": " keeps going.", "offsets": {"from": 1500, "to": 2500}},
+            {"text": " [unclosed", "offsets": {"from": 2500, "to": 3000}},
+            {"text": " Later speech survives.", "offsets": {"from": 3000, "to": 5000}}
+        ]});
+        let words = parse_transcript(&value, 6000);
+        assert_eq!(words[0].text, "s***");
+        assert!(words.iter().any(|word| word.text == "going."));
+        assert!(words.iter().any(|word| word.text == "survives."));
+        assert_eq!(words.last().unwrap().end_ms, 5000);
     }
 }

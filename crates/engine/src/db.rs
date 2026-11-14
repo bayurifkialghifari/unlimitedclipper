@@ -107,6 +107,41 @@ pub async fn update_clip(pool: &SqlitePool, clip: &Clip, expected_revision: i64)
     Ok(())
 }
 
+pub async fn commit_tracking(
+    pool: &SqlitePool,
+    clip: &Clip,
+    expected_revision: i64,
+    job: &mut Job,
+) -> ApiResult<()> {
+    let mut checkpoint = job.clone();
+    checkpoint.payload["tracking_committed_revision"] = serde_json::json!(clip.revision);
+    let mut transaction = pool.begin().await?;
+    let result =
+        sqlx::query("UPDATE clips SET revision = ?, data = ? WHERE id = ? AND revision = ?")
+            .bind(clip.revision)
+            .bind(encode(clip)?)
+            .bind(&clip.id)
+            .bind(expected_revision)
+            .execute(&mut *transaction)
+            .await?;
+    if result.rows_affected() != 1 {
+        return Err(ApiError::conflict());
+    }
+    let result = sqlx::query("UPDATE jobs SET status = ?, data = ? WHERE id = ?")
+        .bind(&checkpoint.status)
+        .bind(encode(&checkpoint)?)
+        .bind(&checkpoint.id)
+        .execute(&mut *transaction)
+        .await?;
+    if result.rows_affected() != 1 {
+        return Err(ApiError::not_found());
+    }
+    // A committed marker must prove that this job won the optimistic edit transaction.
+    transaction.commit().await?;
+    *job = checkpoint;
+    Ok(())
+}
+
 pub async fn jobs(pool: &SqlitePool) -> Result<Vec<Job>> {
     let rows: Vec<(String,)> =
         sqlx::query_as("SELECT data FROM jobs ORDER BY created_at DESC LIMIT 200")

@@ -336,7 +336,7 @@ pub async fn transcribe(
         serde_json::from_slice(&tokio::fs::read(prefix.with_extension("json")).await?)?;
     project.words = parse_transcript(&data, project.duration_ms);
     project.language = data["result"]["language"].as_str().map(str::to_owned);
-    project.transcript_configuration = Some(format!("{speech_model}:{language}"));
+    project.transcript_configuration = Some(format!("{speech_model}:{language}:parser-v2"));
     db::save_project(&state.db, project).await?;
     anyhow::ensure!(
         !project.words.is_empty(),
@@ -588,18 +588,18 @@ pub async fn refine_captions(
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct Suggestion {
-    start_ms: i64,
-    end_ms: i64,
-    title: String,
+pub(crate) struct Suggestion {
+    pub start_ms: i64,
+    pub end_ms: i64,
+    pub title: String,
     #[serde(default)]
-    explanation: String,
+    pub explanation: String,
     #[serde(default)]
-    score: u32,
+    pub score: u32,
     #[serde(default)]
-    hook: String,
+    pub hook: String,
     #[serde(default)]
-    payoff: String,
+    pub payoff: String,
 }
 
 fn normalized_quote(text: &str) -> String {
@@ -618,7 +618,7 @@ fn normalized_quote(text: &str) -> String {
         .join(" ")
 }
 
-fn grounded(suggestion: &Suggestion, words: &[Word]) -> bool {
+pub(crate) fn grounded(suggestion: &Suggestion, words: &[Word]) -> bool {
     let transcript = words
         .iter()
         .filter(|word| word.end_ms > suggestion.start_ms && word.start_ms < suggestion.end_ms)
@@ -632,7 +632,7 @@ fn grounded(suggestion: &Suggestion, words: &[Word]) -> bool {
     })
 }
 
-fn fit_suggestion(mut suggestion: Suggestion, project: &Project) -> Option<Suggestion> {
+pub(crate) fn fit_suggestion(mut suggestion: Suggestion, project: &Project) -> Option<Suggestion> {
     let words = &project.words;
     let first = words
         .iter()
@@ -799,7 +799,7 @@ fn transcript_windows(words: &[Word]) -> Result<Vec<TranscriptWindow<'_>>> {
     Ok(windows)
 }
 
-fn output_language(project: &Project) -> &str {
+pub(crate) fn output_language(project: &Project) -> &str {
     match project.language.as_deref() {
         Some("id") => "Indonesian (Bahasa Indonesia)",
         Some("en") => "English",
@@ -944,16 +944,70 @@ pub async fn generate(
     let language = job.payload["language"]
         .as_str()
         .unwrap_or(&settings.transcription_language);
-    let configuration = format!(
+    let legacy_configuration = format!(
         "{}:{language}",
         job.payload["speech_model"]
             .as_str()
             .context("Missing speech model")?
     );
-    if project.words.is_empty()
+    let configuration = if job.payload["selection_version"].as_u64().unwrap_or(2) >= 3 {
+        format!("{legacy_configuration}:parser-v2")
+    } else {
+        legacy_configuration.clone()
+    };
+    if job.payload["selection_version"].as_u64().unwrap_or(2) >= 3
+        && job.payload["discovery_snapshot"].is_object()
+    {
+        project = serde_json::from_value(job.payload["discovery_snapshot"].clone())?;
+    } else if project.words.is_empty()
         || project.transcript_configuration.as_deref() != Some(&configuration)
     {
-        transcribe(state, job, &mut project, cancellation).await?;
+        let cached = state
+            .root
+            .join("temporary")
+            .join(format!("{}-transcript.json", project.id));
+        let speech_spec = model_specs()
+            .into_iter()
+            .find(|spec| Some(spec.id.as_str()) == job.payload["speech_model"].as_str());
+        let restored = if project.transcript_configuration.as_deref() == Some(&legacy_configuration)
+            && cached.is_file()
+        {
+            match tokio::fs::read(&cached)
+                .await
+                .ok()
+                .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+            {
+                Some(data)
+                    if data["params"]["language"].as_str() == Some(language)
+                        && speech_spec.as_ref().is_some_and(|spec| {
+                            data["params"]["model"].as_str().is_some_and(|model| {
+                                std::path::Path::new(model)
+                                    .file_name()
+                                    .and_then(|name| name.to_str())
+                                    == Some(spec.filename.as_str())
+                            })
+                        })
+                        && data["transcription"].is_array() =>
+                {
+                    let words = parse_transcript(&data, project.duration_ms);
+                    if words.is_empty() {
+                        false
+                    } else {
+                        project.words = words;
+                        project.transcript_configuration = Some(configuration.clone());
+                        db::save_project(&state.db, &project).await?;
+                        state.progress(job, "transcription", 0.4, "Restored complete words from existing local recognition without running the speech model again.").await?;
+                        true
+                    }
+                }
+                _ => false,
+            }
+        } else {
+            false
+        };
+        if !restored {
+            transcribe(state, job, &mut project, cancellation).await?;
+        }
     }
     let count = job.payload["clip_count"].as_u64().unwrap_or(4) as usize;
     let minimum_score = job.payload["minimum_score"].as_u64().unwrap_or(70) as u32;
@@ -967,7 +1021,12 @@ pub async fn generate(
         .map(|offset| offset as usize)
         .unwrap_or_else(|| job.payload["processed_windows"].as_u64().unwrap_or(0) as usize * 700)
         .min(project.words.len());
-    let windows = transcript_windows(&project.words[processed_words..])?;
+    let modern = job.payload["selection_version"].as_u64().unwrap_or(2) >= 3;
+    let windows = if modern {
+        Vec::new()
+    } else {
+        transcript_windows(&project.words[processed_words..])?
+    };
     let mut word_offset = processed_words;
     for (window_index, window) in windows.iter().enumerate() {
         let words = window.words;
@@ -1023,12 +1082,20 @@ pub async fn generate(
         job.payload["selection_word_offset"] = json!(word_offset);
         db::save_job(&state.db, job).await?;
     }
-    let mut suggestions =
-        review_suggestions(state, job, &project, suggestions, cancellation).await?;
+    let mut suggestions = if modern {
+        crate::discovery::select(state, job, &project, cancellation).await?
+    } else {
+        review_suggestions(state, job, &project, suggestions, cancellation).await?
+    };
     suggestions.sort_by_key(|suggestion| std::cmp::Reverse(suggestion.score));
     let mut accepted = Vec::<Suggestion>::new();
     for suggestion in suggestions {
-        let Some(suggestion) = fit_suggestion(suggestion, &project) else {
+        let fitted = if modern {
+            Some(suggestion)
+        } else {
+            fit_suggestion(suggestion, &project)
+        };
+        let Some(suggestion) = fitted else {
             continue;
         };
         if accepted
@@ -1072,6 +1139,10 @@ pub async fn generate(
 
 async fn complete_plan(state: &AppState, job: &mut Job, project: &Project) -> Result<()> {
     let plan: Vec<Clip> = serde_json::from_value(job.payload["plan"].clone())?;
+    let refine = job.payload["selection_version"].as_u64().unwrap_or(2) >= 3
+        && model_manager::model_path(state, "whisper-medium")
+            .await
+            .is_ok();
     for clip in plan {
         clip.document
             .validate(project.duration_ms)
@@ -1079,6 +1150,43 @@ async fn complete_plan(state: &AppState, job: &mut Job, project: &Project) -> Re
         sqlx::query("INSERT INTO clips(id, project_id, revision, data, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING")
             .bind(&clip.id).bind(&clip.project_id).bind(clip.revision).bind(serde_json::to_string(&clip)?).bind(clip.created_at)
             .execute(&state.db).await?;
+        let uncertain = clip
+            .document
+            .words
+            .iter()
+            .filter(|word| word.confidence.is_some_and(|confidence| confidence < 0.65))
+            .count();
+        if refine && uncertain * 10 > clip.document.words.len().max(1) {
+            let gate = state.operation_gate.lock().await;
+            let now = now_ms();
+            let followup = Job {
+                id: Uuid::new_v5(
+                    &Uuid::NAMESPACE_URL,
+                    format!("caption-refinement:{}:{}", job.id, clip.id).as_bytes(),
+                )
+                .to_string(),
+                project_id: Some(clip.project_id.clone()),
+                clip_id: Some(clip.id.clone()),
+                kind: "captions".into(),
+                status: "queued".into(),
+                stage: "queued".into(),
+                progress: 0.0,
+                message: "Refining uncertain captions on this short cut only.".into(),
+                error: None,
+                payload: json!({"revision": clip.revision, "speech_model": "whisper-medium",
+                    "language": project.language.as_deref().unwrap_or("auto"), "vocabulary": "", "discovery_parent": job.id}),
+                created_at: now,
+                updated_at: now,
+            };
+            let inserted = sqlx::query("INSERT INTO jobs(id, project_id, status, data, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING")
+                .bind(&followup.id).bind(&followup.project_id).bind(&followup.status)
+                .bind(serde_json::to_string(&followup)?).bind(now).execute(&state.db).await?;
+            if inserted.rows_affected() > 0 {
+                state.emit("job", Some(followup));
+                state.notify.notify_one();
+            }
+            drop(gate);
+        }
     }
     state
         .progress(job, "selection", 0.95, "Clips are ready for review.")

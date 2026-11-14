@@ -362,6 +362,12 @@
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/TrackRequest" } }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1030,6 +1036,7 @@
         "required": ["clip_count", "duration_ms", "language"],
         "properties": {
           "clip_count": { "type": "integer", "minimum": 0 },
+          "content_profile": { "type": ["string", "null"] },
           "duration_ms": { "type": "integer", "format": "int64" },
           "focus": { "type": "string" },
           "language": { "type": "string" },
@@ -1229,10 +1236,12 @@
           "component_feed"
         ],
         "properties": {
+          "ai_mode": { "type": "string" },
           "auto_update": { "type": "boolean" },
           "clip_count": { "type": "integer", "minimum": 0 },
           "clip_duration_ms": { "type": "integer", "format": "int64" },
           "component_feed": { "type": "string" },
+          "content_profile": { "type": "string" },
           "language": { "type": "string" },
           "resolution": { "type": "integer", "format": "int32", "minimum": 0 },
           "speech_model": { "type": "string" },
@@ -1268,6 +1277,13 @@
           "preset": { "type": "string" },
           "size": { "type": "integer", "format": "int32", "minimum": 0 },
           "text": { "type": "string" }
+        }
+      },
+      "TrackRequest": {
+        "type": "object",
+        "properties": {
+          "mode": { "type": ["string", "null"] },
+          "revision": { "type": ["integer", "null"], "format": "int64" }
         }
       },
       "UpdateClipRequest": {

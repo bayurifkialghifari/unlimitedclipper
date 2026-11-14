@@ -86,7 +86,7 @@ pub async fn identify(
     let runtime = state.tools_root().join("onnxruntime").join(suffix);
     let cancellation = cancellation.clone();
     tokio::task::spawn_blocking(move || -> Result<Vec<SpeakerTurn>> {
-        let environment = ort::init_from(runtime)?.build()?;
+        let environment = crate::onnx::environment(&runtime)?;
         let mut session = Session::builder(&environment)?
             .with_intra_threads(4)
             .map_err(|error| anyhow::anyhow!(error.to_string()))?

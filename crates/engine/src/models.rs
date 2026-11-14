@@ -538,6 +538,10 @@ pub struct Export {
 pub struct Settings {
     pub language: String,
     pub speech_model: String,
+    #[serde(default = "default_ai_mode")]
+    pub ai_mode: String,
+    #[serde(default = "default_content_profile")]
+    pub content_profile: String,
     pub transcription_language: String,
     pub clip_count: usize,
     pub clip_duration_ms: i64,
@@ -552,6 +556,8 @@ impl Default for Settings {
         Self {
             language: "id".into(),
             speech_model: "whisper-small".into(),
+            ai_mode: default_ai_mode(),
+            content_profile: default_content_profile(),
             transcription_language: "auto".into(),
             clip_count: 4,
             clip_duration_ms: 0,
@@ -561,6 +567,14 @@ impl Default for Settings {
             component_feed: String::new(),
         }
     }
+}
+
+pub fn default_ai_mode() -> String {
+    "economy".into()
+}
+
+pub fn default_content_profile() -> String {
+    "podcast".into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

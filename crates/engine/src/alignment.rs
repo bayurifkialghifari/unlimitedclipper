@@ -59,7 +59,7 @@ fn session(state: &AppState, file: &Path) -> Result<Session> {
         "libonnxruntime.so"
     };
     let environment =
-        ort::init_from(state.tools_root().join("onnxruntime").join(suffix))?.build()?;
+        crate::onnx::environment(&state.tools_root().join("onnxruntime").join(suffix))?;
     Ok(Session::builder(&environment)?
         .with_intra_threads(4)
         .map_err(|error| anyhow::anyhow!(error.to_string()))?

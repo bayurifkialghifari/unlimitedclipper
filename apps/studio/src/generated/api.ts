@@ -892,6 +892,7 @@ export interface components {
     };
     GenerateRequest: {
       clip_count: number;
+      content_profile?: string | null;
       /** Format: int64 */
       duration_ms: number;
       focus?: string;
@@ -1012,11 +1013,13 @@ export interface components {
       token: string;
     };
     Settings: {
+      ai_mode?: string;
       auto_update: boolean;
       clip_count: number;
       /** Format: int64 */
       clip_duration_ms: number;
       component_feed: string;
+      content_profile?: string;
       language: string;
       /** Format: int32 */
       resolution: number;
@@ -1046,6 +1049,11 @@ export interface components {
       /** Format: int32 */
       size: number;
       text: string;
+    };
+    TrackRequest: {
+      mode?: string | null;
+      /** Format: int64 */
+      revision?: number | null;
     };
     UpdateClipRequest: {
       document: components['schemas']['EditDocument'];
@@ -1619,7 +1627,11 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TrackRequest'];
+      };
+    };
     responses: {
       200: {
         headers: {

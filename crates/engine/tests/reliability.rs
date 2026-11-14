@@ -414,6 +414,75 @@ async fn a_second_engine_cannot_own_the_same_database() {
 }
 
 #[tokio::test]
+async fn tracking_commit_marker_is_atomic_with_the_optimistic_edit() {
+    let root = tempfile::tempdir().unwrap();
+    let state = AppState::new(root.path().to_path_buf(), root.path().join("tools"))
+        .await
+        .unwrap();
+    let project = project();
+    db::save_project(&state.db, &project).await.unwrap();
+    let mut clip = Clip {
+        id: "tracked-clip".into(),
+        project_id: project.id.clone(),
+        name: "Framing recovery".into(),
+        explanation: String::new(),
+        score: None,
+        revision: 1,
+        document: EditDocument::new(&project, 0, 8000),
+        created_at: 1,
+    };
+    db::insert_clip(&state.db, &clip).await.unwrap();
+    let mut job = state
+        .enqueue(
+            "track",
+            Some(project.id),
+            Some(clip.id.clone()),
+            json!({"revision": 1}),
+        )
+        .await
+        .unwrap();
+    clip.revision = 2;
+    clip.document.crop.x = 0.234567891234;
+    db::commit_tracking(&state.db, &clip, 1, &mut job)
+        .await
+        .unwrap();
+    assert_eq!(db::clip(&state.db, &clip.id).await.unwrap().revision, 2);
+    assert_eq!(
+        db::job(&state.db, &job.id).await.unwrap().payload["tracking_committed_revision"],
+        2
+    );
+
+    let mut stale = state
+        .enqueue("track", None, Some(clip.id.clone()), json!({"revision": 1}))
+        .await
+        .unwrap();
+    clip.revision = 3;
+    assert!(
+        db::commit_tracking(&state.db, &clip, 1, &mut stale)
+            .await
+            .is_err()
+    );
+    assert!(stale.payload["tracking_committed_revision"].is_null());
+    assert!(
+        db::job(&state.db, &stale.id).await.unwrap().payload["tracking_committed_revision"]
+            .is_null()
+    );
+
+    sqlx::query("DELETE FROM jobs WHERE id = ?")
+        .bind(&stale.id)
+        .execute(&state.db)
+        .await
+        .unwrap();
+    assert!(
+        db::commit_tracking(&state.db, &clip, 2, &mut stale)
+            .await
+            .is_err()
+    );
+    assert_eq!(db::clip(&state.db, &clip.id).await.unwrap().revision, 2);
+    assert!(stale.payload["tracking_committed_revision"].is_null());
+}
+
+#[tokio::test]
 async fn old_active_jobs_still_block_updates_after_two_hundred_completed_jobs() {
     let root = tempfile::tempdir().unwrap();
     let state = AppState::new(root.path().to_path_buf(), root.path().join("tools"))

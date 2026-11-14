@@ -44,10 +44,20 @@ pub struct GenerateRequest {
     pub focus: String,
     #[serde(default = "default_interest")]
     pub minimum_score: u32,
+    #[serde(default)]
+    pub content_profile: Option<String>,
 }
 
 fn default_interest() -> u32 {
-    85
+    70
+}
+
+#[derive(Default, Deserialize, ToSchema)]
+pub struct TrackRequest {
+    #[serde(default)]
+    pub revision: Option<i64>,
+    #[serde(default)]
+    pub mode: Option<String>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -185,6 +195,7 @@ pub struct Health {
         YoutubeRequest,
         LocalImportRequest,
         GenerateRequest,
+        TrackRequest,
         RefineCaptionsRequest,
         RevisionRequest,
         AutoEditRequest,
@@ -746,12 +757,18 @@ async fn generate(
 ) -> ApiResult<Json<Job>> {
     let _gate = state.operation_gate.lock().await;
     db::project(&state.db, &id).await?;
+    let mut settings = db::settings(&state.db).await?;
+    let profile = request
+        .content_profile
+        .clone()
+        .unwrap_or_else(|| settings.content_profile.clone());
     if request.clip_count == 0
         || request.clip_count > 1000
         || request.duration_ms < 0
         || request.duration_ms > 3_600_000
         || request.minimum_score > 100
         || request.focus.chars().count() > 400
+        || !["podcast", "gaming"].contains(&profile.as_str())
     {
         return Err(ApiError::bad_request(
             "Choose a valid clip count and duration.",
@@ -774,6 +791,8 @@ async fn generate(
             "This project already has a generation job.",
         ));
     }
+    settings.content_profile = profile.clone();
+    db::save_settings(&state.db, &settings).await?;
     Ok(Json(
         state
             .enqueue_locked(
@@ -786,7 +805,11 @@ async fn generate(
                     "language": request.language,
                     "focus": request.focus,
                     "minimum_score": request.minimum_score,
-                    "selection_version": 2
+                    "content_profile": profile,
+                    "ai_mode": settings.ai_mode,
+                    "speech_model": settings.speech_model,
+                    "resolution": settings.resolution,
+                    "selection_version": if state.native_tools.is_some() { 2 } else { 3 }
                 }),
             )
             .await?,
@@ -950,10 +973,31 @@ async fn title_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
     ))
 }
 
-#[utoipa::path(post, path = "/api/v1/clips/{id}/track", responses((status = 200, body = Job)))]
-async fn track_job(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Json<Job>> {
+#[utoipa::path(post, path = "/api/v1/clips/{id}/track", request_body = TrackRequest, responses((status = 200, body = Job)))]
+async fn track_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    body: axum::body::Bytes,
+) -> ApiResult<Json<Job>> {
     let _gate = state.operation_gate.lock().await;
     let clip = db::clip(&state.db, &id).await?;
+    let request: TrackRequest = if body.is_empty() {
+        TrackRequest::default()
+    } else {
+        serde_json::from_slice(&body)
+            .map_err(|_| ApiError::bad_request("Choose a valid tracking mode."))?
+    };
+    let mode = request.mode.as_deref().unwrap_or("follow");
+    if !["follow", "split", "facecam"].contains(&mode)
+        || request
+            .revision
+            .is_some_and(|revision| revision != clip.revision)
+        || (mode == "facecam" && clip.document.layout != Layout::Gaming)
+    {
+        return Err(ApiError::bad_request(
+            "Save the current clip and choose a supported framing mode.",
+        ));
+    }
     ensure_no_clip_edit_job(&state, &id).await?;
     Ok(Json(
         state
@@ -961,7 +1005,7 @@ async fn track_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
                 "track",
                 Some(clip.project_id.clone()),
                 Some(id),
-                json!({"revision": clip.revision}),
+                json!({"revision": clip.revision, "mode": mode, "frozen_clip": clip}),
             )
             .await?,
     ))
@@ -1102,7 +1146,18 @@ async fn retry_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
     if ["title", "track", "captions"].contains(&job.kind.as_str()) {
         let clip_id = job.clip_id.as_deref().ok_or_else(ApiError::not_found)?;
         ensure_no_clip_edit_job(&state, clip_id).await?;
-        job.payload["revision"] = json!(db::clip(&state.db, clip_id).await?.revision);
+        let clip = db::clip(&state.db, clip_id).await?;
+        if job.kind == "track" && job.payload["frozen_clip"].is_object() {
+            if clip.revision != job.payload["revision"].as_i64().unwrap_or(-1)
+                && job.payload["tracking_committed_revision"].as_i64() != Some(clip.revision)
+            {
+                return Err(ApiError::bad_request(
+                    "This clip changed. Start a new tracking job for the current edit.",
+                ));
+            }
+        } else {
+            job.payload["revision"] = json!(clip.revision);
+        }
     }
     job.status = "queued".into();
     job.error = None;
@@ -1186,6 +1241,8 @@ async fn put_settings(
     let _gate = state.operation_gate.lock().await;
     if !["id", "en"].contains(&settings.language.as_str())
         || !["whisper-small", "whisper-medium"].contains(&settings.speech_model.as_str())
+        || !["economy", "standard"].contains(&settings.ai_mode.as_str())
+        || !["podcast", "gaming"].contains(&settings.content_profile.as_str())
         || ![720, 1080, 1440, 2160].contains(&settings.resolution)
         || settings.clip_count == 0
         || settings.clip_count > 1000
