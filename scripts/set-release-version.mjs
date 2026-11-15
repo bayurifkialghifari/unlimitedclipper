@@ -9,6 +9,7 @@ if (!version || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
 }
 if (
   process.env.GITHUB_ACTIONS &&
+  !process.argv.includes('--mobile-preview') &&
   (!process.env.UC_APP_PUBLIC_KEY || !process.env.TAURI_SIGNING_PRIVATE_KEY)
 ) {
   throw new Error(

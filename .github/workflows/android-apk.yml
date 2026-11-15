@@ -1,6 +1,14 @@
 name: Android ARM64 preview APK
 
 on:
+  workflow_call:
+    inputs:
+      media_run_id:
+        required: false
+        type: string
+      release_tag:
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       media_run_id:
@@ -39,14 +47,27 @@ jobs:
           toolchain: stable
           targets: aarch64-linux-android
           components: rustfmt, clippy
-      - name: Prepare the SDK and inspected media dependency
+      - name: Prepare the Android SDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;28.2.13676358' 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Download a previous inspected media dependency
+        if: inputs.media_run_id != ''
         env:
           MEDIA_RUN_ID: ${{ inputs.media_run_id }}
         run: |
           [[ "$MEDIA_RUN_ID" =~ ^[0-9]+$ ]]
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;28.2.13676358' 'platforms;android-36' 'build-tools;36.0.0'
           gh run watch "$MEDIA_RUN_ID" --exit-status --interval 30
           gh run download "$MEDIA_RUN_ID" -n android-native-media-arm64 -D .cache/android-native-tools
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        if: inputs.media_run_id == ''
+        with:
+          name: android-native-media-arm64
+          path: .cache/android-native-tools
+      - name: Prepare tagged Android preview version
+        if: inputs.release_tag != ''
+        env:
+          GITHUB_REF_NAME: ${{ inputs.release_tag }}
+        run: node scripts/set-release-version.mjs --mobile-preview
       - run: npm ci
       - run: npm run check
       - run: npm run build:android

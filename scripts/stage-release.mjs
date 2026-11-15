@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { copyFile, mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { root } from './cargo.mjs';
 
@@ -29,6 +29,38 @@ if (process.argv.includes('--publish')) {
     }
     Object.assign(platforms, manifest.platforms);
   }
+  for (const platform of ['linux-x64', 'linux-arm64', 'macos-x64', 'macos-arm64']) {
+    const packageManifest = JSON.parse(
+      await readFile(path.join(directory, 'package-' + platform + '.json'), 'utf8'),
+    );
+    const artifact = path.join(directory, packageManifest.filename);
+    if (
+      packageManifest.version !== version ||
+      packageManifest.platform !== platform ||
+      packageManifest.bytes !== (await stat(artifact)).size ||
+      packageManifest.sha256 !== (await sha256(artifact))
+    ) {
+      throw new Error('The ' + platform + ' bundle did not pass release staging checks.');
+    }
+  }
+  const androidDirectory = path.join(root, '.cache/android-package');
+  const androidEvidence = JSON.parse(
+    await readFile(path.join(androidDirectory, 'build-evidence.json'), 'utf8'),
+  );
+  const androidSource = path.join(androidDirectory, androidEvidence.apk);
+  if (
+    androidEvidence.version !== version ||
+    androidEvidence.source_commit !== process.env.GITHUB_SHA ||
+    androidEvidence.runtime_tested !== false ||
+    androidEvidence.sha256 !== (await sha256(androidSource))
+  ) {
+    throw new Error('The Android preview did not pass release staging checks.');
+  }
+  await copyFile(androidSource, path.join(directory, androidEvidence.apk));
+  await copyFile(
+    path.join(androidDirectory, 'ANDROID-UNTESTED.md'),
+    path.join(directory, 'ANDROID-UNTESTED.md'),
+  );
   await writeFile(
     path.join(directory, 'application.json'),
     JSON.stringify({ version, pub_date: new Date().toISOString(), platforms }, null, 2) + '\n',

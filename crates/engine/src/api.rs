@@ -1,4 +1,4 @@
-use crate::{db, error::*, model_manager, models::*, state::AppState, subtitles};
+use crate::{db, error::*, model_manager, models::*, state::AppState, storyboard, subtitles};
 use axum::{
     Json, Router,
     body::Body,
@@ -75,10 +75,18 @@ pub struct RevisionRequest {
 }
 
 #[derive(Deserialize, ToSchema)]
+pub struct CardNarrationRequest {
+    pub revision: i64,
+    pub language: String,
+}
+
+#[derive(Deserialize, ToSchema)]
 pub struct AutoEditRequest {
     pub revision: i64,
     pub profile: String,
     pub remove_silence: bool,
+    #[serde(default)]
+    pub auto_motion: bool,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -98,6 +106,8 @@ pub struct PreviewPlan {
     pub source_asset_id: String,
     pub document: EditDocument,
     pub graphics: String,
+    pub camera_motion: Option<crate::motion::CameraMotionPlan>,
+    pub layer_motion: std::collections::BTreeMap<String, crate::motion::MotionCurve>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -132,6 +142,7 @@ pub struct Health {
         session,
         list_projects,
         get_project,
+        request_storyboard,
         upload_source,
         youtube_source,
         local_source,
@@ -145,11 +156,17 @@ pub struct Health {
         cancel_job,
         retry_job,
         list_models,
+        narration_pack_status,
+        download_narration_pack,
+        card_narration_job,
+        get_card_narration_job,
         download_model,
         get_settings,
         put_settings,
         list_exports,
         title_job,
+        get_hook_proposals,
+        hook_proposals_job,
         track_job,
         caption_job,
         caption_presets,
@@ -174,6 +191,7 @@ pub struct Health {
         preview_plan,
         preview_render,
         timeline_preview,
+        get_auto_edit_proposal,
         auto_edit,
         quality_pack_status,
         import_quality_pack,
@@ -214,17 +232,26 @@ pub struct Health {
         TrackRequest,
         RefineCaptionsRequest,
         RevisionRequest,
+        CardNarrationRequest,
         AutoEditRequest,
         TimelineRequest,
         PreviewPlanRequest,
         PreviewPlan,
         crate::quality_pack::PackStatus,
+        crate::narration_pack::NarrationPackStatus,
+        CardNarration,
         crate::caption_presets::CaptionPreset,
         crate::caption_presets::SaveCaptionPreset,
         crate::clip_rating::ClipRating,
         crate::clip_rating::RatingDimension,
+        crate::hook_proposals::HookProposal,
+        crate::hook_proposals::HookProposalSet,
         CreateClipRequest,
         UpdateClipRequest,
+        storyboard::StoryboardRequest,
+        storyboard::StoryboardResponse,
+        storyboard::StoryboardFrame,
+        storyboard::StoryboardFrameStatus,
         Health
     ))
 )]
@@ -313,6 +340,7 @@ pub fn router(state: AppState) -> Router {
         .route("/activity", post(editor_activity))
         .route("/projects", get(list_projects))
         .route("/projects/{id}", get(get_project).delete(delete_project))
+        .route("/projects/{id}/storyboard", post(request_storyboard))
         .route("/projects/{id}/generate", post(generate))
         .route("/projects/{id}/clips", post(create_clip))
         .route("/projects/{id}/export", post(export_project))
@@ -327,6 +355,14 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/clips/{id}/export", post(export_clip))
         .route("/clips/{id}/title", post(title_job))
+        .route(
+            "/clips/{id}/cards/{kind}/narration",
+            get(get_card_narration_job).post(card_narration_job),
+        )
+        .route(
+            "/clips/{id}/hook-proposals",
+            get(get_hook_proposals).post(hook_proposals_job),
+        )
         .route("/clips/{id}/track", post(track_job))
         .route("/clips/{id}/captions", post(caption_job))
         .route(
@@ -343,11 +379,18 @@ pub fn router(state: AppState) -> Router {
         .route("/clips/{id}/preview-plan", post(preview_plan))
         .route("/clips/{id}/preview-render", post(preview_render))
         .route("/clips/{id}/timeline-preview", post(timeline_preview))
-        .route("/clips/{id}/auto-edit", post(auto_edit))
+        .route(
+            "/clips/{id}/auto-edit",
+            get(get_auto_edit_proposal).post(auto_edit),
+        )
         .route("/jobs", get(list_jobs))
         .route("/jobs/{id}/cancel", post(cancel_job))
         .route("/jobs/{id}/retry", post(retry_job))
         .route("/models", get(list_models))
+        .route(
+            "/models/narration-pack",
+            get(narration_pack_status).post(download_narration_pack),
+        )
         .route("/models/quality-pack", get(quality_pack_status))
         .route("/models/import-pack", post(import_quality_pack))
         .route("/models/{id}/download", post(download_model))
@@ -447,13 +490,22 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Health>> {
     ] {
         tools.insert(name.into(), crate::tools::available(&state, family, name));
     }
+    let mut editor_features = vec![
+        "video_adjustments".into(),
+        "timed_hooks".into(),
+        "preview_plan".into(),
+        "heading_cards".into(),
+        "card_narration".into(),
+        "camera_motion".into(),
+        "text_motion".into(),
+        "media_motion".into(),
+        "hook_proposals".into(),
+    ];
+    if state.native_tools.is_none() && crate::tools::available(&state, "ffmpeg", "ffmpeg") {
+        editor_features.push("storyboard_frames".into());
+    }
     Ok(Json(Health {
-        editor_features: vec![
-            "video_adjustments".into(),
-            "timed_hooks".into(),
-            "preview_plan".into(),
-            "heading_cards".into(),
-        ],
+        editor_features,
         edit_document_versions: vec![1, 2, 3, 4],
         version: env!("CARGO_PKG_VERSION").into(),
         platform: std::env::consts::ARCH.into(),
@@ -527,6 +579,18 @@ async fn get_project(
         project: db::project(&state.db, &id).await?,
         clips: db::clips(&state.db, &id).await?,
     }))
+}
+
+#[utoipa::path(post, path = "/api/v1/projects/{id}/storyboard", request_body = storyboard::StoryboardRequest,
+    responses((status = 200, body = storyboard::StoryboardResponse)))]
+async fn request_storyboard(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<storyboard::StoryboardRequest>,
+) -> ApiResult<Json<storyboard::StoryboardResponse>> {
+    Ok(Json(
+        storyboard::request_frames(&state, &id, request).await?,
+    ))
 }
 
 async fn receive_file(
@@ -887,6 +951,7 @@ async fn update_clip(
         .document
         .validate(project.duration_ms)
         .map_err(ApiError::bad_request)?;
+    validate_card_narration_assets(&state, &request.document).await?;
     if request.name.trim().is_empty() || request.name.chars().count() > 150 {
         return Err(ApiError::bad_request(
             "Clip names must contain 1 to 150 characters.",
@@ -998,6 +1063,51 @@ async fn title_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
     ))
 }
 
+#[utoipa::path(get, path = "/api/v1/clips/{id}/hook-proposals", responses((status = 200, body = Option<crate::hook_proposals::HookProposalSet>)))]
+async fn get_hook_proposals(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Option<crate::hook_proposals::HookProposalSet>>> {
+    db::clip(&state.db, &id).await?;
+    Ok(Json(crate::hook_proposals::latest(&state.db, &id).await?))
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/hook-proposals", request_body = RevisionRequest, responses((status = 200, body = Job)))]
+async fn hook_proposals_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<RevisionRequest>,
+) -> ApiResult<Json<Job>> {
+    let _gate = state.operation_gate.lock().await;
+    let clip = db::clip(&state.db, &id).await?;
+    if clip.revision != request.revision {
+        return Err(ApiError::conflict());
+    }
+    if !clip
+        .document
+        .words
+        .iter()
+        .any(|word| !word.text.trim().is_empty())
+    {
+        return Err(ApiError::bad_request(
+            "Transcribe this clip before requesting hook proposals.",
+        ));
+    }
+    ensure_no_clip_edit_job(&state, &id).await?;
+    let project = db::project(&state.db, &clip.project_id).await?;
+    let language = crate::pipeline::output_language(&project);
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "hook_proposals",
+                Some(clip.project_id.clone()),
+                Some(id),
+                json!({"snapshot": clip, "revision": request.revision, "language": language}),
+            )
+            .await?,
+    ))
+}
+
 #[utoipa::path(post, path = "/api/v1/clips/{id}/track", request_body = TrackRequest, responses((status = 200, body = Job)))]
 async fn track_job(
     State(state): State<AppState>,
@@ -1039,7 +1149,15 @@ async fn track_job(
 async fn ensure_no_clip_edit_job(state: &AppState, clip_id: &str) -> ApiResult<()> {
     if db::active_jobs(&state.db).await?.iter().any(|job| {
         job.clip_id.as_deref() == Some(clip_id)
-            && ["title", "track", "captions", "auto_edit"].contains(&job.kind.as_str())
+            && [
+                "title",
+                "hook_proposals",
+                "track",
+                "captions",
+                "auto_edit",
+                "card_narration",
+            ]
+            .contains(&job.kind.as_str())
     }) {
         return Err(ApiError::bad_request(
             "This clip already has an editing job. Wait for it to finish.",
@@ -1168,11 +1286,25 @@ async fn retry_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
     if let Some(project_id) = &job.project_id {
         db::project(&state.db, project_id).await?;
     }
-    if ["title", "track", "captions"].contains(&job.kind.as_str()) {
+    if [
+        "title",
+        "track",
+        "captions",
+        "hook_proposals",
+        "card_narration",
+    ]
+    .contains(&job.kind.as_str())
+    {
         let clip_id = job.clip_id.as_deref().ok_or_else(ApiError::not_found)?;
         ensure_no_clip_edit_job(&state, clip_id).await?;
         let clip = db::clip(&state.db, clip_id).await?;
-        if job.kind == "track" && job.payload["frozen_clip"].is_object() {
+        if ["hook_proposals", "card_narration"].contains(&job.kind.as_str()) {
+            if clip.revision != job.payload["revision"].as_i64().unwrap_or(-1) {
+                return Err(ApiError::bad_request(
+                    "This clip changed. Request new hook proposals for the current edit.",
+                ));
+            }
+        } else if job.kind == "track" && job.payload["frozen_clip"].is_object() {
             if clip.revision != job.payload["revision"].as_i64().unwrap_or(-1)
                 && job.payload["tracking_committed_revision"].as_i64() != Some(clip.revision)
             {
@@ -1193,9 +1325,100 @@ async fn retry_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
     Ok(Json(job))
 }
 
+#[utoipa::path(get, path = "/api/v1/clips/{id}/cards/{kind}/narration",
+    responses((status = 200, body = Option<Job>)))]
+async fn get_card_narration_job(
+    State(state): State<AppState>,
+    Path((id, kind)): Path<(String, String)>,
+) -> ApiResult<Json<Option<Job>>> {
+    if !["intro", "outro"].contains(&kind.as_str()) {
+        return Err(ApiError::bad_request("Choose the opening or closing card."));
+    }
+    let clip = db::clip(&state.db, &id).await?;
+    Ok(Json(
+        db::latest_card_narration_job(&state.db, &clip.project_id, &id, &kind).await?,
+    ))
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/cards/{kind}/narration",
+    request_body = CardNarrationRequest, responses((status = 200, body = Job), (status = 409)))]
+async fn card_narration_job(
+    State(state): State<AppState>,
+    Path((id, kind)): Path<(String, String)>,
+    Json(request): Json<CardNarrationRequest>,
+) -> ApiResult<Json<Job>> {
+    crate::tools::require_native_job(&state, "card_narration")?;
+    let _gate = state.operation_gate.lock().await;
+    let clip = db::clip(&state.db, &id).await?;
+    if clip.revision != request.revision {
+        return Err(ApiError::conflict());
+    }
+    ensure_no_clip_edit_job(&state, &id).await?;
+    let card = match kind.as_str() {
+        "intro" => clip.document.intro_card.as_ref(),
+        "outro" => clip.document.outro_card.as_ref(),
+        _ => return Err(ApiError::bad_request("Choose the opening or closing card.")),
+    }
+    .ok_or_else(|| ApiError::bad_request("Add and save the card before generating narration."))?;
+    if card.text.chars().count() > 280 || !["id", "en"].contains(&request.language.as_str()) {
+        return Err(ApiError::bad_request(
+            "Narration needs 1 to 280 characters and Indonesian or English.",
+        ));
+    }
+    if !crate::narration_pack::status(&state).await.ready {
+        return Err(ApiError::bad_request(
+            "Install the narration pack in Settings first.",
+        ));
+    }
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "card_narration",
+                Some(clip.project_id.clone()),
+                Some(id),
+                json!({"snapshot": clip, "revision": request.revision,
+                    "card_kind": kind, "language": request.language}),
+            )
+            .await?,
+    ))
+}
+
 #[utoipa::path(get, path = "/api/v1/models", responses((status = 200, body = [ModelStatus])))]
 async fn list_models(State(state): State<AppState>) -> ApiResult<Json<Vec<ModelStatus>>> {
     Ok(Json(model_manager::statuses(&state).await?))
+}
+
+#[utoipa::path(get, path = "/api/v1/models/narration-pack",
+    responses((status = 200, body = crate::narration_pack::NarrationPackStatus)))]
+async fn narration_pack_status(
+    State(state): State<AppState>,
+) -> Json<crate::narration_pack::NarrationPackStatus> {
+    Json(crate::narration_pack::status(&state).await)
+}
+
+#[utoipa::path(post, path = "/api/v1/models/narration-pack",
+    responses((status = 200, body = Job)))]
+async fn download_narration_pack(State(state): State<AppState>) -> ApiResult<Json<Job>> {
+    state.require_writable_models()?;
+    crate::tools::require_native_job(&state, "narration_pack")?;
+    let _gate = state.operation_gate.lock().await;
+    if db::active_jobs(&state.db).await?.iter().any(|job| {
+        job.kind == "narration_pack" && ["queued", "running"].contains(&job.status.as_str())
+    }) {
+        return Err(ApiError::bad_request(
+            "The narration pack is already downloading.",
+        ));
+    }
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "narration_pack",
+                None,
+                None,
+                json!({"revision": crate::narration_pack::revision()}),
+            )
+            .await?,
+    ))
 }
 
 #[utoipa::path(post, path = "/api/v1/models/{id}/download", responses((status = 200, body = Job)))]
@@ -1359,6 +1582,7 @@ async fn preview_plan(
         .document
         .validate(project.duration_ms)
         .map_err(ApiError::bad_request)?;
+    validate_card_narration_assets(&state, &request.document).await?;
     for layer in &request.document.visual_layers {
         if let Some(asset) = &layer.asset_id {
             let (_, _, kind) = db::asset(&state.db, &state.root, asset).await?;
@@ -1388,11 +1612,42 @@ async fn preview_plan(
         }
     }
     let graphics = subtitles::ass(&request.document);
+    let camera_motion = (!request.document.camera_motion.is_empty())
+        .then(|| crate::motion::camera_plan(&request.document, project.width, project.height));
+    let layer_motion = request
+        .document
+        .visual_layers
+        .iter()
+        .filter(|layer| !layer.motion.is_empty())
+        .map(|layer| (layer.id.clone(), crate::motion::layer_curve(layer)))
+        .collect();
     Ok(Json(PreviewPlan {
         source_asset_id: project.preview_asset_id.unwrap_or(project.asset_id),
         document: request.document,
         graphics,
+        camera_motion,
+        layer_motion,
     }))
+}
+
+async fn validate_card_narration_assets(
+    state: &AppState,
+    document: &EditDocument,
+) -> ApiResult<()> {
+    for card in [&document.intro_card, &document.outro_card]
+        .into_iter()
+        .flatten()
+    {
+        if let Some(narration) = &card.narration {
+            let (_, _, kind) = db::asset(&state.db, &state.root, &narration.asset_id).await?;
+            if kind != "audio" {
+                return Err(ApiError::bad_request(
+                    "Card narration requires a managed audio asset.",
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 #[utoipa::path(post, path = "/api/v1/clips/{id}/preview-render", request_body = RevisionRequest,
@@ -1424,6 +1679,18 @@ async fn preview_render(
     ))
 }
 
+#[utoipa::path(get, path = "/api/v1/clips/{id}/auto-edit",
+    responses((status = 200, body = Option<Job>)))]
+async fn get_auto_edit_proposal(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Option<Job>>> {
+    let clip = db::clip(&state.db, &id).await?;
+    Ok(Json(
+        db::latest_auto_edit_job(&state.db, &clip.project_id, &id).await?,
+    ))
+}
+
 #[utoipa::path(post, path = "/api/v1/clips/{id}/auto-edit", request_body = AutoEditRequest,
     responses((status = 200, body = Job), (status = 409)))]
 async fn auto_edit(
@@ -1447,6 +1714,18 @@ async fn auto_edit(
             "Install the local quality pack before removing silence.",
         ));
     }
+    if request.auto_motion {
+        if ![Layout::Portrait, Layout::Square, Layout::Landscape].contains(&clip.document.layout) {
+            return Err(ApiError::bad_request(
+                "Automatic camera motion requires portrait, square, or landscape framing.",
+            ));
+        }
+        if !clip.document.camera_motion.is_empty() {
+            return Err(ApiError::bad_request(
+                "Review or remove existing camera motion before requesting automatic motion.",
+            ));
+        }
+    }
     model_manager::model_path(&state, "qwen3-4b").await?;
     Ok(Json(
         state
@@ -1455,7 +1734,8 @@ async fn auto_edit(
                 Some(clip.project_id.clone()),
                 Some(id),
                 json!({"snapshot": clip, "profile": request.profile,
-            "remove_silence": request.remove_silence}),
+            "remove_silence": request.remove_silence,
+            "auto_motion": request.auto_motion}),
             )
             .await?,
     ))
@@ -1627,8 +1907,22 @@ async fn delete_project(
     let mut assets = vec![project.asset_id];
     assets.extend(project.preview_asset_id);
     assets.extend(project.thumbnail_id);
+    let storyboard_assets: Vec<(String,)> =
+        sqlx::query_as("SELECT id FROM assets WHERE relative_path LIKE ?")
+            .bind(format!("thumbnails/storyboard/{id}/%"))
+            .fetch_all(&state.db)
+            .await?;
+    assets.extend(storyboard_assets.into_iter().map(|(asset_id,)| asset_id));
     for clip in db::clips(&state.db, &id).await? {
         assets.extend(clip.document.watermark.asset_id);
+        for card in [&clip.document.intro_card, &clip.document.outro_card]
+            .into_iter()
+            .flatten()
+        {
+            if let Some(narration) = &card.narration {
+                assets.push(narration.asset_id.clone());
+            }
+        }
     }
     for export in db::exports(&state.db)
         .await?
@@ -1689,6 +1983,14 @@ async fn delete_clip(
         ));
     }
     let mut assets: Vec<String> = clip.document.watermark.asset_id.into_iter().collect();
+    for card in [&clip.document.intro_card, &clip.document.outro_card]
+        .into_iter()
+        .flatten()
+    {
+        if let Some(narration) = &card.narration {
+            assets.push(narration.asset_id.clone());
+        }
+    }
     for export in db::exports(&state.db)
         .await?
         .into_iter()

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@unlimitedclipper/ui';
+import { Button, Select } from '@unlimitedclipper/ui';
 import {
   ArrowLeftIcon,
   DownloadSimpleIcon,
@@ -13,13 +13,23 @@ import { flushEditor } from '../lib/save';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { time } from '../lib/format';
+import { applyLayout } from '../lib/editor-layout';
 import { QueryState } from '../molecules/QueryState';
 import { PageHeader } from '../molecules/PageHeader';
 import { ComposedPreview } from '../organisms/ComposedPreview';
 import { Inspector } from '../organisms/Inspector';
 import { VisualTimeline } from '../organisms/VisualTimeline';
+import { ClipRail } from '../organisms/ClipRail';
 import shared from '../styles/Studio.module.css';
 import styles from '../styles/Editor.module.css';
+import type { Layout } from '../types';
+
+function isEditableTarget(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest('input, textarea, select, [contenteditable]'))
+  );
+}
 
 export function Studio() {
   const text = useText();
@@ -71,6 +81,30 @@ export function Studio() {
       disposed = true;
     };
   }, [clip.data]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if ((!event.ctrlKey && !event.metaKey) || event.altKey || isEditableTarget(event.target)) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key !== 'z' && key !== 'y') {
+        return;
+      }
+      const current = useEditor.getState();
+      if (pending || current.timelinePending || current.draft?.id !== clipId) {
+        return;
+      }
+      event.preventDefault();
+      if (key === 'y' || event.shiftKey) {
+        current.redo();
+      } else {
+        current.undo();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [clipId, pending]);
 
   async function action(work: () => Promise<unknown>) {
     setPending(true);
@@ -124,20 +158,53 @@ export function Studio() {
             <span className={styles.hint} role="status">
               {editor.saving ? text.saving : editor.dirty ? text.unsaved : text.saved}
             </span>
+            <div className={styles.editorLayoutSelect}>
+              <Select
+                label={text.format}
+                value={editor.draft!.document.layout}
+                onChange={(value) =>
+                  editor.change((document) => {
+                    applyLayout(document, value as Layout, source);
+                  })
+                }
+              >
+                {(['portrait', 'square', 'landscape', 'contain', 'blur', 'gaming'] as const).map(
+                  (layout) => (
+                    <option
+                      key={layout}
+                      value={layout}
+                      disabled={
+                        Boolean(editor.draft!.document.camera_motion?.length) &&
+                        !['portrait', 'square', 'landscape'].includes(layout)
+                      }
+                    >
+                      {text[layout]}
+                    </option>
+                  ),
+                )}
+              </Select>
+              {Boolean(editor.draft!.document.camera_motion?.length) && (
+                <small>{text.cameraMotionLayoutLimit}</small>
+              )}
+            </div>
             <div className={styles.actions}>
               <Button
                 aria-label={text.undo}
+                aria-keyshortcuts="Control+Z Meta+Z"
                 disabled={!editor.history.length || busy}
                 onClick={editor.undo}
+                icon={<ArrowCounterClockwiseIcon aria-hidden="true" />}
               >
-                <ArrowCounterClockwiseIcon />
+                {text.undo}
               </Button>
               <Button
                 aria-label={text.redo}
+                aria-keyshortcuts="Control+Shift+Z Control+Y Meta+Shift+Z"
                 disabled={!editor.future.length || busy}
                 onClick={editor.redo}
+                icon={<ArrowClockwiseIcon aria-hidden="true" />}
               >
-                <ArrowClockwiseIcon />
+                {text.redo}
               </Button>
               <Button aria-pressed={showInspector} onClick={() => setShowInspector(!showInspector)}>
                 {text.options}
@@ -206,6 +273,9 @@ export function Studio() {
             key={clipId}
             sourceDuration={source?.duration_ms ?? editor.draft!.document.end_ms}
           />
+          {project.data && (
+            <ClipRail detail={project.data} activeClipId={clipId!} disabled={busy} />
+          )}
         </>
       )}
       {source && (

@@ -427,6 +427,7 @@ fn split_layers(shots: &[Shot], project: &Project, clip_id: &str) -> Vec<VisualL
         }
         result.push(VisualLayer {
             id: format!("track-split:{clip_id}:{}", shot.start_ms),
+            motion: Vec::new(),
             enabled: true,
             start_ms: shot.start_ms,
             end_ms: shot.end_ms,
@@ -571,6 +572,7 @@ pub(crate) async fn track(
         clip.document.facecam_crop = fitted;
     } else {
         clip.document.keyframes = keys;
+        clip.document.camera_motion.clear();
         let prefix = format!("track-split:{}:", clip.id);
         clip.document
             .visual_layers

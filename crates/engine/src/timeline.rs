@@ -273,6 +273,9 @@ impl EditDocument {
             .words
             .sort_by_key(|word| (word.start_ms, word.end_ms));
         let mapping = result.clone();
+        if !self.camera_motion.is_empty() {
+            result.camera_motion = crate::motion::remap_camera(self, &mapping);
+        }
         let remap = |time| {
             self.content_to_source(time)
                 .and_then(|source| mapping.source_to_content(source))
@@ -330,6 +333,16 @@ impl EditDocument {
                     .into_iter()
                     .map(|(start, end, old_start)| VisualLayer {
                         id: fragment_id(&layer.id, layer.start_ms, old_start),
+                        motion: if layer.motion.is_empty() {
+                            Vec::new()
+                        } else {
+                            crate::motion::remap_layer(
+                                layer,
+                                old_start,
+                                old_start + end - start,
+                                start,
+                            )
+                        },
                         start_ms: start,
                         end_ms: end,
                         source_start_ms: if layer.kind == "broll" {

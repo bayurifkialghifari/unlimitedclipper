@@ -3,19 +3,27 @@
 Reviewed on November 15, 2026. Competitor pages describe marketed capabilities; they are
 not evidence that this application matches their quality or performance.
 
-The [CapCut editor](https://www.capcut.com/tools/online-video-editor) groups timeline cutting,
-text, captions, filters, and audio around selection and an inspector. This supports extending
-the existing Atomic Design editor rather than adding a separate styling application.
+Public editor demonstrations group timeline cutting, text, captions, filters, and audio around
+selection and an inspector. This supports extending the existing Atomic Design editor.
 [OpusClip](https://www.opus.pro/) presents editable captions, brand templates, and reframing.
-[ClippingHunter](https://clippinghunter.id/) describes caption styling and timed SFX with
-audition and gain controls. Those workflows inform original controls and recipes here.
+The original Studio adds timed SFX with audition and gain controls alongside its own caption
+recipes.
 
-[ClipProvit](https://clipprovit.com/) provides public short feature demonstrations. Its hook
-card demonstration shows an editable opening text card, style selection, and a timed opening.
-The reviewed frames support manual multiline hooks, reusable looks, and explicit display
-timing. Other advertised motion/speaker/cloud capabilities are not independently verified.
-Its advertised Lite path uses cloud processing, which does not establish low-resource local
-performance. Public demo media stays in ignored research storage, not product assets.
+Public short feature demonstrations show editable opening text cards, style selection, and
+timed openings. The reviewed frames support manual multiline hooks, reusable looks, and
+explicit display timing. Advertised motion, speaker, and cloud behavior does not establish
+local performance. Reference media stays in ignored research storage, not product assets.
+
+The supplied 548-second tutorial was inspected through a five-second frame sample and its
+Indonesian captions. The editor sequence moves from clip selection to a large preview, a
+multitrack timeline, contextual controls, and export. Nineteen feature demonstrations were
+inspected in sampled frames. Three playable result videos were downloaded and sampled across
+their duration: a narrated news clip used a title card, B-roll, and compact captions; a podcast
+used a fixed speaker frame and short captions; a gaming clip combined gameplay, facecam, a
+title card, and footage cuts. The site listed more result clips, but these three were the
+sampled media. This review informs the existing source/preview/inspector/timeline layout and
+working card, caption, and B-roll controls. Reference footage, marks, and templates are not
+product assets.
 
 The supplied Instagram post returned a login page without playable media. Its visual editing
 details remain unverified. Do not claim to have watched unavailable references.

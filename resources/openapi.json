@@ -159,6 +159,23 @@
       }
     },
     "/api/v1/clips/{id}/auto-edit": {
+      "get": {
+        "tags": [],
+        "operationId": "get_auto_edit_proposal",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/Job" }] }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [],
         "operationId": "auto_edit",
@@ -204,6 +221,49 @@
         }
       }
     },
+    "/api/v1/clips/{id}/cards/{kind}/narration": {
+      "get": {
+        "tags": [],
+        "operationId": "get_card_narration_job",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "kind", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/Job" }] }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "operationId": "card_narration_job",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "kind", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CardNarrationRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          },
+          "409": { "description": "" }
+        }
+      }
+    },
     "/api/v1/clips/{id}/export": {
       "post": {
         "tags": [],
@@ -211,6 +271,46 @@
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/clips/{id}/hook-proposals": {
+      "get": {
+        "tags": [],
+        "operationId": "get_hook_proposals",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/HookProposalSet" }]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "operationId": "hook_proposals_job",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RevisionRequest" } }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "",
@@ -584,6 +684,32 @@
         "responses": { "200": { "description": "" } }
       }
     },
+    "/api/v1/models/narration-pack": {
+      "get": {
+        "tags": [],
+        "operationId": "narration_pack_status",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NarrationPackStatus" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "operationId": "download_narration_pack",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          }
+        }
+      }
+    },
     "/api/v1/models/quality-pack": {
       "get": {
         "tags": [],
@@ -717,6 +843,31 @@
           "200": {
             "description": "",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}/storyboard": {
+      "post": {
+        "tags": [],
+        "operationId": "request_storyboard",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/StoryboardRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StoryboardResponse" }
+              }
+            }
           }
         }
       }
@@ -868,9 +1019,30 @@
         "type": "object",
         "required": ["revision", "profile", "remove_silence"],
         "properties": {
+          "auto_motion": { "type": "boolean" },
           "profile": { "type": "string" },
           "remove_silence": { "type": "boolean" },
           "revision": { "type": "integer", "format": "int64" }
+        }
+      },
+      "CameraKeyframe": {
+        "type": "object",
+        "required": ["time_ms", "x", "y", "zoom"],
+        "properties": {
+          "easing": { "$ref": "#/components/schemas/Easing" },
+          "time_ms": { "type": "integer", "format": "int64" },
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" },
+          "zoom": { "type": "number", "format": "double" }
+        }
+      },
+      "CameraMotionPlan": {
+        "type": "object",
+        "required": ["curve", "base_width", "base_height"],
+        "properties": {
+          "base_height": { "type": "number", "format": "double" },
+          "base_width": { "type": "number", "format": "double" },
+          "curve": { "$ref": "#/components/schemas/MotionCurve" }
         }
       },
       "CaptionPreset": {
@@ -913,6 +1085,25 @@
           "size": { "type": "integer", "format": "int32", "minimum": 0 },
           "uppercase": { "type": "boolean" },
           "words_per_line": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "CardNarration": {
+        "type": "object",
+        "required": ["asset_id", "text", "language", "voice", "duration_ms"],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "duration_ms": { "type": "integer", "format": "int64" },
+          "language": { "type": "string" },
+          "text": { "type": "string" },
+          "voice": { "type": "string" }
+        }
+      },
+      "CardNarrationRequest": {
+        "type": "object",
+        "required": ["revision", "language"],
+        "properties": {
+          "language": { "type": "string" },
+          "revision": { "type": "integer", "format": "int64" }
         }
       },
       "Clip": {
@@ -982,6 +1173,44 @@
           "y": { "type": "number", "format": "double" }
         }
       },
+      "Easing": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "type": "string", "enum": ["linear"] } }
+          },
+          {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "type": "string", "enum": ["ease_in"] } }
+          },
+          {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "type": "string", "enum": ["ease_out"] } }
+          },
+          {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "type": "string", "enum": ["smooth"] } }
+          },
+          {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "type": "string", "enum": ["hold"] } }
+          },
+          {
+            "type": "object",
+            "required": ["first", "second", "kind"],
+            "properties": {
+              "first": { "type": "number", "format": "double" },
+              "kind": { "type": "string", "enum": ["curve"] },
+              "second": { "type": "number", "format": "double" }
+            }
+          }
+        ]
+      },
       "EditDocument": {
         "type": "object",
         "required": [
@@ -1004,6 +1233,10 @@
           "audio_layers": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/AudioLayer" }
+          },
+          "camera_motion": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CameraKeyframe" }
           },
           "caption_model": { "type": ["string", "null"] },
           "captions": { "$ref": "#/components/schemas/CaptionStyle" },
@@ -1092,6 +1325,9 @@
           "color": { "type": "string" },
           "duration_ms": { "type": "integer", "format": "int64" },
           "font": { "type": "string" },
+          "narration": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/CardNarration" }]
+          },
           "position_y": { "type": "number", "format": "double" },
           "size": { "type": "integer", "format": "int32", "minimum": 0 },
           "text": { "type": "string" }
@@ -1123,6 +1359,32 @@
             "propertyNames": { "type": "string" }
           },
           "version": { "type": "string" }
+        }
+      },
+      "HookProposal": {
+        "type": "object",
+        "required": ["id", "text", "source_quote", "explanation"],
+        "properties": {
+          "explanation": { "type": "string" },
+          "id": { "type": "string" },
+          "source_quote": { "type": "string" },
+          "text": { "type": "string" }
+        }
+      },
+      "HookProposalSet": {
+        "type": "object",
+        "required": ["id", "clip_id", "revision", "language", "proposals", "created_at"],
+        "properties": {
+          "clip_id": { "type": "string" },
+          "created_at": { "type": "integer", "format": "int64" },
+          "id": { "type": "string" },
+          "language": { "type": "string" },
+          "proposals": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/HookProposal" }
+          },
+          "revision": { "type": "integer", "format": "int64" },
+          "source_signature": { "type": ["string", "null"] }
         }
       },
       "Job": {
@@ -1157,6 +1419,18 @@
         "type": "object",
         "required": ["time_ms", "x", "y"],
         "properties": {
+          "time_ms": { "type": "integer", "format": "int64" },
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" }
+        }
+      },
+      "LayerKeyframe": {
+        "type": "object",
+        "required": ["time_ms", "x", "y", "scale", "opacity"],
+        "properties": {
+          "easing": { "$ref": "#/components/schemas/Easing" },
+          "opacity": { "type": "number", "format": "double" },
+          "scale": { "type": "number", "format": "double" },
           "time_ms": { "type": "integer", "format": "int64" },
           "x": { "type": "number", "format": "double" },
           "y": { "type": "number", "format": "double" }
@@ -1198,6 +1472,43 @@
           }
         ]
       },
+      "MotionCurve": {
+        "type": "object",
+        "required": ["initial", "final_values", "intervals"],
+        "properties": {
+          "final_values": { "type": "array", "items": { "type": "number", "format": "double" } },
+          "initial": { "type": "array", "items": { "type": "number", "format": "double" } },
+          "intervals": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MotionInterval" }
+          }
+        }
+      },
+      "MotionInterval": {
+        "type": "object",
+        "required": ["start_ms", "end_ms", "coefficients"],
+        "properties": {
+          "coefficients": {
+            "type": "array",
+            "items": { "type": "array", "items": { "type": "number", "format": "double" } }
+          },
+          "end_ms": { "type": "integer", "format": "int64" },
+          "start_ms": { "type": "integer", "format": "int64" }
+        }
+      },
+      "NarrationPackStatus": {
+        "type": "object",
+        "required": ["id", "name", "ready", "size_bytes", "downloaded_bytes", "license", "source"],
+        "properties": {
+          "downloaded_bytes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "id": { "type": "string" },
+          "license": { "type": "string" },
+          "name": { "type": "string" },
+          "ready": { "type": "boolean" },
+          "size_bytes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "source": { "type": "string" }
+        }
+      },
       "PackStatus": {
         "type": "object",
         "required": ["ready", "size_bytes", "languages"],
@@ -1209,10 +1520,18 @@
       },
       "PreviewPlan": {
         "type": "object",
-        "required": ["source_asset_id", "document", "graphics"],
+        "required": ["source_asset_id", "document", "graphics", "layer_motion"],
         "properties": {
+          "camera_motion": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/CameraMotionPlan" }]
+          },
           "document": { "$ref": "#/components/schemas/EditDocument" },
           "graphics": { "type": "string" },
+          "layer_motion": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/components/schemas/MotionCurve" },
+            "propertyNames": { "type": "string" }
+          },
           "source_asset_id": { "type": "string" }
         }
       },
@@ -1338,6 +1657,35 @@
           "start_ms": { "type": "integer", "format": "int64" }
         }
       },
+      "StoryboardFrame": {
+        "type": "object",
+        "required": ["source_time_ms", "status"],
+        "properties": {
+          "asset_id": { "type": ["string", "null"] },
+          "error": { "type": ["string", "null"] },
+          "job_id": { "type": ["string", "null"] },
+          "source_time_ms": { "type": "integer", "format": "int64" },
+          "status": { "$ref": "#/components/schemas/StoryboardFrameStatus" }
+        }
+      },
+      "StoryboardFrameStatus": {
+        "type": "string",
+        "enum": ["ready", "pending", "failed", "unavailable"]
+      },
+      "StoryboardRequest": {
+        "type": "object",
+        "required": ["source_times_ms"],
+        "properties": {
+          "source_times_ms": { "type": "array", "items": { "type": "integer", "format": "int64" } }
+        }
+      },
+      "StoryboardResponse": {
+        "type": "object",
+        "required": ["frames"],
+        "properties": {
+          "frames": { "type": "array", "items": { "$ref": "#/components/schemas/StoryboardFrame" } }
+        }
+      },
       "TimelineRequest": {
         "type": "object",
         "required": ["document", "segments"],
@@ -1420,6 +1768,7 @@
           "end_ms": { "type": "integer", "format": "int64" },
           "id": { "type": "string" },
           "kind": { "type": "string" },
+          "motion": { "type": "array", "items": { "$ref": "#/components/schemas/LayerKeyframe" } },
           "secondary_crop": {
             "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/CropRect" }]
           },

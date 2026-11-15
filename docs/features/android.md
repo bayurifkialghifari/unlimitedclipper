@@ -77,6 +77,11 @@ initial build at the owner's request. An ARM64 build alone is not evidence of na
 behavior. The current Windows ARM64 development machine is not supported by the official Android
 Emulator; a supported host is required when runtime testing resumes.
 
+The tagged preview workflow can rebuild the pinned native media dependency and attach the
+inspected debug APK to the same release as desktop packages. APK signing remains debug-only and
+may change between CI runs. The APK is labeled experimental; on-device import and export are
+still unverified.
+
 ## Sources
 
 - [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).

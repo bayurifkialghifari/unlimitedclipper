@@ -16,11 +16,21 @@ shows real immutable records with revision/date metadata, download links, and an
 preview. Opening a preview loads the registered MP4 and converts its immutable SRT sidecar to a
 browser VTT track. Closed previews do not download video media.
 
+The project gallery has 24 pixels of space below the import controls so its thumbnails remain
+visually separate from the form and file action at desktop and narrow widths. Deleting a project
+opens a labeled modal with the project name, Cancel, and an explicit Yes, delete project action.
+Escape and Cancel leave the record intact; an API failure stays visible in the modal.
+
 Projects open a gallery of saved clips with their actual names and source/output durations.
 Edit clip opens its persistent /studio/:clipId route. Create a clip opens a separate source-range
 page with seconds and playhead setters. Direct studio links restore the matching revision.
 New imports refresh the project list without selecting a different clip in an active editor.
 Gallery thumbnails currently reuse each project's source thumbnail.
+
+Each saved clip card also opens its own Captions panel through Change style. The same action on
+an export card opens the current clip while preserving the export's original revision and files.
+The editor saves style changes per clip with revision checks. A new MP4 requires another export;
+the earlier MP4 is never changed in place. Video filters remain one inspector tab away.
 
 GET /api/v1/projects; GET /api/v1/projects/{id}; GET /api/v1/exports
 

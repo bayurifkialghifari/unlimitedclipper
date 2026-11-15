@@ -9,7 +9,9 @@ import { SegmentFields } from '../molecules/SegmentFields';
 import { LayerCropFields } from '../molecules/LayerCropFields';
 import { LayerTimingFields } from '../molecules/LayerTimingFields';
 import { AudioLibrary } from './AudioLibrary';
+import { LayerMotionEditor } from './LayerMotionEditor';
 import { useTimelineRemap } from '../hooks/use-timeline-remap';
+import { retimeLayerMotion } from '../lib/layer-motion';
 import type { AudioLayer, VisualLayer } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -237,6 +239,7 @@ export function TimelineEditor() {
                 <LayerTimingFields
                   layer={layer}
                   duration={duration}
+                  maximumLength={layer.motion?.length ? 120_000 : undefined}
                   sourceDuration={
                     layer.kind === 'broll'
                       ? sources.data?.find((source) => source.asset_id === layer.asset_id)
@@ -244,7 +247,10 @@ export function TimelineEditor() {
                       : undefined
                   }
                   onChange={(timing) =>
-                    editLayer(layer.id, (layer) => Object.assign(layer, timing))
+                    editLayer(layer.id, (layer) => {
+                      retimeLayerMotion(layer, timing.start_ms, timing.end_ms, false);
+                      Object.assign(layer, timing);
+                    })
                   }
                 />
                 {['text', 'note'].includes(layer.kind) && (
@@ -289,6 +295,9 @@ export function TimelineEditor() {
                       }
                     />
                   </div>
+                )}
+                {['note', 'text', 'broll'].includes(layer.kind) && (
+                  <LayerMotionEditor layerId={layer.id} />
                 )}
                 {['note', 'text', 'camera_frame'].includes(layer.kind) && (
                   <Field

@@ -150,6 +150,38 @@ pub async fn jobs(pool: &SqlitePool) -> Result<Vec<Job>> {
     rows.into_iter().map(|row| decode(row.0)).collect()
 }
 
+pub async fn latest_auto_edit_job(
+    pool: &SqlitePool,
+    project_id: &str,
+    clip_id: &str,
+) -> Result<Option<Job>> {
+    let row: Option<(String,)> = sqlx::query_as(
+        "SELECT data FROM jobs WHERE project_id = ? AND json_extract(data, '$.clip_id') = ? AND json_extract(data, '$.kind') = 'auto_edit' ORDER BY created_at DESC LIMIT 1",
+    )
+    .bind(project_id)
+    .bind(clip_id)
+    .fetch_optional(pool)
+    .await?;
+    row.map(|(data,)| decode(data)).transpose()
+}
+
+pub async fn latest_card_narration_job(
+    pool: &SqlitePool,
+    project_id: &str,
+    clip_id: &str,
+    kind: &str,
+) -> Result<Option<Job>> {
+    let row: Option<(String,)> = sqlx::query_as(
+        "SELECT data FROM jobs WHERE project_id = ? AND json_extract(data, '$.clip_id') = ? AND json_extract(data, '$.kind') = 'card_narration' AND json_extract(data, '$.payload.card_kind') = ? ORDER BY created_at DESC LIMIT 1",
+    )
+    .bind(project_id)
+    .bind(clip_id)
+    .bind(kind)
+    .fetch_optional(pool)
+    .await?;
+    row.map(|(data,)| decode(data)).transpose()
+}
+
 pub async fn active_jobs(pool: &SqlitePool) -> Result<Vec<Job>> {
     let rows: Vec<(String,)> = sqlx::query_as(
         "SELECT data FROM jobs WHERE status IN ('queued', 'running', 'cancelling') ORDER BY created_at",
@@ -269,6 +301,14 @@ pub async fn remove_unused_assets(
         referenced.extend(project.thumbnail_id);
         for clip in clips(pool, &project.id).await? {
             referenced.extend(clip.document.watermark.asset_id);
+            for card in [&clip.document.intro_card, &clip.document.outro_card]
+                .into_iter()
+                .flatten()
+            {
+                if let Some(narration) = &card.narration {
+                    referenced.insert(narration.asset_id.clone());
+                }
+            }
             referenced.extend(
                 clip.document
                     .visual_layers
@@ -286,6 +326,10 @@ pub async fn remove_unused_assets(
     for export in exports(pool).await? {
         referenced.extend([export.asset_id, export.ass_asset_id, export.srt_asset_id]);
     }
+    let frames: Vec<(String,)> = sqlx::query_as("SELECT asset_id FROM storyboard_frames")
+        .fetch_all(pool)
+        .await?;
+    referenced.extend(frames.into_iter().map(|(asset_id,)| asset_id));
     let canonical_root = tokio::fs::canonicalize(root).await?;
     let checkpoint_data: Vec<(String,)> =
         sqlx::query_as("SELECT data FROM jobs WHERE status != 'completed'")

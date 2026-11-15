@@ -677,6 +677,10 @@
   gap: 18px;
 }
 
+.dialogProjectName {
+  overflow-wrap: anywhere;
+}
+
 .dialogActions {
   display: flex;
   justify-content: flex-end;
@@ -834,6 +838,10 @@
   gap: 20px;
 }
 
+.projectGallery {
+  margin-top: 24px;
+}
+
 .projectCard {
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -862,6 +870,13 @@
 .projectInfo p {
   color: var(--muted);
   font-size: 12px;
+}
+
+.clipCardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .list {
@@ -1000,6 +1015,12 @@
 }
 
 @media (max-width: 600px) {
+  .previewTop {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 18px;
+  }
   .pageHeader {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1445,6 +1466,123 @@
   font-size: 13px;
 }
 
+.hookIdeas {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 0 0 24px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-inset);
+}
+
+.hookModeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+
+.hookIdeas h3,
+.hookIdeas p {
+  margin: 0;
+}
+
+.hookIdeaList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hookIdea {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hookIdea button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hookIdea button:hover,
+.hookIdea button[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+
+.hookIdea button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.hookIdeaNumber {
+  flex: 0 0 22px;
+  color: var(--accent);
+  font-family: 'Oswald', sans-serif;
+}
+
+.hookIdeaReview {
+  display: grid;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.hookIdeaReview strong {
+  line-height: 1.35;
+}
+
+.hookIdeaReview p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hookIdeaActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.proposalReview {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.proposalReview p {
+  margin: 0;
+}
+
+.proposalList {
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+
+.proposalList li {
+  line-height: 1.5;
+}
+
 .hookInput {
   width: 100%;
   min-height: 88px;
@@ -1455,6 +1593,11 @@
   background: var(--surface-inset);
   color: var(--text);
   font: inherit;
+}
+
+.hookInput:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .sfxList {
   margin: 12px 0;

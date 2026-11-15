@@ -22,6 +22,8 @@ update checks and installation. No unavailable update service is presented as wo
 ## Interface
 
 Settings action buttons use consistent Phosphor icons alongside their visible translated labels.
+Transcription language uses localized names and a selected-country SVG from flag-icons; the
+native option list keeps text and flag emoji so keyboard selection remains available.
 Headers and sections follow the window width. Processing history uses compact responsive rows,
 visible percentages, and expandable full error details. The activity popup anchors below the page
 header so it does not cover search or toolbar controls.

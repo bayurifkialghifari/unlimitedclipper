@@ -1,4 +1,5 @@
 use unlimitedclipper_engine::models::*;
+use unlimitedclipper_engine::subtitles;
 
 fn project() -> Project {
     Project {
@@ -62,6 +63,7 @@ fn card(text: &str, duration_ms: i64) -> HeadingCard {
         background: "#151B24".into(),
         position_y: 0.5,
         animation: "none".into(),
+        narration: None,
     }
 }
 
@@ -151,6 +153,187 @@ fn legacy_documents_are_not_promoted_and_invalid_cards_are_rejected() {
 }
 
 #[test]
+fn eased_motion_keeps_its_curve_and_source_clock_after_reorder_and_trim() {
+    use unlimitedclipper_engine::motion::{
+        CameraKeyframe, Easing, LayerKeyframe, camera_curve, layer_curve,
+    };
+    let mut original =
+        EditDocument::new(&project(), 0, 6000).replace_segments(vec![scene("all", 0, 6000)]);
+    original.version = 4;
+    original.intro_card = Some(card("Opening", 1000));
+    original.camera_motion = vec![
+        CameraKeyframe {
+            time_ms: 0,
+            x: 0.2,
+            y: 0.5,
+            zoom: 1.0,
+            easing: Easing::Linear,
+        },
+        CameraKeyframe {
+            time_ms: 6000,
+            x: 0.8,
+            y: 0.7,
+            zoom: 2.0,
+            easing: Easing::Smooth,
+        },
+    ];
+    let mut visual = note(0, 6000);
+    visual.motion = vec![
+        LayerKeyframe {
+            time_ms: 0,
+            x: 0.2,
+            y: 0.3,
+            scale: 0.5,
+            opacity: 0.2,
+            easing: Easing::Linear,
+        },
+        LayerKeyframe {
+            time_ms: 6000,
+            x: 0.7,
+            y: 0.8,
+            scale: 1.5,
+            opacity: 1.0,
+            easing: Easing::EaseIn,
+        },
+    ];
+    original.visual_layers.push(visual);
+    original.validate(project().duration_ms).unwrap();
+    let graphics = subtitles::ass(&original);
+    assert!(graphics.contains("\\move("));
+    assert!(graphics.contains("\\alpha&H"));
+    let target = original.replace_segments(vec![
+        scene("later", 4000, 6000),
+        scene("earlier", 1000, 2000),
+    ]);
+    target.validate(project().duration_ms).unwrap();
+    for (time, source_time) in [
+        (200, 4200),
+        (1100, 5100),
+        (1990, 5990),
+        (2100, 1100),
+        (2500, 1500),
+        (2990, 1990),
+    ] {
+        let original_camera = camera_curve(&original).at(source_time as f64);
+        let camera = camera_curve(&target).at(time as f64);
+        for (expected, actual) in original_camera.iter().zip(camera) {
+            assert!(
+                (expected - actual).abs() < 1e-8,
+                "Restricted camera easing must retain its trajectory."
+            );
+        }
+        let layer = target
+            .visual_layers
+            .iter()
+            .find(|layer| layer.start_ms <= time && time < layer.end_ms)
+            .unwrap();
+        let expected = layer_curve(&original.visual_layers[0]).at(source_time as f64);
+        let actual = layer_curve(layer).at(time as f64);
+        for (expected, actual) in expected.iter().zip(actual) {
+            assert!(
+                (expected - actual).abs() < 1e-8,
+                "Layer easing must retain its trajectory."
+            );
+        }
+    }
+    assert_eq!(target.intro_card.unwrap().duration_ms, 1000);
+}
+
+#[test]
+fn broll_motion_accepts_zoom_and_opacity_but_rejects_unsupported_transforms() {
+    use unlimitedclipper_engine::motion::{Easing, LayerKeyframe};
+
+    let mut document =
+        EditDocument::new(&project(), 0, 6000).replace_segments(vec![scene("all", 0, 6000)]);
+    document.version = 4;
+    let mut layer = note(0, 6000);
+    layer.kind = "broll".into();
+    layer.asset_id = Some("managed-video".into());
+    layer.motion = vec![
+        LayerKeyframe {
+            time_ms: 0,
+            x: 0.5,
+            y: 0.5,
+            scale: 1.0,
+            opacity: 1.0,
+            easing: Easing::Linear,
+        },
+        LayerKeyframe {
+            time_ms: 6000,
+            x: 0.7,
+            y: 0.4,
+            scale: 2.0,
+            opacity: 0.5,
+            easing: Easing::Smooth,
+        },
+    ];
+    document.visual_layers.push(layer);
+    document.validate(project().duration_ms).unwrap();
+    document.visual_layers[0].motion[1].scale = 0.8;
+    let error = document.validate(project().duration_ms).unwrap_err();
+    assert!(error.contains("valid transforms"));
+    document.visual_layers[0].motion[1].scale = 2.0;
+    document.visual_layers[0].kind = "split".into();
+    let error = document.validate(project().duration_ms).unwrap_err();
+    assert!(error.contains("Motion is available on text, note, and B-roll layers"));
+}
+
+#[test]
+fn broll_motion_and_media_offsets_follow_reordered_scenes() {
+    use unlimitedclipper_engine::motion::{Easing, LayerKeyframe, layer_curve};
+
+    let mut original =
+        EditDocument::new(&project(), 0, 6000).replace_segments(vec![scene("all", 0, 6000)]);
+    original.version = 4;
+    let mut layer = note(0, 6000);
+    layer.kind = "broll".into();
+    layer.asset_id = Some("managed-video".into());
+    layer.source_start_ms = 500;
+    layer.motion = vec![
+        LayerKeyframe {
+            time_ms: 0,
+            x: 0.4,
+            y: 0.5,
+            scale: 1.0,
+            opacity: 0.2,
+            easing: Easing::Linear,
+        },
+        LayerKeyframe {
+            time_ms: 6000,
+            x: 0.7,
+            y: 0.5,
+            scale: 2.0,
+            opacity: 1.0,
+            easing: Easing::Smooth,
+        },
+    ];
+    original.visual_layers.push(layer);
+    let reordered = original.replace_segments(vec![
+        scene("later", 4000, 6000),
+        scene("earlier", 1000, 2000),
+    ]);
+    reordered.validate(project().duration_ms).unwrap();
+    for (time, source_time, media_start) in [
+        (200, 4200, 4500),
+        (1500, 5500, 4500),
+        (2100, 1100, 1500),
+        (2800, 1800, 1500),
+    ] {
+        let fragment = reordered
+            .visual_layers
+            .iter()
+            .find(|layer| layer.start_ms <= time && time < layer.end_ms)
+            .unwrap();
+        assert_eq!(fragment.source_start_ms, media_start);
+        let expected = layer_curve(&original.visual_layers[0]).at(source_time as f64);
+        let actual = layer_curve(fragment).at(time as f64);
+        for (expected, actual) in expected.iter().zip(actual) {
+            assert!((expected - actual).abs() < 1e-8);
+        }
+    }
+}
+
+#[test]
 fn legacy_styles_default_and_timed_hooks_keep_output_relative_bounds() {
     let original = document();
     let mut legacy = serde_json::to_value(&original).unwrap();
@@ -179,6 +362,7 @@ fn legacy_styles_default_and_timed_hooks_keep_output_relative_bounds() {
 fn note(start_ms: i64, end_ms: i64) -> VisualLayer {
     VisualLayer {
         id: "note".into(),
+        motion: Vec::new(),
         enabled: true,
         start_ms,
         end_ms,

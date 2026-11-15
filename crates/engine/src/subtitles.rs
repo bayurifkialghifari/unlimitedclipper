@@ -1,4 +1,4 @@
-use crate::models::{EditDocument, HeadingCard, Word};
+use crate::models::{EditDocument, HeadingCard, VisualLayer, Word};
 
 pub fn caption_groups(document: &EditDocument) -> Vec<&[Word]> {
     let mut groups = Vec::new();
@@ -421,6 +421,10 @@ fn graphics(document: &EditDocument) -> String {
         let y = layer.y * height as f64;
         let size = layer.size as f64 * width.min(height) as f64 / 1080.0;
         if ["text", "note"].contains(&layer.kind.as_str()) {
+            if !layer.motion.is_empty() {
+                output.push_str(&moving_text_graphics(layer, width, height, size, offset));
+                continue;
+            }
             if layer.kind == "note" {
                 let note_width = (layer.text.chars().count() as f64 * size * 0.65)
                     .clamp(size * 3.0, width as f64 * 0.75);
@@ -457,6 +461,76 @@ fn graphics(document: &EditDocument) -> String {
                 &format!("{{{slash}an7{slash}pos(0,0){slash}p1{slash}1a&HFF&{slash}3c{}{slash}bord2{slash}shad0}}{path}",
                     override_color(&layer.color))));
         }
+    }
+    output
+}
+
+fn moving_text_graphics(
+    layer: &VisualLayer,
+    width: u32,
+    height: u32,
+    size: f64,
+    offset: i64,
+) -> String {
+    let curve = crate::motion::layer_curve(layer);
+    let note_width =
+        (layer.text.chars().count() as f64 * size * 0.65).clamp(size * 3.0, width as f64 * 0.75);
+    let note_height = size * 1.6;
+    let mut output = String::new();
+    let mut start = layer.start_ms;
+    while start < layer.end_ms {
+        let next_anchor = layer
+            .motion
+            .iter()
+            .find(|key| key.time_ms > start)
+            .map_or(layer.end_ms, |key| key.time_ms);
+        let end = (start + 100).min(next_anchor).min(layer.end_ms);
+        let from = curve.at(start as f64);
+        let to = curve.at(end as f64 - 0.000_001);
+        let duration = end - start;
+        let alpha = |opacity: f64| ((1.0 - opacity) * 255.0).round() as u8;
+        let tags = format!(
+            "\\an5\\move({:.2},{:.2},{:.2},{:.2},0,{duration})\\fscx{:.2}\\fscy{:.2}\\alpha&H{:02X}&\\t(0,{duration},\\fscx{:.2}\\fscy{:.2}\\alpha&H{:02X}&)",
+            from[0] * width as f64,
+            from[1] * height as f64,
+            to[0] * width as f64,
+            to[1] * height as f64,
+            from[2] * 100.0,
+            from[2] * 100.0,
+            alpha(from[3]),
+            to[2] * 100.0,
+            to[2] * 100.0,
+            alpha(to[3]),
+        );
+        if layer.kind == "note" {
+            output.push_str(&dialogue(
+                4,
+                start + offset,
+                end + offset,
+                "Title",
+                &format!(
+                    "{{{tags}\\p1\\bord0\\shad0\\1c{}}}m 0 0 l {note_width:.1} 0 {note_width:.1} {note_height:.1} 0 {note_height:.1}",
+                    override_color(&layer.color),
+                ),
+            ));
+        }
+        let color = if layer.kind == "note" {
+            "#181818"
+        } else {
+            &layer.color
+        };
+        output.push_str(&dialogue(
+            5,
+            start + offset,
+            end + offset,
+            "Title",
+            &format!(
+                "{{{tags}\\fs{size:.1}\\1c{}\\bord1}}{}",
+                override_color(color),
+                escape_ass(&layer.text),
+            ),
+        ));
+        start = end;
     }
     output
 }

@@ -11,6 +11,7 @@ test.beforeEach(async ({ request }) => {
 
 test('imports, edits, saves, reopens, renders captions and exports real media', async ({
   page,
+  request,
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -72,7 +73,63 @@ test('imports, edits, saves, reopens, renders captions and exports real media', 
   await page.getByRole('link', { name: 'MP4', exact: true }).first().click();
   const download = (await downloadEvent).suggestedFilename();
   expect(download).toBeTruthy();
+  const exported = (await (await request.get('/api/v1/exports')).json())[0];
+  await page.getByRole('button', { name: 'Ubah style' }).first().click();
+  await expect(page.getByRole('tab', { name: 'Caption', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.getByRole('button', { name: 'Impact', exact: true }).click();
+  await expect(page.getByText('Tersimpan lokal', { exact: true })).toBeVisible();
+  const previousExport = (await (await request.get('/api/v1/exports')).json()).find(
+    (item: { id: string }) => item.id === exported.id,
+  );
+  expect(previousExport.asset_id).toBe(exported.asset_id);
+  expect(previousExport.revision).toBe(exported.revision);
   expect(errors).toEqual([]);
+});
+
+test('changes one clip style from its project card without changing a sibling clip', async ({
+  page,
+  request,
+}) => {
+  const settings = await (await request.get('/api/v1/settings')).json();
+  await request.put('/api/v1/settings', { data: { ...settings, language: 'en' } });
+  await page.goto('/');
+  await page
+    .locator('input[type="file"]')
+    .first()
+    .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
+  await createManualClip(page, 'First style fixture', 0, 3);
+  const firstId = new URL(page.url()).pathname.split('/').at(-1)!;
+  await page.getByRole('button', { name: 'Clips', exact: true }).click();
+  await page.getByRole('button', { name: 'Create a clip', exact: true }).click();
+  await page.getByLabel('Clip name', { exact: true }).fill('Second style fixture');
+  await page.getByLabel('Source start (seconds)', { exact: true }).fill('4');
+  await page.getByLabel('Source end (seconds)', { exact: true }).fill('7');
+  await page.getByRole('button', { name: 'Edit clip', exact: true }).click();
+  const secondId = new URL(page.url()).pathname.split('/').at(-1)!;
+  const siblingBefore = await (await request.get('/api/v1/clips/' + secondId)).json();
+  await page.getByRole('button', { name: 'Clips', exact: true }).click();
+  const firstCard = page.locator('article').filter({ hasText: 'First style fixture' });
+  await firstCard.getByRole('button', { name: 'Change style' }).click();
+  await expect(page).toHaveURL(/panel=captions/);
+  await expect(page.getByRole('tab', { name: 'Captions', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.getByRole('button', { name: 'Impact', exact: true }).click();
+  await page.getByRole('tab', { name: 'Video filters', exact: true }).click();
+  await page.getByRole('button', { name: 'Warm', exact: true }).click();
+  await expect(page.getByText('Saved locally', { exact: true })).toBeVisible();
+  const firstAfter = await (await request.get('/api/v1/clips/' + firstId)).json();
+  const siblingAfter = await (await request.get('/api/v1/clips/' + secondId)).json();
+  expect(firstAfter.document.captions).not.toEqual(siblingAfter.document.captions);
+  expect(firstAfter.document.video_adjustments).not.toEqual(
+    siblingAfter.document.video_adjustments,
+  );
+  expect(siblingAfter.revision).toBe(siblingBefore.revision);
+  expect(siblingAfter.document).toEqual(siblingBefore.document);
 });
 
 test('supports English settings and a narrow studio without horizontal overflow', async ({
@@ -197,6 +254,14 @@ test('edits source segments and local layers, then plays a composed preview', as
     0,
   );
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(timeline.getByRole('group', { name: 'Add camera frame', exact: true })).toHaveCount(
+    1,
+  );
+  await page.keyboard.press('Control+Shift+Z');
+  await expect(timeline.getByRole('group', { name: 'Add camera frame', exact: true })).toHaveCount(
+    0,
+  );
+  await page.keyboard.press('Control+Z');
   await expect(timeline.getByRole('group', { name: 'Add camera frame', exact: true })).toHaveCount(
     1,
   );

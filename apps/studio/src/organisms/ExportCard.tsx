@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PlayIcon } from '@phosphor-icons/react';
+import { Button } from '@unlimitedclipper/ui';
 import { assetUrl } from '../lib/api';
 import { useText } from '../lib/i18n';
 import { date } from '../lib/format';
@@ -9,6 +11,7 @@ import styles from '../styles/Studio.module.css';
 
 export function ExportCard({ item }: { item: Export }) {
   const text = useText();
+  const navigate = useNavigate();
   const [opened, setOpened] = useState(false);
   const [error, setError] = useState(false);
   const [captionError, setCaptionError] = useState(false);
@@ -81,6 +84,9 @@ export function ExportCard({ item }: { item: Export }) {
         {captionError && <p role="alert">{text.previewError}</p>}
       </details>
       <div className={styles.headerActions}>
+        <Button onClick={() => navigate('/studio/' + item.clip_id + '?panel=captions')}>
+          {text.changeClipStyle}
+        </Button>
         <ExportDownload assetId={item.asset_id} label="MP4" />
         <ExportDownload assetId={item.srt_asset_id} label="SRT" />
         <ExportDownload assetId={item.ass_asset_id} label="ASS" />

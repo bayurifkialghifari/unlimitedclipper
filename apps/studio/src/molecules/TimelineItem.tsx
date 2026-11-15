@@ -11,6 +11,8 @@ export function TimelineItem({
   scale,
   selected,
   disabled,
+  frames,
+  sourceRange,
   onSelect,
   onPreview,
   onCommit,
@@ -21,6 +23,8 @@ export function TimelineItem({
   scale: number;
   selected: boolean;
   disabled?: boolean;
+  frames?: { sourceTimeMs: number; url?: string }[];
+  sourceRange?: string;
   onSelect: () => void;
   onPreview: (mode: TimelineGesture, delta: number | null) => void;
   onCommit: (mode: TimelineGesture, delta: number) => void;
@@ -63,6 +67,7 @@ export function TimelineItem({
         type="button"
         className={mode === 'move' ? styles.itemBody : styles.trimHandle}
         aria-label={name + ' · ' + label}
+        title={mode === 'move' ? sourceRange : undefined}
         disabled={disabled}
         onClick={(event) => {
           event.stopPropagation();
@@ -85,7 +90,31 @@ export function TimelineItem({
           }
         }}
       >
-        {mode === 'move' ? label : <span aria-hidden="true">Ⅱ</span>}
+        {mode === 'move' ? (
+          <>
+            {Boolean(frames?.length) && (
+              <span className={styles.timelineItemMedia} aria-hidden="true">
+                {frames?.map((frame) =>
+                  frame.url ? (
+                    <img
+                      key={frame.sourceTimeMs}
+                      src={frame.url}
+                      width={256}
+                      height={144}
+                      loading="lazy"
+                      alt=""
+                    />
+                  ) : (
+                    <span key={frame.sourceTimeMs} />
+                  ),
+                )}
+              </span>
+            )}
+            <span className={styles.timelineItemLabel}>{label}</span>
+          </>
+        ) : (
+          <span aria-hidden="true">Ⅱ</span>
+        )}
       </button>
     );
   }
@@ -94,6 +123,7 @@ export function TimelineItem({
     <div
       className={styles.timelineItem}
       data-selected={selected}
+      data-media={Boolean(frames?.some((frame) => frame.url))}
       style={{ left: start * scale, width: Math.max(12, (end - start) * scale) }}
     >
       {control('start', text.trimStart)}

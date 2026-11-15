@@ -23,10 +23,14 @@ export function useEngineEvents() {
       ) {
         void client.invalidateQueries({ queryKey: ['projects'] });
         void client.invalidateQueries({ queryKey: ['project'] });
+        void client.invalidateQueries({ queryKey: ['storyboard'] });
         void client.invalidateQueries({ queryKey: ['clip'] });
         void client.invalidateQueries({ queryKey: ['models'] });
+        void client.invalidateQueries({ queryKey: ['narration-pack'] });
+        void client.invalidateQueries({ queryKey: ['card-narration'] });
         void client.invalidateQueries({ queryKey: ['exports'] });
         void client.invalidateQueries({ queryKey: ['clip-rating'] });
+        void client.invalidateQueries({ queryKey: ['hook-proposals'] });
         void client.invalidateQueries({ queryKey: ['caption-presets'] });
       }
     });

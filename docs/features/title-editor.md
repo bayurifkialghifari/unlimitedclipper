@@ -13,6 +13,14 @@ in Source, Edited, and export. Timing and animation controls require the timed_h
 capability. Older documents start at zero without animation. Empty text or zero duration hides
 the hook. Display ends at the clip boundary; it never adds duration to the output.
 
+The Hook tab presents compact numbered local ideas. Selecting one shows its transcript quote and
+reason before choosing an overlay or opening card. The chosen idea seeks to its opening in the
+player and enters Undo/Redo. Presentation-only edits leave the saved ideas usable; changing the
+source range, scene order, or transcript makes them stale. Older proposal sets without a source
+signature retain the previous revision guard. Manual controls can switch the current opening
+between an overlay and a card without generating another idea. Preview hook seeks the current
+overlay start; opening cards retain their own preview action.
+
 Generated titles use the saved clip transcript and an expected revision. A concurrent edit causes a conflict rather than being overwritten. Manual text, presets, font, size, color, vertical position, and timed display share the preview/export document. Real local title inference and native manual title editing passed.
 
 Title generation and face tracking share an admission guard per clip. The interface disables those actions while a queued, running, or cancelling edit job exists. A retry reads the current revision before admission. The title prompt names the detected language explicitly; model output still requires review for language and factual accuracy.

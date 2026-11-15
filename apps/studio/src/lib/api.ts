@@ -7,14 +7,17 @@ import type {
   CaptionPreset,
   CaptionStyle,
   ClipRating,
+  HookProposalSet,
   Job,
   ModelStatus,
   Project,
   ProjectDetail,
+  StoryboardResponse,
   Settings,
   PackStatus,
   SourceSegment,
   AudioAsset,
+  NarrationPackStatus,
 } from '../types';
 
 export class ApiError extends Error {
@@ -53,10 +56,31 @@ export const api = {
     }),
   audioAssets: () => request<AudioAsset[]>('/assets/audio'),
   qualityPack: () => request<PackStatus>('/models/quality-pack'),
-  autoEdit: (id: string, revision: number, profile: string, remove_silence: boolean) =>
+  narrationPack: () => request<NarrationPackStatus>('/models/narration-pack'),
+  downloadNarrationPack: () => request<Job>('/models/narration-pack', { method: 'POST' }),
+  cardNarrationJob: (id: string, kind: 'intro' | 'outro') =>
+    request<Job | null>('/clips/' + id + '/cards/' + kind + '/narration'),
+  generateCardNarration: (
+    id: string,
+    kind: 'intro' | 'outro',
+    revision: number,
+    language: string,
+  ) =>
+    request<Job>('/clips/' + id + '/cards/' + kind + '/narration', {
+      method: 'POST',
+      body: JSON.stringify({ revision, language }),
+    }),
+  autoEditProposal: (id: string) => request<Job | null>('/clips/' + id + '/auto-edit'),
+  autoEdit: (
+    id: string,
+    revision: number,
+    profile: string,
+    remove_silence: boolean,
+    auto_motion: boolean,
+  ) =>
     request<Job>('/clips/' + id + '/auto-edit', {
       method: 'POST',
-      body: JSON.stringify({ revision, profile, remove_silence }),
+      body: JSON.stringify({ revision, profile, remove_silence, auto_motion }),
     }),
   previewRender: (id: string, revision: number) =>
     request<Job>('/clips/' + id + '/preview-render', {
@@ -71,6 +95,12 @@ export const api = {
   health: () => request<Health>('/health'),
   projects: () => request<Project[]>('/projects'),
   project: (id: string) => request<ProjectDetail>('/projects/' + id),
+  storyboard: (id: string, sourceTimesMs: number[], signal?: AbortSignal) =>
+    request<StoryboardResponse>('/projects/' + id + '/storyboard', {
+      method: 'POST',
+      body: JSON.stringify({ source_times_ms: sourceTimesMs }),
+      signal,
+    }),
   jobs: () => request<Job[]>('/jobs'),
   models: () => request<ModelStatus[]>('/models'),
   captionPresets: () => request<CaptionPreset[]>('/caption-presets'),
@@ -81,6 +111,13 @@ export const api = {
     }),
   deleteCaptionPreset: (id: string) => request('/caption-presets/' + id, { method: 'DELETE' }),
   clipRating: (id: string) => request<ClipRating | null>('/clips/' + id + '/rating'),
+  hookProposals: (id: string) =>
+    request<HookProposalSet | null>('/clips/' + id + '/hook-proposals'),
+  generateHookProposals: (id: string, revision: number) =>
+    request<Job>('/clips/' + id + '/hook-proposals', {
+      method: 'POST',
+      body: JSON.stringify({ revision }),
+    }),
   rateClip: (id: string, revision: number) =>
     request<Job>('/clips/' + id + '/rating', {
       method: 'POST',

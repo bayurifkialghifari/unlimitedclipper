@@ -8,14 +8,15 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.9.0",
-    "@tauri-apps/plugin-dialog": "^2.4.0",
     "@fontsource/dm-sans": "^5.2.8",
     "@fontsource/noto-sans": "^5.2.8",
     "@fontsource/oswald": "^5.2.8",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-query": "^5.90.0",
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
     "@unlimitedclipper/ui": "*",
+    "flag-icons": "^7.3.2",
     "jassub": "^2.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

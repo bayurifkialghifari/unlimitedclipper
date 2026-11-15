@@ -4,12 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Field } from '@unlimitedclipper/ui';
 import { api, assetUrl } from '../lib/api';
 import { flushEditor } from '../lib/save';
-import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { time, date } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
 import { PageHeader } from '../molecules/PageHeader';
 import { ImportControls } from '../organisms/ImportControls';
+import { DeleteProjectDialog } from '../organisms/DeleteProjectDialog';
+import type { Project } from '../types';
 import styles from '../styles/Studio.module.css';
 
 export function Projects() {
@@ -19,6 +20,7 @@ export function Projects() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [deleting, setDeleting] = useState<Project | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   async function action(work: () => Promise<unknown>) {
     setPending(true);
@@ -59,7 +61,7 @@ export function Projects() {
           <p>{text.noProjectsDetail}</p>
         </div>
       )}
-      <div className={styles.gallery}>
+      <div className={styles.gallery + ' ' + styles.projectGallery}>
         {query.data
           ?.filter((project) =>
             project.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
@@ -86,26 +88,7 @@ export function Projects() {
                   >
                     {text.open}
                   </Button>
-                  <Button
-                    disabled={pending}
-                    onClick={() => {
-                      if (window.confirm(text.deleteConfirm)) {
-                        void action(async () => {
-                          await api.deleteProject(project.id);
-                          if (useEditor.getState().projectId === project.id) {
-                            localStorage.removeItem('uc-project');
-                            useEditor.setState({
-                              projectId: null,
-                              clipId: null,
-                              draft: null,
-                              dirty: false,
-                            });
-                          }
-                          await query.refetch();
-                        });
-                      }
-                    }}
-                  >
+                  <Button disabled={pending} onClick={() => setDeleting(project)}>
                     {text.delete}
                   </Button>
                 </div>
@@ -113,6 +96,7 @@ export function Projects() {
             </article>
           ))}
       </div>
+      {deleting && <DeleteProjectDialog project={deleting} onClose={() => setDeleting(null)} />}
     </div>
   );
 }

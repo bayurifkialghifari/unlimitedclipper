@@ -38,13 +38,21 @@ pub async fn run(state: AppState) -> Result<()> {
             "import" => pipeline::import_file(&state, &mut job, &cancellation).await,
             "youtube" => pipeline::import_youtube(&state, &mut job, &cancellation).await,
             "model" => model_manager::download(&state, &mut job, &cancellation).await,
+            "narration_pack" => {
+                crate::narration_pack::download(&state, &mut job, &cancellation).await
+            }
+            "card_narration" => crate::narration::generate(&state, &mut job, &cancellation).await,
             "generate" => pipeline::generate(&state, &mut job, &cancellation).await,
             "title" => pipeline::title(&state, &mut job, &cancellation).await,
+            "hook_proposals" => {
+                crate::hook_proposals::generate(&state, &mut job, &cancellation).await
+            }
             "captions" => pipeline::refine_captions(&state, &mut job, &cancellation).await,
             "track" => crate::tracking::track(&state, &mut job, &cancellation).await,
             "component_update" => crate::updates::download(&state, &mut job, &cancellation).await,
             "export" => pipeline::render_batch(&state, &mut job, &cancellation).await,
             "preview" => crate::render::preview_job(&state, &mut job, &cancellation).await,
+            "storyboard" => crate::storyboard::generate(&state, &mut job, &cancellation).await,
             "auto_edit" => crate::editorial::auto_edit(&state, &mut job, &cancellation).await,
             _ => Err(anyhow::anyhow!("Unknown job type.")),
         };

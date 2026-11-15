@@ -1,0 +1,90 @@
+name: Unix desktop packages
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        required: false
+        type: string
+    secrets:
+      APP_UPDATE_PUBLIC_KEY:
+        required: false
+      APP_UPDATE_PRIVATE_KEY:
+        required: false
+      APP_UPDATE_KEY_PASSWORD:
+        required: false
+      COMPONENT_UPDATE_PUBLIC_KEY:
+        required: false
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - platform: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - platform: macos-x64
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+          - platform: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 300
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_BUILD_TARGET: ${{ matrix.target }}
+      UC_RELEASE_PLATFORM: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - name: Install Linux desktop build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf unzip cmake
+      - name: Prepare tagged version
+        if: inputs.release_tag != ''
+        env:
+          GITHUB_REF_NAME: ${{ inputs.release_tag }}
+          UC_APP_PUBLIC_KEY: ${{ secrets.APP_UPDATE_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.APP_UPDATE_PRIVATE_KEY }}
+        run: node scripts/set-release-version.mjs
+      - run: npm install --package-lock-only --ignore-scripts
+      - run: cargo update --workspace
+      - run: npm ci
+      - name: Stage verified native dependencies
+        run: node scripts/setup-unix-tools.mjs --platform=${{ matrix.platform }}
+      - name: Build native desktop bundle
+        env:
+          UC_APP_PUBLIC_KEY: ${{ secrets.APP_UPDATE_PUBLIC_KEY }}
+          UC_COMPONENT_PUBLIC_KEY: ${{ secrets.COMPONENT_UPDATE_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.APP_UPDATE_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.APP_UPDATE_KEY_PASSWORD }}
+        run: npm run build:desktop
+      - name: Inspect and stage package
+        env:
+          GITHUB_REF_NAME: ${{ inputs.release_tag || 'v0.1.0-ci' }}
+        run: node scripts/stage-unix-release.mjs
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: .cache/release-files/*
+          if-no-files-found: error
+          retention-days: 14

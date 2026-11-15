@@ -2,6 +2,55 @@
 
 ## Unreleased
 
+- Project clip cards and export history now open the selected clip's caption style controls.
+  Style changes autosave per clip and completed exports retain their original files and revision.
+- Hook ideas now use a numbered choice list with one visible quote and explanation. A saved set
+  remains usable after presentation edits; source or transcript changes require fresh ideas.
+  Manual overlay/card switching and a direct hook preview seek shorten opening review.
+- Tagged CI now defines Linux x64/ARM64 and macOS Intel/ARM package jobs, plus an experimental
+  Android ARM64 APK job. Unix toolchains are pinned and checked before bundling. Publication
+  still depends on successful hosted builds and platform-specific validation evidence.
+- The Studio timeline now shows source-derived scene frames, persistent track names, adaptive
+  sub-second time ticks, keyboard/pointer seeking, word playback/selection states, and a rail of
+  real project clips. A bounded managed-frame cache preserves ready frames across scene reorder
+  and provides loading, failure, and retry feedback. Background frame jobs stay in the editor's
+  status area instead of covering the workspace with global progress cards.
+- Composition is available in the Studio toolbar. Gaming split is visible there, with its
+  facecam/gameplay controls and explicit local facecam detection near the top of Crop.
+- Opening and closing cards can now receive reviewed local Indonesian or English narration
+  from a verified optional voice pack. Generated WAV assets are revision-bound, undoable, and
+  included in live review, exact preview, and export.
+- Transcription language controls now show localized names with country flags, using the
+  licensed flag-icons SVGs. The native select remains keyboard operable.
+- Project deletion now asks for explicit confirmation in a modal with Cancel, Escape, error
+  feedback, and the actual project name.
+- The editor toolbar, preview, inspector, and timeline have more space at desktop and narrow
+  widths; narrow preview status text stacks above the footage.
+- Automatic editing now offers a reviewable camera-motion option based on saved crop points,
+  single-face framing samples, and transcript emphasis. The proposal lists keyframes and skipped
+  multi-face samples, survives restart, and applies through Undo/Redo and revision checks.
+- Verified silence removal now lists each proposed source-time gap and its total duration before
+  application. The latest automatic-edit proposal remains accessible after the recent job list
+  rolls over.
+- Registered local B-roll layers now support revisioned center, zoom, and opacity keyframes with
+  the existing easing controls. Live review, rendered previews, and exports use the same motion
+  curve; scene trim/reorder keeps its timing. Per-frame alpha commands keep opacity rendering
+  bounded without evaluating a blend expression for every pixel.
+- Hook generation now saves up to eight distinct transcript-grounded ideas per clip revision,
+  shows each source quote and explanation, and lets the editor explicitly apply an overlay or
+  independent opening card. Applying an idea uses the normal undo and revision-aware autosave.
+- The Hook inspector keeps failed and stale proposal states visible. An older revision cannot
+  apply its ideas to a newer edit, and generating ideas does not change the clip.
+- Undo and Redo are visible text controls in the Studio toolbar, with Ctrl+Z, Ctrl+Shift+Z,
+  and Ctrl+Y shortcuts outside editable fields.
+- Project cards now sit 24 pixels below the import controls in the Projects view.
+- Manual camera center/zoom and text/note position/scale/opacity keyframes now share engine
+  easing with live preview, scene remaps, rendered preview, and immutable exports. Inspector
+  fields, timeline markers, preview drag handles, and keyboard movement edit the saved revision.
+- Legacy crop anchors convert on first camera motion edit. Camera motion is limited to portrait,
+  square, and landscape layouts; unsupported layer kinds still reject motion.
+- FFmpeg camera interpolation now samples the intended output frame; real-media comparisons
+  cover multiple curve positions and animated text in decoded exports.
 - Version 4 edits support independent opening/closing cards with editable text, duration,
   colors, bundled fonts, position, and animation. Existing document versions remain readable.
 - Cards add final duration without changing source/word provenance, layer timing, or scene

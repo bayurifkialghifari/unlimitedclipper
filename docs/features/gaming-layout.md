@@ -12,6 +12,12 @@ Five real Windah Basudara clips also passed 1080p rendering and full decoding. S
 
 ## Interface
 
+The focused Studio toolbar exposes Composition, including Gaming split, without opening the
+inspector. Choosing Gaming split places the facecam region above gameplay. The Crop tab keeps
+the independent facecam/gameplay rectangles and split ratio near the top. Auto-detect facecam
+is an explicit action that saves the current edit and runs the local framing job; the user must
+review its result because camera placement can change within a recording.
+
 PUT /api/v1/clips/{id}
 
 ## States and failure handling

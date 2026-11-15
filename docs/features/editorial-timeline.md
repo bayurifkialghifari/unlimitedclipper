@@ -21,10 +21,12 @@ the endpoint convention above; version 4 source/output mapping returns no source
 cards or at the final endpoint. Scene reorder/trim preserves cards and remaps content only.
 
 Cards have editable text, duration, bundled font, size, foreground/background colors,
-vertical position, and None/Fade/Pop animation. They are silent. The live preview pauses the
-source decoder during cards; exact preview/export concatenate colored video and silent audio
-around the completed content mix. ASS/SRT/output VTT add the opening offset once; source VTT
-retains source timing. Narration and animated camera/media tracks remain pending.
+vertical position, and None/Fade/Pop animation. They are silent until optional local narration
+is applied. The live preview pauses the source decoder during cards and plays the registered
+card WAV. Exact preview/export concatenate colored video and narration or silence around the
+completed content mix. ASS/SRT/output VTT add the opening offset once; source VTT retains
+source timing. Changing card text clears attached narration; applying generated speech is
+revision checked and undoable. Indonesian/English M1 is the only supported voice in this slice.
 
 The Source segments inspector applies range changes through the Rust timeline-preview endpoint.
 Words retain their source timing and provenance. A word crossing a removed interval keeps its
@@ -35,6 +37,17 @@ supports undo and uses normal revision-aware autosave. Extending into previously
 coverage loads stored transcript words while preserving manual surviving edits and caption text
 deleted from already covered material. Missing transcript coverage requires manual captions or
 refinement. Layer fragment IDs remain stable across identical remaps.
+
+Version 4 camera keyframes store normalized centers and zoom from 1 to 4. Text/note keyframes
+store normalized position and opacity plus scale from 0.1 to 4. All use content-relative integer
+milliseconds and explicit easing; cards do not shift their times. Scene remaps retain sampled
+motion and easing across trim/reorder boundaries. A first manual camera keyframe converts legacy
+crop-position anchors into the new track. Unedited legacy documents keep their original format.
+Camera motion is available for portrait, square, and landscape; animated text/note layers are
+limited to 120 seconds. Registered B-roll layers support center, zoom, and opacity motion for
+up to 120 seconds and 24 anchors. Other visual layer kinds reject motion. Auto Motion can
+propose camera keys from existing crop anchors or single-face samples and transcript emphasis.
+The proposal is revision-bound, inspectable by time/value, and applied through Undo/Redo.
 
 ## Layers and local assets
 
@@ -59,12 +72,21 @@ Face samples can suggest a modest punch-in or a two-face split. Reaction mode ad
 No proposal silently replaces a saved edit. Apply requires the original revision and a clean draft.
 Review the result; the model cannot guarantee editorial interest or identify people.
 
+An optional camera-motion choice uses legacy crop anchors when present. Otherwise it follows
+only single-face samples with bounded pan steps and skips ambiguous multi-face samples. Up to
+four selected transcript words add 12-percent zoom pulses. A scene cut holds the prior framing
+until its boundary. If there is no credible movement or emphasis, the proposal can contain no
+camera keys. The persisted proposal shows its points and can be reopened after restart.
+
 Verified silence removal requires the optional speech quality pack and supported Indonesian or
 English captions. CTC timing is applied to the proposal while preserving manual corrections. VAD
 and an energy guard protect audible reactions; surviving caption words also protect a gap. Only
 interior gaps over 650 ms after 120 ms padding are candidates for removal. There is no automatic
 leading/trailing silence removal. Speaker clusters are review evidence, not automatic face identity.
 Overlapping speech, background music, and quiet laughter can defeat these heuristics.
+Each proposal now lists the exact removed source-time gaps and total removed duration before
+application. The quality pack was absent from the tested host, so an end-to-end native
+silence-removal run is still pending; unit checks cover gap accounting and word protection.
 
 ## Preview and export
 

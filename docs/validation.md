@@ -1,5 +1,248 @@
 # Validation evidence
 
+## Per-clip styling, Hook review, and release preparation, 2026-11-16
+
+The updated source passed npm run check: ESLint, Prettier, TypeScript, six frontend tests, and
+the production Studio build. All 60 Rust engine tests passed, including the Hook source-signature
+guard. Workspace Rustfmt and engine/desktop Clippy passed with warnings denied. This validates
+the local Windows ARM64 development build; it does not certify release packages.
+
+Two isolated browser scenarios in tests/browser/studio.spec.ts used a real local video. The
+first edited captions, rendered and downloaded an MP4, opened Change style from export history,
+saved another caption look, and confirmed the earlier export asset ID and revision stayed the
+same. The second made two clips from one project, opened Change style on the first clip card,
+saved its caption and video filter looks, and confirmed the sibling document/revision stayed
+unchanged. Both scenarios passed without page errors on the isolated localhost engine.
+
+scripts/validate-hook-proposals.mjs produced eight transcript-grounded local ideas from the
+real speech fixture, checked their source quotes, preserved the clip during generation, and
+reloaded the saved set after engine restart. Its browser scenario selected another idea after
+an overlay edit and autosave without generating again, applied it as an opening card, and used
+Undo/Redo. The older revision request still returned HTTP 409. Evidence:
+.cache/hook-proposals-validation.json and tests/browser/hook-proposals.spec.ts. Hook quality
+remains a human editorial decision.
+
+The tagged workflow now describes six desktop packages and one experimental Android APK.
+Unix native dependency downloads, macOS source builds, AppImage/disk-image bundling, Android
+APK assembly on this revision, publication, and installation/runtime checks are pending hosted
+CI evidence. The Android APK remains media-only and debug-signed. The Windows update manifest
+does not advertise Unix bundles. No unrun platform or package check is marked PASS.
+
+| Anti-slop During gate | Status  | Evidence and remaining scope                                                                                                                                      |
+| --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direction and content | Pass    | Existing graphite/amber design, real clip/export records, and transcript-grounded Hook evidence.                                                                  |
+| Hard gate             | Partial | Keyboard-operated Hook selection, named style actions, save feedback, and browser page-error checks passed. Full contrast and every-control audit remain pending. |
+| Purpose               | Pass    | Change style opens a specific saved clip; choosing a Hook idea shows one quote/reason before applying it.                                                         |
+| Liveliness            | Partial | Browser desktop and narrow Hook interaction passed. Native visual review and reduced-motion audit remain pending.                                                 |
+| Craftsmanship         | Partial | Real export identity, sibling revision isolation, Undo/Redo, and local inference passed. Cross-platform packages remain pending CI/runtime checks.                |
+
+## Storyboard timeline and gaming split, 2026-11-16
+
+The isolated browser scenario in tests/browser/timeline-storyboard.spec.ts imported the real
+12-second speech-face fixture, decoded a source-derived timeline frame, selected a caption word,
+used the keyboard ruler, saved Gaming split, and ran local facecam detection after setting its
+search region around the visible face. The completed tracking job preserved gameplay crop. The
+scenario switched between two saved clips, built a 19-card project rail, selected its last card
+by keyboard, and found no document overflow at 390 pixels or page errors. Storyboard cache jobs
+stayed out of the global progress panel. Screenshots: test-results/timeline-gaming.png,
+timeline-desktop.png, and timeline-narrow.png.
+
+An isolated Windows ARM64 debug Tauri build passed scripts/validate-native-storyboard.mjs with
+the current Studio bundle. WebView2 exposed the Tauri bridge, decoded a managed scene frame,
+saved Gaming split, completed local facecam detection, preserved the gameplay rectangle, and
+switched to a second project clip. It reported zero page errors. Evidence:
+.cache/native-storyboard-validation.json and .cache/native-storyboard.png. The test host used
+its own data directory and WebView2 profile while the user's desktop remained open. The
+debug-only second-instance switch is confined to that isolated host.
+
+The final source passed npm run check (ESLint, Prettier, TypeScript, six frontend tests, and the
+production Studio build), all 60 engine Rust tests, workspace Rustfmt check, and engine/desktop
+Clippy with warnings denied. The already-open desktop at port 43179 advertised storyboard frame
+support, served the same Studio index as the isolated browser host, and had no active jobs.
+
+This fixture shows a visible face in a controlled square source, not natural gaming footage.
+It verifies interaction, persistence, and frame delivery. It does not measure face detection
+accuracy across camera positions, certify export parity for this edit, or exercise a packaged
+installer. Earlier rendered Gaming split fixtures are recorded below.
+
+| Anti-slop During gate | Status  | Interaction evidence and remaining scope                                                                                                             |
+| --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direction and content | Pass    | Existing graphite/amber design; real source frames, saved clips, and an actual tracked face.                                                         |
+| Hard gate             | Partial | Keyboard ruler and rail, named controls, decoded images, 390-pixel overflow, and page errors passed. Full contrast and control audit remain pending. |
+| Purpose               | Pass    | Frame strips support cut review; the clip rail opens saved clips; Gaming split and detection change real edits.                                      |
+| Liveliness            | Partial | Browser desktop/narrow and native screenshots were inspected. Full reduced-motion review remains pending.                                            |
+| Craftsmanship         | Partial | Real import, job, persistence, and native interaction passed. Packaged release and natural gaming accuracy remain pending.                           |
+
+## Card narration, language flags, and project deletion, 2026-11-15
+
+scripts/validate-narration.mjs passed again after the retry and WAV validation changes with
+the pinned Supertonic 3 M1 pack. Indonesian and English card jobs produced registered WAVs;
+a stale revision returned HTTP 409. Live preview and immutable export contained card audio,
+the nine-second MP4 decoded fully, and narration persisted after restart. Cancellation and
+retry passed. Evidence: .cache/narration-validation.json. This test detects audio and timing;
+it does not judge intelligibility or voice quality by listening.
+
+An isolated Windows ARM64 WebView2 run used the verified local pack, generated and applied an
+opening-card narration through native controls, and observed its hidden audio decoder advance
+beyond 150 ms during card playback. It also passed real video painting, camera/B-roll motion,
+exact preview, card transitions, one visible canvas, and zero page errors. Evidence:
+scripts/validate-native-composition.mjs and .cache/native-composition-validation.json. The
+decoder check does not measure physical speaker output or a packaged installer.
+
+tests/browser/project-dialog-language.spec.ts passed against an isolated production Studio.
+It checked an actual SVG flag, localized options, keyboard selection, desktop and 390-pixel
+editor screenshots, no narrow horizontal overflow, and at least 24 pixels between import
+controls and the first project card. Escape and Cancel kept the disposable imported project;
+explicit confirmation removed it. Evidence: test-results/transcription-language.png,
+editor-layout-desktop.png, editor-layout-narrow.png, and project-delete-dialog.png.
+An injected HTTP 503 kept the project and displayed its error in the modal; retry then deleted
+the fixture.
+
+The final working tree passed npm run check (ESLint, Prettier, TypeScript, four frontend tests,
+and the production build), all 59 engine Rust tests, workspace Rustfmt check, and engine plus
+desktop Clippy with warnings denied. The focused browser scenario passed again after the final
+narrow-screen preview adjustment. The development desktop then opened against the canonical
+project library at port 43179 with a visible window, zero active jobs, and the verified narration
+pack ready. This is an open development build, not a newly packaged installer.
+
+| Anti-slop During gate | Status  | Interaction evidence and limit                                                                                   |
+| --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| Direction and content | Pass    | Original graphite/amber UI, real fixture video, localized language names, and a licensed flag selection.         |
+| Hard gate             | Partial | Keyboard selection, modal focus/Escape/Cancel, narrow overflow, and real deletion passed; full audit is pending. |
+| Purpose               | Pass    | Voice controls create a saved audio revision; project confirmation names the record being removed.               |
+| Liveliness            | Partial | Desktop/narrow screenshots and native media playback passed; full motion/contrast review remains pending.        |
+| Craftsmanship         | Partial | Real narration media, native playback clock, browser interactions, and revision recovery passed.                 |
+
+## Auto Motion proposal and silence review, 2026-11-15
+
+scripts/validate-auto-motion.mjs imported a controlled 12-second video, transcribed its speech
+with installed Whisper small, and ran the installed Qwen 4B automatic-edit model. The proposal
+converted two existing crop anchors into 11 camera-motion anchors while leaving the saved clip
+unchanged. The latest proposal survived engine restart and rejected an old revision with HTTP 409. A browser interaction inspected the saved anchors, applied the proposal, used Undo and
+Redo, reloaded the editor, and saw the now-stale Apply control disabled. The applied revision
+exported an MP4 that decoded fully. Evidence: .cache/auto-motion-validation.json and
+tests/browser/auto-motion.spec.ts. This fixture confirms the media path and interaction; it
+does not measure editorial appeal or natural face-tracking accuracy.
+
+Three Rust unit checks cover single-face pan and transcript zoom, a hold jump at a scene cut,
+and exact silence-gap accounting with caption-word protection. The optional quality pack was
+not installed on this host, so acoustic silence removal and its browser gap list have not had
+an end-to-end native run. npm run check passed ESLint, Prettier, TypeScript, four frontend unit
+tests, and production compilation. All 57 Rust tests, workspace Rustfmt check, and engine plus
+desktop Clippy with warnings denied passed after this slice.
+
+| Anti-slop During gate | Status  | Interaction evidence and limit                                                                                                                             |
+| --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direction and content | Pass    | Original Studio controls display the actual saved clip, proposal values, and source times.                                                                 |
+| Hard gate             | Partial | Keyboard proposal review, Undo/Redo, disabled stale Apply, restart, and browser errors passed; full contrast and accessibility audits remain pending.      |
+| Purpose               | Pass    | Motion and silence controls produce a revision-bound proposal with inspectable anchors or gaps.                                                            |
+| Liveliness            | Partial | Decoded export and live motion path passed; subjective pacing and reduced-motion review remain pending.                                                    |
+| Craftsmanship         | Partial | Real inference, persistence, browser, export, source checks, and scoped native composition passed; native Auto Motion and packaged release remain pending. |
+
+## Registered B-roll motion, 2026-11-15
+
+The version 4 validator accepts registered B-roll center/zoom/opacity tracks, limits them to
+24 anchors and 120 seconds, and rejects zoom below one or unsupported layer kinds. A Rust
+scene test checks that eased values and managed media offsets survive trim/reorder. The
+scoped camera-motion browser scenario passed with keyboard keyframe creation, a visible live
+canvas change when B-roll and its transforms were added, autosave, and reload. Evidence:
+tests/browser/camera-motion.spec.ts.
+
+scripts/validate-advanced-motion.mjs passed four complete real-media exports on Windows ARM64.
+The added B-roll export decoded fully and differed from the no-B-roll frame by a mean RGB
+channel value of 70.08 at four seconds; easing opacity from 1 to 0.4 changed that frame by
+30.91 against the opaque export. Camera geometry checks retained mean errors of 4.03, 3.72,
+and 9.68 at sampled times. Evidence: .cache/advanced-motion-validation.json. These are sampled
+geometry/visibility checks, not a subjective editing-quality or all-frame parity claim.
+
+The alpha path uses FFmpeg sendcmd/colorchannelmixer before the existing overlay. A controlled
+720 by 1280, 180-frame color probe completed in 0.42 seconds with this path versus 3.06 seconds
+for the tested per-pixel blend expression on this machine. These probe times do not predict
+real export speed. After the user's Generate job completed, the older desktop closed normally.
+An isolated Windows ARM64 WebView2 run passed camera and B-roll live-frame changes, exact
+playback, independent cards, one canvas, and zero page errors on a controlled moving-face
+fixture. Its live frame mean was 29.01 and chroma 12.52. The main development desktop reopened
+with the media_motion health flag. Evidence: .cache/native-composition-validation.json.
+
+Anti-slop During gate for this slice: source assets are registered real videos; numeric
+keyframes and timeline markers have working save/undo paths; disabled states name missing
+source, playhead, duration, and host-version prerequisites. Browser keyboard, focus, live
+frame changes, persistence, MP4 decode, and native WebView2 interaction passed. Broad contrast
+review, packaged-release execution, and other-platform runtime remain pending.
+
+## Reviewable Hook proposals and editor Undo/Redo, 2026-11-15
+
+The engine Rust suite passed 54 tests at the Hook checkpoint, including contiguous source-quote rejection and an API
+revision-conflict/frozen-snapshot check. Rustfmt and Clippy with warnings denied passed. The
+production frontend build and type checks passed; a later whole-repository check passed after
+the B-roll integration. Earlier visible Undo/Redo browser checks passed in
+tests/browser/studio.spec.ts.
+
+scripts/validate-hook-proposals.mjs imported a real 12-second JFK speech video, transcribed it
+with the installed Whisper small model, and generated eight accepted ideas with the installed
+Qwen 4B model. Every stored source quote matched a contiguous transcript phrase. Generation
+left the clip unchanged; the set survived an engine restart; a stale revision returned HTTP 409. The isolated browser scenario then applied an overlay, used Undo and Redo, regenerated
+ideas for the new revision, applied an opening card by keyboard, used Undo and Ctrl+Y, and
+checked a 390-pixel viewport for horizontal overflow. It passed with no page errors. Evidence:
+.cache/hook-proposals-validation.json and tests/browser/hook-proposals.spec.ts. These checks do
+not establish editorial quality across languages or guarantee eight useful hooks per clip.
+
+Anti-slop During gate for this scoped UI:
+
+| Gate          | Status  | Evidence and limit                                                                                                                                                                                                             |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Hard gate     | PASS    | Real transcript/clip records, working proposal actions, labeled controls, disabled stale actions, and no horizontal overflow at 390 pixels in the browser fixture. Full application-wide accessibility review remains pending. |
+| Purpose       | PASS    | The quote/explanation shows why an idea was offered; mode buttons determine the actual title or card revision.                                                                                                                 |
+| Liveliness    | PASS    | Existing graphite/amber direction remains the visual language; one compact proposal list keeps footage central. No new visual asset or decorative motion was added.                                                            |
+| Craftsmanship | PARTIAL | Local inference, restart persistence, keyboard application, undo/redo, and browser errors passed. Native Hook interaction, packaged release, contrast audit, and other platforms remain pending.                               |
+
+## Project gallery spacing, 2026-11-15
+
+A native Projects screenshot at 812 by 660 pixels showed the import controls touching the first
+thumbnail row. The gallery now has a 24-pixel top margin. npm run check passed lint, format,
+types, frontend tests, and a new production build. A later isolated browser interaction
+measured at least 24 pixels and captured the confirmation dialog on the rebuilt Studio.
+
+## Manual camera and text motion, 2026-11-15
+
+npm run check passed ESLint, Prettier, TypeScript, four frontend tests, and the production
+build. All 51 engine Rust tests, workspace Rustfmt check, and engine/desktop Clippy with
+warnings denied passed. The new Rust checks cover easing, scene trim/reorder remapping,
+legacy documents, and invalid motion. The development desktop build succeeded.
+
+scripts/validate-advanced-motion.mjs passed a six-second real-media export with full decode.
+Independent FFmpeg source crops differed from three sampled camera frames by mean RGB channel
+errors of 4.03, 3.72, and 9.68 on a 0-255 scale. Animated note text changed decoded export
+frames at two times. These pixel checks establish sampled geometry and visible text changes;
+they do not certify every frame or subjective visual quality. Evidence:
+.cache/advanced-motion-validation.json and scripts/validate-advanced-motion.mjs.
+
+The browser camera-motion scenario passed against the production build. It exercised keyboard
+keyframe creation, live frame changes, autosave and reload, text scale/opacity, text position
+from a focused drag handle, legacy crop-anchor migration at the same timestamp, and the
+disabled camera control for an unsupported layout. Evidence: tests/browser/camera-motion.spec.ts.
+The full browser suite was not rerun for this motion slice.
+
+An isolated Windows ARM64 debug desktop processed eight seconds from the existing podcast.
+Native WebView2 had the Tauri bridge, one visible canvas, a real live-frame mean of 143.34 and
+chroma of 15.13, a camera-motion pixel change, exact playback, independent cards, and no page
+errors. Evidence: scripts/validate-native-composition.mjs and
+.cache/native-composition-validation.json. The current production Studio was rebuilt after
+the browser guard changes; the native fixture is a development runtime, not a packaged
+installer test.
+
+| Anti-slop During gate | Status  | Interaction evidence and remaining limit                                                                                                                    |
+| --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direction and content | Pass    | Original graphite/amber Studio; controls use real clips and saved revisions.                                                                                |
+| Hard gate             | Partial | Browser keyboard, disabled layout, labels, autosave, and native playback passed. Full control-by-control accessibility and contrast review remains pending. |
+| Purpose               | Pass    | Motion controls edit preview and exported values; unsupported media motion is rejected.                                                                     |
+| Liveliness            | Partial | Live-frame pixel changes and native playback passed. Full visual and reduced-motion review remains pending.                                                 |
+| Craftsmanship         | Partial | Format, types, Rust, real-media export, browser, and native checks passed. Packaged release and other-platform runtime remain pending.                      |
+
+At that checkpoint, optional narration, other AI proposals, active-speaker identity,
+expanded captions, stock recommendations, and the rest of the advanced-editing contract remain
+pending. Android runtime, physical x64 runtime, and packaged-release execution were not run.
+
 ## Independent cards and version 4, 2026-11-15
 
 npm run check passed lint, formatting, type checks, four frontend checks, and production
@@ -25,7 +268,7 @@ The published application and canonical projects were preserved.
 
 The scoped anti-slop During gate passes working card controls, source-grounded seed text,
 empty/disabled guidance, keyboard creation, one inspector rail, visible loading/error states,
-and actual composed frames. Cards are silent; optional narration, new motion tracks, and
+and actual composed frames. Cards were silent at this checkpoint; optional narration, new motion tracks, and
 other advanced-editing work remain pending. Android runtime and new packaged-release runtime
 are untested; the isolated native check does not certify an installer or another OS.
 

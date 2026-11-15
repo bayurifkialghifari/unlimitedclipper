@@ -88,8 +88,9 @@ export function ActivityCenter() {
   const jobs = (query.data ?? [])
     .filter(
       (job) =>
-        activeStates.includes(job.status) ||
-        (job.updated_at >= openedAt && !dismissed.includes(job.id + ':' + job.status)),
+        job.kind !== 'storyboard' &&
+        (activeStates.includes(job.status) ||
+          (job.updated_at >= openedAt && !dismissed.includes(job.id + ':' + job.status))),
     )
     .sort((left, right) => {
       const priority = (job: Job) =>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Button, Toggle } from '@unlimitedclipper/ui';
 import {
   ScissorsIcon,
@@ -15,8 +15,11 @@ import { useText } from '../lib/i18n';
 import { time } from '../lib/format';
 import { identifiedSegments, outputDuration } from '../lib/timeline';
 import { useTimelineRemap } from '../hooks/use-timeline-remap';
+import { useStoryboardFrames } from '../hooks/use-storyboard-frames';
 import { TimelineItem, type TimelineGesture } from '../molecules/TimelineItem';
-import { api } from '../lib/api';
+import { api, assetUrl } from '../lib/api';
+import { retimeLayerMotion } from '../lib/layer-motion';
+import { sceneFrameTimes, timelineTicks, timelineTime } from '../lib/timeline-presentation';
 import type { SourceSegment } from '../types';
 import styles from '../styles/Editor.module.css';
 
@@ -28,15 +31,21 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
   const draft = useEditor((state) => state.draft);
   const playhead = useEditor((state) => state.playhead);
   const selected = useEditor((state) => state.timelineSelection);
+  const selectedWords = useEditor((state) => state.selectedWords);
   const { remap, pending, supported } = useTimelineRemap();
   const [zoom, setZoom] = useState(1);
   const [snapping, setSnapping] = useState(true);
   const [gesture, setGesture] = useState<Gesture | null>(null);
+  const [frameError, setFrameError] = useState<string | null>(null);
   const gestureRef = useRef<Gesture | null>(null);
+  const wordAnchor = useRef<string | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const projects = useQuery({ queryKey: ['projects'], queryFn: api.projects });
   const audio = useQuery({ queryKey: ['audio-assets'], queryFn: api.audioAssets });
+  const sampleGroups = draft ? sceneFrameTimes(draft.document) : new Map<string, number[]>();
+  const sourceTimes = [...sampleGroups.values()].flat();
+  const storyboard = useStoryboardFrames(draft?.project_id, sourceTimes);
 
   useEffect(() => {
     const element = viewport.current;
@@ -71,7 +80,10 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
   const document = draft.document;
   const scenes = identifiedSegments(document);
   const duration = outputDuration(document);
-  const scale = Math.max(0.001, (width * zoom) / duration);
+  const contentWidth = Math.max(100, width - 132);
+  const trackWidth = contentWidth * zoom;
+  const scale = Math.max(0.001, trackWidth / duration);
+  const ruler = timelineTicks(duration, trackWidth);
   const selectedIndex =
     selected?.kind === 'scene' ? scenes.findIndex((scene) => scene.id === selected.id) : -1;
   const boundaries = [
@@ -235,6 +247,9 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
               ? edit.visual_layers?.find((item) => item.id === id)
               : edit.audio_layers?.find((item) => item.id === id);
           if (layer) {
+            if (kind === 'visual' && 'motion' in layer) {
+              retimeLayerMotion(layer, next.start_ms, next.end_ms, mode === 'move');
+            }
             Object.assign(layer, next);
           }
         });
@@ -272,7 +287,15 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
     }
   }
 
-  function item(kind: Kind, id: string, label: string, start: number, end: number) {
+  function item(
+    kind: Kind,
+    id: string,
+    label: string,
+    start: number,
+    end: number,
+    frames?: { sourceTimeMs: number; url?: string }[],
+    sourceRange?: string,
+  ) {
     const candidate =
       gesture?.kind === kind && gesture.id === id && kind !== 'scene'
         ? layerCandidate(gesture)
@@ -285,6 +308,8 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
         end={candidate?.end_ms ?? end}
         scale={scale}
         selected={selected?.kind === kind && selected.id === id}
+        frames={frames}
+        sourceRange={sourceRange}
         disabled={pending || (kind === 'scene' && !supported)}
         onSelect={() => useEditor.setState({ timelineSelection: { kind, id } })}
         onPreview={(mode, delta) => preview(kind, id, mode, delta)}
@@ -293,7 +318,16 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
     );
   }
 
+  function seekOnRuler(clientX: number, element: HTMLDivElement) {
+    const position = Math.round((clientX - element.getBoundingClientRect().left) / scale);
+    useEditor.getState().seekTo(Math.max(0, Math.min(duration, position)));
+  }
+
   const displayed = gesture?.kind === 'scene' ? sceneCandidate(gesture) : scenes;
+  const preparingFrames = [...storyboard.frames.values()].some(
+    (frame) => frame.status === 'pending',
+  );
+  const failedFrames = [...storyboard.frames.values()].some((frame) => frame.status === 'failed');
   return (
     <section className={styles.timeline} aria-label={text.timeline}>
       <div className={styles.timelineToolbar}>
@@ -351,58 +385,187 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
           </Button>
         </div>
         <span role="status">
-          {pending ? text.running : time(playhead) + ' / ' + time(duration)}
+          {pending
+            ? text.running
+            : timelineTime(playhead, true) + ' / ' + timelineTime(duration, true)}
         </span>
       </div>
       <p className={styles.timelineHint}>{supported ? text.timelineHelp : text.sceneUpgrade}</p>
-      <div className={styles.trackViewport} ref={viewport}>
-        <div className={styles.tracks} style={{ width: width * zoom }}>
-          <button
-            className={styles.ruler}
-            aria-label={text.playhead}
-            onClick={(event) =>
-              useEditor
-                .getState()
-                .seekTo(
-                  Math.min(
-                    duration,
-                    Math.round(
-                      (event.clientX - event.currentTarget.getBoundingClientRect().left) / scale,
-                    ),
-                  ),
-                )
-            }
+      {(preparingFrames || storyboard.loading) && (
+        <p className={styles.timelineHint} role="status">
+          {text.framesPreparing}
+        </p>
+      )}
+      {failedFrames && (
+        <div className={styles.timelineNotice} role="alert">
+          <span>{text.framesFailed}</span>
+          <Button
+            onClick={() => {
+              setFrameError(null);
+              void storyboard
+                .retryFailed()
+                .catch((failure: Error) => setFrameError(failure.message));
+            }}
           >
-            {Array.from({ length: 9 }, (_, index) => (
-              <span key={index}>{time((duration * index) / 8)}</span>
+            {text.retry}
+          </Button>
+        </div>
+      )}
+      {frameError && (
+        <p className={styles.timelineNotice} role="alert">
+          {frameError}
+        </p>
+      )}
+      {storyboard.error && (
+        <div className={styles.timelineNotice} role="alert">
+          <span>{storyboard.error.message}</span>
+          <Button onClick={() => void storyboard.refetch()}>{text.retry}</Button>
+        </div>
+      )}
+      <div className={styles.trackViewport} ref={viewport}>
+        <div className={styles.tracks} style={{ width: 132 + trackWidth }}>
+          <div className={styles.trackLabel} data-ruler="true">
+            {text.timecode}
+          </div>
+          <div
+            className={styles.ruler}
+            role="slider"
+            tabIndex={0}
+            aria-label={text.playhead}
+            aria-valuemin={0}
+            aria-valuemax={duration}
+            aria-valuenow={Math.max(0, Math.min(duration, Math.round(playhead)))}
+            aria-valuetext={timelineTime(playhead, true)}
+            onPointerDown={(event) => {
+              if (event.button !== 0) {
+                return;
+              }
+              event.currentTarget.setPointerCapture(event.pointerId);
+              seekOnRuler(event.clientX, event.currentTarget);
+            }}
+            onPointerMove={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                seekOnRuler(event.clientX, event.currentTarget);
+              }
+            }}
+            onPointerUp={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }
+            }}
+            onKeyDown={(event) => {
+              let next = playhead;
+              if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                next += (event.key === 'ArrowLeft' ? -1 : 1) * (event.shiftKey ? 1000 : 100);
+              } else if (event.key === 'Home') {
+                next = 0;
+              } else if (event.key === 'End') {
+                next = duration;
+              } else {
+                return;
+              }
+              event.preventDefault();
+              useEditor.getState().seekTo(Math.max(0, Math.min(duration, Math.round(next))));
+            }}
+          >
+            {ruler.ticks.map((tick) => (
+              <span
+                key={tick}
+                className={styles.rulerTick}
+                data-first={tick === 0}
+                data-last={tick === duration}
+                style={{ left: tick * scale }}
+                aria-hidden="true"
+              >
+                {timelineTime(tick, ruler.step < 1000)}
+              </span>
             ))}
-          </button>
-          <div className={styles.track} aria-label={text.scenes}>
+          </div>
+          <div className={styles.trackLabel}>
+            <strong>{text.scenes}</strong>
+            <small>{scenes.length}</small>
+          </div>
+          <div className={styles.track} data-kind="scene" aria-label={text.scenes}>
             {displayed.map((scene, index) => {
               const start = displayed
                 .slice(0, index)
                 .reduce((sum, item) => sum + item.end_ms - item.start_ms, 0);
               const offset = start + scene.end_ms - scene.start_ms;
+              const sourceRange =
+                timelineTime(scene.start_ms, true) + ' – ' + timelineTime(scene.end_ms, true);
+              const frames = (sampleGroups.get(scene.id!) ?? []).map((sourceTimeMs) => {
+                const frame = storyboard.frames.get(sourceTimeMs);
+                return {
+                  sourceTimeMs,
+                  url:
+                    frame?.status === 'ready' && frame.asset_id
+                      ? assetUrl(frame.asset_id)
+                      : undefined,
+                };
+              });
               return item(
                 'scene',
                 scene.id!,
-                text.scene + ' ' + (scenes.findIndex((item) => item.id === scene.id) + 1),
+                text.scene +
+                  ' ' +
+                  (scenes.findIndex((item) => item.id === scene.id) + 1) +
+                  ' · ' +
+                  sourceRange,
                 start,
                 offset,
+                frames,
+                sourceRange,
               );
             })}
           </div>
+          {Boolean(document.camera_motion?.length) && (
+            <Fragment>
+              <div className={styles.trackLabel}>{text.cameraMotion}</div>
+              <div className={styles.motionTrack} aria-label={text.cameraMotion}>
+                {document.camera_motion?.map((key) => (
+                  <button
+                    key={key.time_ms}
+                    type="button"
+                    className={styles.motionMarker}
+                    style={{ left: Math.max(22, Math.min(trackWidth - 22, key.time_ms * scale)) }}
+                    aria-label={text.cameraMotion + ' ' + time(key.time_ms)}
+                    title={text.cameraMotion + ' ' + time(key.time_ms)}
+                    onClick={() => useEditor.getState().seekTo(key.time_ms)}
+                  />
+                ))}
+              </div>
+            </Fragment>
+          )}
+          <div className={styles.trackLabel}>
+            <strong>{text.captions}</strong>
+            <small>{document.words.length}</small>
+          </div>
           <div className={styles.captionTrack} aria-label={text.captions}>
-            {document.words.map((word) => (
+            {!document.words.length && (
+              <span className={styles.emptyTrack}>{text.timelineEmptyCaptions}</span>
+            )}
+            {document.words.map((word, index) => (
               <button
                 key={word.id}
-                title={word.text}
+                type="button"
+                aria-label={word.text + ' · ' + timelineTime(word.start_ms, true)}
+                aria-pressed={selectedWords.includes(word.id)}
+                data-active={playhead >= word.start_ms && playhead < word.end_ms}
+                title={word.text + ' · ' + timelineTime(word.start_ms, true)}
                 style={{
                   left: word.start_ms * scale,
                   width: Math.max(2, (word.end_ms - word.start_ms) * scale),
                 }}
-                onClick={() => {
-                  useEditor.getState().selectWords([word.id]);
+                onClick={(event) => {
+                  const anchor = document.words.findIndex((item) => item.id === wordAnchor.current);
+                  const range =
+                    event.shiftKey && anchor >= 0
+                      ? document.words.slice(Math.min(anchor, index), Math.max(anchor, index) + 1)
+                      : [word];
+                  if (!event.shiftKey) {
+                    wordAnchor.current = word.id;
+                  }
+                  useEditor.getState().selectWords(range.map((item) => item.id));
                   useEditor.getState().seekTo(word.start_ms);
                 }}
               >
@@ -410,37 +573,103 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
               </button>
             ))}
           </div>
-          {(document.visual_layers ?? []).map((layer) => (
-            <div
-              key={layer.id}
-              className={styles.track}
-              data-kind="visual"
-              aria-label={text.visualLayers}
-              data-disabled={!layer.enabled}
-            >
-              {item(
-                'visual',
-                layer.id,
-                layer.text || text.visualLayers,
-                layer.start_ms,
-                layer.end_ms,
+          {!document.visual_layers?.length && (
+            <>
+              <div className={styles.trackLabel}>{text.visualLayers}</div>
+              <div className={styles.track} data-kind="visual">
+                <span className={styles.emptyTrack}>{text.timelineEmptyVisuals}</span>
+              </div>
+            </>
+          )}
+          {(document.visual_layers ?? []).map((layer, index) => (
+            <Fragment key={layer.id}>
+              <div className={styles.trackLabel}>
+                {text.visualLayers} {index + 1}
+              </div>
+              <div
+                className={styles.track}
+                data-kind="visual"
+                aria-label={text.visualLayers}
+                data-disabled={!layer.enabled}
+              >
+                {item(
+                  'visual',
+                  layer.id,
+                  layer.text || text.visualLayers,
+                  layer.start_ms,
+                  layer.end_ms,
+                )}
+              </div>
+              {Boolean(layer.motion?.length) && (
+                <>
+                  <div className={styles.trackLabel}>
+                    {layer.kind === 'broll' ? text.mediaMotion : text.textMotion}
+                  </div>
+                  <div
+                    className={styles.motionTrack}
+                    aria-label={layer.kind === 'broll' ? text.mediaMotion : text.textMotion}
+                  >
+                    {layer.motion?.map((key) => (
+                      <button
+                        key={key.time_ms}
+                        type="button"
+                        className={styles.motionMarker}
+                        style={{
+                          left: Math.max(22, Math.min(trackWidth - 22, key.time_ms * scale)),
+                        }}
+                        aria-label={
+                          (layer.kind === 'broll' ? text.mediaMotion : text.textMotion) +
+                          ' ' +
+                          time(key.time_ms)
+                        }
+                        title={time(key.time_ms)}
+                        onClick={() => {
+                          useEditor.setState({
+                            timelineSelection: { kind: 'visual', id: layer.id },
+                          });
+                          useEditor.getState().seekTo(key.time_ms);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
               )}
-            </div>
+            </Fragment>
           ))}
-          {(document.audio_layers ?? []).map((layer) => (
+          {!document.audio_layers?.length && (
+            <>
+              <div className={styles.trackLabel}>{text.audioLayers}</div>
+              <div className={styles.track} data-kind="audio">
+                <span className={styles.emptyTrack}>{text.timelineEmptyAudio}</span>
+              </div>
+            </>
+          )}
+          {(document.audio_layers ?? []).map((layer, index) => (
+            <Fragment key={layer.id}>
+              <div className={styles.trackLabel}>
+                {text.audioLayers} {index + 1}
+              </div>
+              <div
+                className={styles.track}
+                data-kind="audio"
+                aria-label={text.audioLayers}
+                data-disabled={!layer.enabled}
+              >
+                {item('audio', layer.id, text.audioLayers, layer.start_ms, layer.end_ms)}
+              </div>
+            </Fragment>
+          ))}
+          {ruler.ticks.map((tick) => (
             <div
-              key={layer.id}
-              className={styles.track}
-              data-kind="audio"
-              aria-label={text.audioLayers}
-              data-disabled={!layer.enabled}
-            >
-              {item('audio', layer.id, text.audioLayers, layer.start_ms, layer.end_ms)}
-            </div>
+              key={tick}
+              className={styles.timelineGridLine}
+              style={{ left: 132 + tick * scale }}
+              aria-hidden="true"
+            />
           ))}
           <div
             className={styles.playhead}
-            style={{ left: Math.min(duration, playhead) * scale }}
+            style={{ left: 132 + Math.min(duration, Math.max(0, playhead)) * scale }}
             aria-hidden="true"
           />
         </div>

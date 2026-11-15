@@ -10,9 +10,15 @@ Desktop window and local browser -> React studio -> Rust API -> SQLite, managed 
 
 Import streams into managed storage, probes metadata, and creates a project. Generation extracts audio, transcribes words, selects clips, and records completed checkpoints. Editing creates revisioned documents. Rendering snapshots a revision, builds a filter plan and ASS track, writes temporary output, verifies it, then commits the export record.
 
+The storyboard service accepts bounded source-time samples for a registered project preview proxy.
+One queued FFmpeg job extracts small JPEGs without interrupting the live player. A project/time
+cache table holds only managed asset IDs; images remain in managed files, survive scene reorder,
+and are evicted or deleted with their project. Completed frames remain usable if a job fails or
+is cancelled. The browser requests only the active timeline and visible clip-rail cards.
+
 Discovery persists source-word offsets, transcript-grounded candidate quotes, review candidates, batch offsets, and accepted suggestions before creating an insertion plan. Count and duration are editorial constraints, with complete phrases taking priority over padding. Per-clip caption jobs preserve raw recognition by source range and save an applied-document checkpoint before the optimistic edit transaction. Recovery recognizes that exact committed document instead of creating an extra revision. Preview seek commands are separate from passive playback updates so reviewing a word changes the actual media position.
 
-All persisted times are integer milliseconds. Source word timing remains immutable; clip edits contain local overrides. Crop rectangles are normalized source coordinates, with sorted clip-relative keyframes and linear interpolation. Rendering and preview consume the same document and output geometry.
+All persisted times are integer milliseconds. Source word timing remains immutable; clip edits contain local overrides. Legacy crop rectangles use normalized source coordinates, with sorted clip-relative position keyframes and linear interpolation. Version 4 camera and text/note motion use content-relative keyframes with an engine-compiled easing curve. Rendering and live preview consume the same revisioned document and output geometry.
 
 New desktop discovery jobs freeze the transcript, preferences, model identifiers/hashes, and
 bounded overlapping transcript windows. Sparse neighboring windows share a prompt when the
@@ -70,9 +76,40 @@ Version 4 adds optional HeadingCard values before/after content. Legacy duration
 content duration; explicit content/final duration and content/source mappings prevent card
 offsets entering edits or acoustic alignment. Version 4 final-output mapping returns no source
 inside cards. Scene remaps preserve card clocks and document version. Rendering completes
-the content picture/audio first, concatenates silent card sections, and offsets ASS/SRT/output
-VTT once. Live playback uses a monotonic card clock while its source decoder is paused; the
-timeline playhead remains on the content clock. Health gates version 4/card controls.
+the content picture/audio first, concatenates card sections with silence or registered narration,
+and offsets ASS/SRT/output VTT once. Narration jobs freeze card text and edit revision, synthesize
+with the verified local voice pack, and register the WAV as a managed audio asset. Applying a
+completed result uses the normal edit transaction and rejects a stale revision or changed text.
+Live playback uses a monotonic card clock while its source decoder is paused; the timeline
+playhead remains on the content clock. Health gates version 4/card and narration controls.
+
+Version 4 also stores camera center/zoom and text/note position/scale/opacity keyframes on the
+content clock. The engine compiles linear, ease-in, ease-out, smooth, hold, and bounded custom
+curves for preview plans, scene remaps, and export. Remaps preserve the easing segment across
+trim/reorder boundaries. Camera motion is limited to portrait, square, and landscape layouts;
+animated text/note layers are limited to 120 seconds. Registered B-roll layers use the same
+content-clock curve for zoom/pan and opacity. Rendering converts zoom/pan to per-frame FFmpeg
+zoompan expressions; alpha values are sampled into a managed per-job command file and applied
+before overlay. The live canvas uses the same curve and cover-then-zoom geometry. B-roll zoom
+stays at or above one so the frame remains covered; up to 24 anchors and 120 seconds are allowed.
+Other visual layer motion is rejected. Legacy crop anchors are converted when manual camera
+motion is first added, while unchanged legacy documents remain readable.
+
+Hook proposal jobs freeze the clip revision and project output language before local Qwen
+inference. The engine validates contiguous transcript quotes, bounds each proposal, and stores
+the accepted set by job ID in migration 0004. Generation never edits the clip. The Studio fetches
+the saved set, checks the current revision and clean draft before applying a choice, and then
+uses the existing undo/autosave transaction. The save API remains the final optimistic conflict
+guard if another editor changes the clip between fetch and save.
+
+Automatic editing can optionally add a camera-motion proposal to the same frozen document.
+Existing crop anchors take precedence; otherwise only single-face samples contribute bounded
+pan targets. Up to four transcript-selected emphasis words add small zoom pulses. Multi-face
+samples never imply a speaker identity. Scene boundaries use hold anchors so a cut does not
+become a cross-shot pan. The latest auto-edit job is fetched by clip directly from persisted
+jobs, including after the recent-jobs list rolls over. Silence-removal jobs store the exact
+interior source-time gaps they removed in the proposed document. Applying the whole proposal
+uses the normal revision-aware editor transaction; no proposal mutates the clip on generation.
 
 Edited preview and export share render_media, including AV concat, split framing, local B-roll,
 ASS graphics, and audio mixing. An exact preview bakes every graphic and creates no export

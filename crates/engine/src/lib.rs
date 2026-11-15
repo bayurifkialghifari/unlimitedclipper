@@ -8,9 +8,13 @@ mod discovery;
 pub mod editorial;
 pub mod error;
 mod frame_tracking;
+pub mod hook_proposals;
 mod inference;
 pub mod model_manager;
 pub mod models;
+pub mod motion;
+pub mod narration;
+pub mod narration_pack;
 pub mod native;
 mod onnx;
 pub mod pipeline;
@@ -20,6 +24,7 @@ pub mod speaker;
 pub mod speech;
 pub mod state;
 pub mod storage;
+pub mod storyboard;
 pub mod subtitles;
 pub mod timeline;
 pub mod tools;
@@ -70,7 +75,14 @@ pub async fn start_configured(
             } else {
                 "x64"
             };
-            std::path::PathBuf::from(format!(".tools/windows-{architecture}"))
+            let platform = if cfg!(target_os = "macos") {
+                "macos"
+            } else if cfg!(target_os = "linux") {
+                "linux"
+            } else {
+                "windows"
+            };
+            std::path::PathBuf::from(format!(".tools/{platform}-{architecture}"))
         });
     let port = std::env::var("UC_PORT")
         .ok()

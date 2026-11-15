@@ -1,6 +1,40 @@
-import type { CropRect, EditDocument } from '../types';
+import type { CropRect, EditDocument, PreviewPlan } from '../types';
 
-export function cameraAt(document: EditDocument, milliseconds: number): CropRect {
+type MotionCurve = PreviewPlan['layer_motion'][string];
+type CameraPlan = NonNullable<PreviewPlan['camera_motion']>;
+
+export function motionValuesAt(curve: MotionCurve, milliseconds: number): number[] {
+  for (const interval of curve.intervals) {
+    if (milliseconds < interval.start_ms) {
+      return curve.initial;
+    }
+    if (milliseconds < interval.end_ms) {
+      const progress = (milliseconds - interval.start_ms) / (interval.end_ms - interval.start_ms);
+      return interval.coefficients.map(
+        ([base, first, second, third]) =>
+          base + progress * (first + progress * (second + progress * third)),
+      );
+    }
+  }
+  return curve.final_values;
+}
+
+export function cameraAt(
+  document: EditDocument,
+  milliseconds: number,
+  plan?: CameraPlan | null,
+): CropRect {
+  if (document.camera_motion?.length && plan) {
+    const [centerX, centerY, zoom] = motionValuesAt(plan.curve, milliseconds);
+    const width = plan.base_width / zoom;
+    const height = plan.base_height / zoom;
+    return {
+      x: Math.max(0, Math.min(1 - width, centerX - width / 2)),
+      y: Math.max(0, Math.min(1 - height, centerY - height / 2)),
+      width,
+      height,
+    };
+  }
   let previous = { time_ms: 0, x: document.crop.x, y: document.crop.y };
   for (const next of document.keyframes) {
     if (next.time_ms > milliseconds) {

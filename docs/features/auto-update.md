@@ -20,6 +20,9 @@ This supports Windows PowerShell 5.1 when runner ZIP modules expose incompatible
 
 Desktop packaging stages the matching WebView2 loader inside the workspace and uses resource
 paths relative to the Tauri project. The Cargo SDK cache may live on a different Windows drive.
+Tagged CI now stages Linux x64/ARM64 AppImages and macOS Intel/ARM disk images alongside Windows
+installers. The application update manifest still lists only Windows installers. Unix packages
+are manual preview downloads until their updater artifact and installation behavior are tested.
 
 ## Interface
 

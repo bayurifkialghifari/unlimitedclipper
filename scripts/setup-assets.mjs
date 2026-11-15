@@ -7,6 +7,9 @@ import { root } from './cargo.mjs';
 const manifestPath = path.join(root, 'resources/assets.json');
 const headers = { 'User-Agent': 'UnlimitedClipper-Assets' };
 const architecture = process.argv.find((argument) => argument.startsWith('--arch='))?.slice(7);
+const selectedPlatform = process.argv
+  .find((argument) => argument.startsWith('--platform='))
+  ?.slice('--platform='.length);
 
 async function json(url) {
   const response = await fetch(url, { headers });
@@ -95,11 +98,16 @@ for (const asset of assets) {
   }
   asset.sha256 = hash(bytes);
   asset.size = bytes.length;
-  for (const target of architecture ? [architecture] : ['arm64', 'x64']) {
-    if (!['arm64', 'x64'].includes(target)) {
-      throw new Error('Choose arm64 or x64.');
+  const targets = selectedPlatform
+    ? [selectedPlatform]
+    : architecture
+      ? ['windows-' + architecture]
+      : ['windows-arm64', 'windows-x64'];
+  for (const target of targets) {
+    if (!/^(windows|linux|macos)-(arm64|x64)$/.test(target)) {
+      throw new Error('Choose a supported desktop platform.');
     }
-    const destination = path.join(root, '.tools/windows-' + target, asset.path);
+    const destination = path.join(root, '.tools', target, asset.path);
     await mkdir(path.dirname(destination), { recursive: true });
     await copyFile(cached, destination);
   }

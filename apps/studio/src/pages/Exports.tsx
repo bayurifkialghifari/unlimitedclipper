@@ -12,6 +12,7 @@ export function Exports() {
   return (
     <div className={styles.page}>
       <PageHeader title={text.exports} />
+      {Boolean(query.data?.length) && <p className={styles.hint}>{text.exportRevisionHint}</p>}
       <QueryState
         pending={query.isPending}
         error={query.error}

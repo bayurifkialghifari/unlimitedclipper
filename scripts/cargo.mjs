@@ -23,9 +23,11 @@ export function cargoEnvironment() {
     env.Path = compiler + path.delimiter + previousPath;
   }
 
+  const platform =
+    process.platform === 'darwin' ? 'macos' : process.platform === 'linux' ? 'linux' : 'windows';
   env.UC_TOOLS_DIR ??= path.join(
     root,
-    '.tools/windows-' + (architecture === 'aarch64' ? 'arm64' : 'x64'),
+    '.tools/' + platform + '-' + (architecture === 'aarch64' ? 'arm64' : 'x64'),
   );
   env.UC_DATA_DIR ??= path.join(root, '.data');
   env.UC_STUDIO_DIR ??= path.join(root, 'apps/studio/dist');

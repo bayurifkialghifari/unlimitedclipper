@@ -1,7 +1,6 @@
 # Third-party software and model notices
 
-UnlimitedClipper uses original application source. It does not incorporate SupoClip source or
-competitor assets.
+UnlimitedClipper uses original application source and does not incorporate competitor assets.
 
 | Component                       | Upstream                                                                      | Notice                                                                                                                                                                 |
 | ------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -14,11 +13,20 @@ competitor assets.
 | ONNX Runtime                    | https://github.com/microsoft/onnxruntime                                      | MIT plus third-party notices.                                                                                                                                          |
 | YuNet                           | https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet    | Retain the model directory's MIT license and attribution.                                                                                                              |
 | Caption fonts                   | https://github.com/google/fonts                                               | SIL Open Font License files are retained beside the bundled fonts.                                                                                                     |
+| flag-icons                      | https://github.com/lipis/flag-icons                                           | MIT; the bundled SVG selection and license text are retained in the Studio resources.                                                                                  |
+| Supertonic 3 M1 narration pack  | https://huggingface.co/Supertone/supertonic-3                                 | OpenRAIL-M; the optional downloaded snapshot includes its license. Exact revision, file sizes, and SHA-256 hashes appear in resources/narration-pack.json.             |
 | JASSUB                          | https://github.com/ThaUnknown/jassub                                          | The wrapper and its WASM distribution include separate libass, FreeType, HarfBuzz, and other notices. Preserve the package's complete license text.                    |
 | Tauri                           | https://github.com/tauri-apps/tauri                                           | MIT or Apache-2.0 plus WebView and installer dependencies.                                                                                                             |
 | React and frontend dependencies | package-lock.json                                                             | Retain package-level notices for the exact locked versions.                                                                                                            |
 
-Native archives and upstream notice/source files are retained under .tools/windows-ARCH/licenses-and-source. The final distributable must contain the required materials for the exact binaries it ships. Review omissions before publishing; a source URL alone does not replace every corresponding-source obligation.
+Windows native archives and upstream notice/source files are retained under
+.tools/windows-ARCH/licenses-and-source. Unix CI currently stages pinned binaries from the
+upstream projects above. Its macOS FFmpeg/FFprobe pair comes from the
+[Jellyfin FFmpeg portable release](https://github.com/jellyfin/jellyfin-ffmpeg/releases/tag/v8.1.3-2);
+Linux uses the [FFmpeg-Builds release](https://github.com/FFmpeg-Builds/FFmpeg-Builds).
+The final distributable must contain the required materials for the exact binaries it ships.
+Review omissions before publishing; a source URL alone does not replace every corresponding-source
+obligation.
 
 The Android preview uses [FFmpegKit Next v9.0.2](https://github.com/arthenica/ffmpeg-kit-next/tree/v9.0.2)
 under LGPL-3.0-or-later, built from commit 9f04bf1e3c97def70b98e198cb80a57b43ef5b45. Its configuration

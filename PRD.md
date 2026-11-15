@@ -42,9 +42,19 @@ A configurable export folder in Settings is deferred; current exports remain man
 
 Hook editing includes independent opening/closing cards with editable text, colors, fonts,
 position, duration, and animation. Cards add final duration without repeating source content
-or moving persisted word/layer times. They remain silent; optional narration and motion tracks
-are pending. Version 4 and its compatibility/timing limits are documented in
-docs/features/editorial-timeline.md.
+or moving persisted word/layer times. Optional local Indonesian/English narration can be
+generated for either card after installing a verified voice pack; cards are silent by default.
+Version 4 supports manual camera, text/note, and registered B-roll keyframes on the content
+clock. Auto Motion now offers a revision-bound camera proposal using existing crop anchors,
+single-face samples, and selected transcript emphasis. Active audiovisual speaker matching
+remains pending.
+Version 4 limits are documented in docs/features/editorial-timeline.md.
+
+Local Hook proposals retain up to eight distinct ideas with a quote and explanation from the
+saved clip transcript. They are tied to one edit revision and never rewrite the title on
+generation. The user chooses an overlay or an opening card; applying either is undoable. A
+short or repetitive transcript can produce fewer than eight usable ideas. Card narration is
+generated separately from the selected Hook idea and must be reviewed before applying.
 
 CAP-01 includes 18 original caption recipes, category previews, editable styling, and up to
 50 named reusable styles. AI-03 adds a revision-bound local clip potential score with four

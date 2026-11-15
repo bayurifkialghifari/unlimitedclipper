@@ -1,9 +1,8 @@
 .studio {
   display: flex;
   flex-direction: column;
-  height: calc(100svh - 48px);
-  min-height: 600px;
-  gap: 12px;
+  min-height: calc(100svh - 48px);
+  gap: 16px;
 }
 
 .studio > header {
@@ -16,7 +15,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
 
 .actions,
@@ -24,7 +23,19 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 10px;
+}
+
+.editorLayoutSelect {
+  min-width: 170px;
+  max-width: 250px;
+  margin-right: auto;
+}
+
+.editorLayoutSelect small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
 }
 
 .actions button[aria-pressed='true'] {
@@ -35,9 +46,10 @@
 .editorBody {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 8px var(--inspector-width, 440px);
-  flex: 1;
-  min-height: 200px;
-  gap: 4px;
+  height: clamp(380px, 48svh, 620px);
+  flex: none;
+  min-height: 380px;
+  gap: 8px;
 }
 
 .editorBody[data-inspector='false'] {
@@ -217,15 +229,22 @@
 .timeline {
   flex-shrink: 0;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: 14px;
+  padding: 16px;
   background: var(--surface);
   min-width: 0;
 }
 
 .timelineToolbar {
   justify-content: flex-start;
-  font-size: 11px;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.timelineToolbar > strong {
+  font-family: 'Oswald', sans-serif;
+  font-size: 17px;
+  margin-right: 4px;
 }
 
 .timelineZoom {
@@ -233,50 +252,177 @@
 }
 
 .timelineHint {
-  margin: 6px 0;
+  margin: 10px 0;
+}
+
+.timelineNotice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+  color: var(--text);
+  font-size: 12px;
 }
 
 .trackViewport {
-  max-height: 160px;
+  max-height: 270px;
   overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  scrollbar-color: var(--muted) var(--surface-inset);
 }
 
 .tracks {
   position: relative;
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
   min-width: 100%;
 }
 
-.ruler {
+.trackLabel {
+  position: sticky;
+  left: 0;
+  z-index: 5;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  width: 100%;
-  min-height: 28px;
-  padding: 0;
-  background: transparent;
-  border: 0;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 10px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.trackLabel small {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.trackLabel[data-ruler='true'] {
+  top: 0;
+  z-index: 8;
+  color: var(--muted);
+}
+
+.ruler {
+  position: sticky;
+  top: 0;
+  z-index: 7;
+  min-height: 36px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   font-size: 10px;
   cursor: crosshair;
+  touch-action: none;
+}
+
+.rulerTick {
+  position: absolute;
+  bottom: 4px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.rulerTick::before {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 7px;
+  margin: 0 auto 3px;
+  background: var(--muted);
+}
+
+.rulerTick[data-first='true'] {
+  transform: none;
+}
+
+.rulerTick[data-first='true']::before {
+  margin-left: 0;
+}
+
+.rulerTick[data-last='true'] {
+  transform: translateX(-100%);
+}
+
+.rulerTick[data-last='true']::before {
+  margin-right: 0;
 }
 
 .track,
 .captionTrack {
   position: relative;
-  height: 44px;
+  height: 46px;
   background: var(--surface-inset);
-  border-bottom: 3px solid var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.track[data-kind='scene'] {
+  height: 62px;
+}
+
+.motionTrack {
+  position: relative;
+  height: 36px;
+  background: var(--surface-inset);
+  border-bottom: 1px solid var(--border);
+}
+
+.motionMarker {
+  position: absolute;
+  top: 0;
+  width: 44px;
+  height: 35px;
+  transform: translateX(-50%);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.motionMarker::after {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: auto;
+  transform: rotate(45deg);
+  border: 2px solid var(--accent);
+  background: var(--surface);
+}
+
+.motionMarker:hover::after,
+.motionMarker:focus-visible::after {
+  background: var(--accent);
+}
+
+.motionMarker:active::after {
+  background: var(--accent);
+  transform: rotate(45deg) scale(0.85);
+}
+
+.motionMarker:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .timelineItem {
   position: absolute;
   display: flex;
-  height: 40px;
+  top: 2px;
+  height: calc(100% - 4px);
   min-width: 0;
   background: #263240;
   border: 1px solid #536b80;
   border-radius: 5px;
   overflow: hidden;
+  z-index: 2;
 }
 
 .timelineItem[data-selected='true'] {
@@ -309,6 +455,10 @@
 }
 
 .itemBody {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   cursor: grab;
   font-size: 11px;
@@ -318,8 +468,46 @@
   text-overflow: ellipsis;
 }
 
+.timelineItemMedia {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.timelineItemMedia img,
+.timelineItemMedia span {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.timelineItemMedia img {
+  object-fit: cover;
+  filter: saturate(0.85) brightness(0.75);
+}
+
+.timelineItemMedia span {
+  background: #344252;
+}
+
+.timelineItemLabel {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timelineItem[data-media='true'] .timelineItemLabel {
+  padding: 3px 5px;
+  border-radius: 3px;
+  background: #111923d9;
+}
+
 .trimHandle {
-  width: 12px;
+  width: 16px;
   flex-shrink: 0;
   padding: 0;
   cursor: ew-resize;
@@ -328,13 +516,14 @@
 }
 
 .captionTrack {
-  height: 28px;
+  height: 42px;
 }
 
 .captionTrack button {
   position: absolute;
-  height: 24px;
-  padding: 0 2px;
+  top: 5px;
+  height: 30px;
+  padding: 0 4px;
   overflow: hidden;
   white-space: nowrap;
   font-size: 10px;
@@ -342,6 +531,40 @@
   background: #303741;
   border: 1px solid #616c7c;
   border-radius: 3px;
+  z-index: 2;
+}
+
+.captionTrack button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.captionTrack button[data-active='true'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.emptyTrack {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.timelineGridLine {
+  position: absolute;
+  top: 36px;
+  bottom: 0;
+  width: 1px;
+  background: #7e91a222;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .playhead {
@@ -351,6 +574,132 @@
   width: 2px;
   background: var(--accent);
   pointer-events: none;
+  z-index: 4;
+}
+
+.playhead::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px 2px 6px 6px;
+  background: var(--accent);
+}
+
+.clipRail {
+  min-width: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.clipRailHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.clipRailHeader h2 {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-size: 17px;
+}
+
+.clipRailHeader span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.clipRailList {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 2px 2px 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-color: var(--muted) var(--surface-inset);
+}
+
+.clipRailCard {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex: 0 0 224px;
+  width: 224px;
+  min-height: 76px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-inset);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.clipRailCard:hover {
+  background: var(--surface-hover);
+}
+
+.clipRailCard:active {
+  border-color: var(--accent);
+}
+
+.clipRailCard[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.clipRailCard:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.clipRailImage {
+  display: grid;
+  place-items: center;
+  flex: 0 0 92px;
+  width: 92px;
+  min-height: 64px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #283746;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.clipRailImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clipRailInfo {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 4px 2px 3px 0;
+}
+
+.clipRailInfo strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.clipRailInfo small {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .itemBody:hover,
@@ -380,18 +729,23 @@
 
 @media (max-width: 850px) {
   .studio {
-    height: auto;
     min-height: 0;
   }
   .editorBody {
-    display: flex;
-    flex-direction: column;
+    display: contents;
   }
   .previewSlot {
-    order: -1;
+    order: 1;
     height: 430px;
   }
+  .timeline {
+    order: 2;
+  }
+  .clipRail {
+    order: 3;
+  }
   .rightPanel {
+    order: 4;
     max-height: 440px;
   }
   .rightPanel {
@@ -399,5 +753,8 @@
   }
   .timelineZoom {
     margin-left: 0;
+  }
+  .studio > .hint {
+    order: 5;
   }
 }

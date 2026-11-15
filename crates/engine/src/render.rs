@@ -310,6 +310,7 @@ pub fn timeline_composition(
             if layer.kind == "punch_in" {
                 section.crop = layer.crop.clone().expect("Validated punch-in crop");
                 section.keyframes.clear();
+                section.camera_motion.clear();
             } else if layer.kind == "split" {
                 section.layout = Layout::Gaming;
                 section.facecam_crop = layer.crop.clone().expect("Validated split crop");
@@ -318,18 +319,24 @@ pub fn timeline_composition(
             }
         }
         let (width, height) = document.layout.dimensions(document.resolution);
-        let composed =
+        let base_composition = if !section.camera_motion.is_empty()
+            && [Layout::Portrait, Layout::Square, Layout::Landscape].contains(&section.layout)
+        {
+            camera_motion_composition(document, project, start)
+        } else {
             composition_dimensions(&section, project.width, project.height, width, height)
-                .replace("[0:v]", &format!("[trimmed{index}]"))
-                .replace("[composed]", &format!("[section{index}]"))
-                .replace("[facein]", &format!("[facein{index}]"))
-                .replace("[gamein]", &format!("[gamein{index}]"))
-                .replace("[face]", &format!("[face{index}]"))
-                .replace("[game]", &format!("[game{index}]"))
-                .replace("[background]", &format!("[background{index}]"))
-                .replace("[foreground]", &format!("[foreground{index}]"))
-                .replace("[blurred]", &format!("[blurred{index}]"))
-                .replace("[fit]", &format!("[fit{index}]"));
+        };
+        let composed = base_composition
+            .replace("[0:v]", &format!("[trimmed{index}]"))
+            .replace("[composed]", &format!("[section{index}]"))
+            .replace("[facein]", &format!("[facein{index}]"))
+            .replace("[gamein]", &format!("[gamein{index}]"))
+            .replace("[face]", &format!("[face{index}]"))
+            .replace("[game]", &format!("[game{index}]"))
+            .replace("[background]", &format!("[background{index}]"))
+            .replace("[foreground]", &format!("[foreground{index}]"))
+            .replace("[blurred]", &format!("[blurred{index}]"))
+            .replace("[fit]", &format!("[fit{index}]"));
         filter.push(';');
         filter.push_str(&composed);
         filter.push_str(&format!(";[section{index}]setsar=1[picture{index}]"));
@@ -340,6 +347,30 @@ pub fn timeline_composition(
     }
     filter.push_str(&format!("concat=n={count}:v=1:a=1[composed][soundtrack]"));
     filter
+}
+
+fn camera_motion_composition(document: &EditDocument, project: &Project, start_ms: i64) -> String {
+    let plan = crate::motion::camera_plan(document, project.width, project.height);
+    let time = format!("(on-1)*1000/30+{start_ms}");
+    let center_x = plan.curve.expression(0, &time);
+    let center_y = plan.curve.expression(1, &time);
+    let zoom = plan.curve.expression(2, &time);
+    let crop_width = format!("{:.10}/({zoom})", plan.base_width * project.width as f64);
+    let crop_height = format!("{:.10}/({zoom})", plan.base_height * project.height as f64);
+    let left = format!(
+        "max(0,min({}-({crop_width}),({center_x})*{}-({crop_width})/2))",
+        project.width, project.width
+    );
+    let top = format!(
+        "max(0,min({}-({crop_height}),({center_y})*{}-({crop_height})/2))",
+        project.height, project.height
+    );
+    let right = format!("({left})+({crop_width})");
+    let bottom = format!("({top})+({crop_height})");
+    let (width, height) = document.layout.dimensions(document.resolution);
+    format!(
+        "[0:v]setpts=PTS-STARTPTS,perspective=x0='{left}':y0='{top}':x1='{right}':y1='{top}':x2='{left}':y2='{bottom}':x3='{right}':y3='{bottom}':sense=source:eval=frame:interpolation=linear,scale={width}:{height}[composed]"
+    )
 }
 
 pub async fn render_media(
@@ -429,8 +460,49 @@ pub async fn render_media(
             path.to_string_lossy().into_owned(),
         ]);
         let (width, height) = document.layout.dimensions(document.resolution);
-        filter.push_str(&format!(";[{next_input}:v]scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},fps=30,setpts=PTS-STARTPTS+{:.3}/TB[roll{index}];[{video_label}][roll{index}]overlay=eof_action=pass:enable='gte(t,{:.3})*lt(t,{:.3})'[cutaway{index}]",
-            layer.start_ms as f64 / 1000.0, layer.start_ms as f64 / 1000.0, layer.end_ms as f64 / 1000.0));
+        let start = layer.start_ms as f64 / 1000.0;
+        let end = layer.end_ms as f64 / 1000.0;
+        let mut roll_filter = format!(
+            ";[{next_input}:v]scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},fps=30"
+        );
+        let motion = (!layer.motion.is_empty()).then(|| crate::motion::layer_curve(layer));
+        if let Some(curve) = &motion {
+            let clock = format!("on*1000/30+{}", layer.start_ms);
+            let zoom = curve.expression(2, &clock);
+            let x = curve.expression(0, &clock);
+            let y = curve.expression(1, &clock);
+            roll_filter.push_str(&format!(
+                ",zoompan=z='{zoom}':x='max(0,min(iw-iw/zoom,({x})*iw-iw/(2*zoom)))':y='max(0,min(ih-ih/zoom,({y})*ih-ih/(2*zoom)))':d=1:s={width}x{height}:fps=30"
+            ));
+        }
+        roll_filter.push_str(&format!(",setpts=PTS-STARTPTS+{start:.3}/TB"));
+        if layer.motion.iter().any(|key| key.opacity != 1.0) {
+            let curve = motion
+                .as_ref()
+                .expect("Animated opacity has a motion curve.");
+            let initial = curve.at(layer.start_ms as f64)[3];
+            let mut commands = String::new();
+            for frame in 0..((duration as f64 * 30.0 / 1000.0).ceil() as usize) {
+                let position = layer.start_ms as f64 + frame as f64 * 1000.0 / 30.0;
+                let opacity = curve.at(position)[3];
+                commands.push_str(&format!(
+                    "{:.6} colorchannelmixer@roll{index} aa {opacity:.6};",
+                    position / 1000.0
+                ));
+                commands.push(char::from(10));
+            }
+            let command_file = working.join(format!("broll-{index}-alpha.cmd"));
+            tokio::fs::write(&command_file, commands).await?;
+            roll_filter.push_str(&format!(
+                ",format=rgba,sendcmd=f='{}',colorchannelmixer@roll{index}=aa={initial:.6}",
+                escape_filter_path(&command_file)
+            ));
+        }
+        roll_filter.push_str(&format!("[roll{index}]"));
+        filter.push_str(&roll_filter);
+        filter.push_str(&format!(
+            ";[{video_label}][roll{index}]overlay=eof_action=pass:enable='gte(t,{start:.3})*lt(t,{end:.3})'[cutaway{index}]"
+        ));
         video_label = format!("cutaway{index}");
         next_input += 1;
     }
@@ -498,7 +570,32 @@ pub async fn render_media(
         audio_count += 1;
     }
     filter.push_str(&format!(";{audio_labels}amix=inputs={audio_count}:duration=first:normalize=0,alimiter=limit=0.95:latency=1[contentaudio]"));
-    filter.push_str(&card_composition(&document, &video_label));
+    let mut card_audio_inputs = [None, None];
+    for (index, card) in [&document.intro_card, &document.outro_card]
+        .into_iter()
+        .enumerate()
+    {
+        if let Some(narration) = card.as_ref().and_then(|card| card.narration.as_ref()) {
+            let (path, _, kind) = db::asset(&state.db, &state.root, &narration.asset_id).await?;
+            anyhow::ensure!(
+                kind == "audio",
+                "Card narration must be a managed audio asset."
+            );
+            let actual_duration = tools::probe_audio(state, &path, cancellation).await?;
+            anyhow::ensure!(
+                (actual_duration - narration.duration_ms).abs() <= 100,
+                "Card narration duration no longer matches its saved asset."
+            );
+            args.extend(["-i".into(), path.to_string_lossy().into_owned()]);
+            card_audio_inputs[index] = Some(next_input);
+            next_input += 1;
+        }
+    }
+    filter.push_str(&card_composition(
+        &document,
+        &video_label,
+        &card_audio_inputs,
+    ));
     filter.push_str(&format!(
         ";[finalvideo]subtitles=filename='{}':fontsdir='{}',setsar=1[out]",
         escape_filter_path(&ass_file),
@@ -561,23 +658,39 @@ pub async fn render_media(
     Ok(())
 }
 
-pub fn card_composition(document: &EditDocument, video_label: &str) -> String {
+pub fn card_composition(
+    document: &EditDocument,
+    video_label: &str,
+    audio_inputs: &[Option<usize>; 2],
+) -> String {
     let (width, height) = document.layout.dimensions(document.resolution);
     let mut filter = format!(
         ";[{video_label}]fps=30,format=yuv420p,setsar=1,settb=AVTB,setpts=PTS-STARTPTS[contentvideo];[contentaudio]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[normalizedaudio]"
     );
     let mut inputs = String::new();
     let mut count = 1;
-    for (name, card) in [
+    for (index, (name, card)) in [
         ("intro", document.intro_card.as_ref()),
         ("outro", document.outro_card.as_ref()),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         if let Some(card) = card {
             let duration = card.duration_ms as f64 / 1000.0;
             let background = card.background.replace('#', "0x");
             filter.push_str(&format!(
-                ";color=c={background}:s={width}x{height}:r=30:d={duration:.3},format=yuv420p,setsar=1,settb=AVTB,setpts=PTS-STARTPTS[{name}video];anullsrc=r=48000:cl=stereo,atrim=duration={duration:.3},asetpts=PTS-STARTPTS[{name}audio]"
+                ";color=c={background}:s={width}x{height}:r=30:d={duration:.3},format=yuv420p,setsar=1,settb=AVTB,setpts=PTS-STARTPTS[{name}video]"
             ));
+            if let Some(input) = audio_inputs[index] {
+                filter.push_str(&format!(
+                    ";[{input}:a]aresample=48000,aformat=channel_layouts=stereo,apad=whole_dur={duration:.3},atrim=duration={duration:.3},asetpts=PTS-STARTPTS[{name}audio]"
+                ));
+            } else {
+                filter.push_str(&format!(
+                    ";anullsrc=r=48000:cl=stereo,atrim=duration={duration:.3},asetpts=PTS-STARTPTS[{name}audio]"
+                ));
+            }
             if name == "intro" {
                 inputs.push_str("[introvideo][introaudio]");
             }

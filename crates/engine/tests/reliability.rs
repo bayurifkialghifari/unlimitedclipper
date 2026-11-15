@@ -520,6 +520,50 @@ async fn old_active_jobs_still_block_updates_after_two_hundred_completed_jobs() 
 }
 
 #[tokio::test]
+async fn auto_edit_proposal_remains_available_beyond_recent_job_history() {
+    let root = tempfile::tempdir().unwrap();
+    let state = AppState::new(root.path().to_path_buf(), root.path().join("tools"))
+        .await
+        .unwrap();
+    let proposal = Job {
+        id: "motion-proposal".into(),
+        project_id: Some("project".into()),
+        clip_id: Some("clip".into()),
+        kind: "auto_edit".into(),
+        status: "completed".into(),
+        stage: "review".into(),
+        progress: 1.0,
+        message: "Ready for review".into(),
+        error: None,
+        payload: json!({"base_revision": 2, "motion_review": {"anchors": 4}}),
+        created_at: 1000,
+        updated_at: 1000,
+    };
+    db::save_job(&state.db, &proposal).await.unwrap();
+    for index in 0..205 {
+        let mut unrelated = proposal.clone();
+        unrelated.id = format!("unrelated-{index}");
+        unrelated.kind = "export".into();
+        unrelated.clip_id = Some("other-clip".into());
+        unrelated.created_at = 1001 + index;
+        db::save_job(&state.db, &unrelated).await.unwrap();
+    }
+    assert!(
+        !db::jobs(&state.db)
+            .await
+            .unwrap()
+            .iter()
+            .any(|job| job.id == proposal.id)
+    );
+    let saved = db::latest_auto_edit_job(&state.db, "project", "clip")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved.id, proposal.id);
+    assert_eq!(saved.payload["motion_review"]["anchors"], 4);
+}
+
+#[tokio::test]
 async fn interrupted_uploads_are_removed_only_after_acquiring_the_instance_lock() {
     let root = tempfile::tempdir().unwrap();
     let state = AppState::new(root.path().to_path_buf(), root.path().join("tools"))
@@ -583,4 +627,49 @@ async fn concurrent_clip_edit_requests_admit_only_one_job() {
     statuses.sort();
     assert_eq!(statuses, [StatusCode::OK, StatusCode::BAD_REQUEST]);
     assert_eq!(db::active_jobs(&state.db).await.unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn hook_proposals_require_the_current_revision_and_freeze_the_clip() {
+    let root = tempfile::tempdir().unwrap();
+    let mut state = AppState::new(root.path().to_path_buf(), root.path().join("tools"))
+        .await
+        .unwrap();
+    state.development = true;
+    let project = project();
+    db::save_project(&state.db, &project).await.unwrap();
+    let clip = Clip {
+        id: "hook-clip".into(),
+        project_id: project.id.clone(),
+        name: "Hook fixture".into(),
+        explanation: String::new(),
+        score: None,
+        revision: 3,
+        document: EditDocument::new(&project, 2000, 5000),
+        created_at: 1,
+    };
+    db::insert_clip(&state.db, &clip).await.unwrap();
+    let router = api::router(state.clone());
+    let request = |revision| {
+        Request::builder()
+            .method("POST")
+            .uri("/api/v1/clips/hook-clip/hook-proposals")
+            .header("content-type", "application/json")
+            .body(Body::from(json!({"revision": revision}).to_string()))
+            .unwrap()
+    };
+    assert_eq!(
+        router.clone().oneshot(request(2)).await.unwrap().status(),
+        StatusCode::CONFLICT
+    );
+    assert!(db::active_jobs(&state.db).await.unwrap().is_empty());
+    assert_eq!(
+        router.oneshot(request(3)).await.unwrap().status(),
+        StatusCode::OK
+    );
+    let jobs = db::active_jobs(&state.db).await.unwrap();
+    assert_eq!(jobs.len(), 1);
+    assert_eq!(jobs[0].kind, "hook_proposals");
+    assert_eq!(jobs[0].payload["snapshot"]["revision"], json!(3));
+    assert_eq!(jobs[0].payload["snapshot"]["id"], json!("hook-clip"));
 }

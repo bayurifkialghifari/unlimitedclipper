@@ -16,6 +16,9 @@ Render portrait, square, landscape, preserved composition, blur background, or g
 
 The render snapshot is captured when the job is queued. Export IDs derive from the job, clip, and revision, so a retry can reuse a committed export even if its job checkpoint was interrupted. Batch progress includes the current item. All six compositions passed a real 720p timing test; native 1080p export passed separately.
 
+Style changes in the current clip do not modify completed MP4/SRT/ASS assets. Change style from
+the clip gallery or export history, wait for the saved revision, then queue another export.
+
 Dense crop anchors use balanced piecewise expressions, preserving linear interpolation with
 logarithmic expression nesting. Desktop FFmpeg reads the graph from a managed temporary
 argument file through `-/filter_complex`, avoiding Windows command-line limits. Edited

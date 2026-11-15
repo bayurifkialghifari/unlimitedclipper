@@ -4,17 +4,23 @@ import { Button } from '@unlimitedclipper/ui';
 import { PlayIcon, PauseIcon, FilmStripIcon } from '@phosphor-icons/react';
 import { api, assetUrl } from '../lib/api';
 import { AssRenderer } from '../lib/ass-renderer';
-import { cameraAt, colorFilter, drawRegion } from '../lib/preview-drawing';
+import { cameraAt, colorFilter, drawRegion, motionValuesAt } from '../lib/preview-drawing';
 import { sourceSegments, introDuration, finalDuration } from '../lib/timeline';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { time } from '../lib/format';
 import { usePreviewFrame } from '../hooks/use-preview-frame';
 import { CropHandle } from '../molecules/CropHandle';
-import type { Project } from '../types';
+import type { PreviewPlan, Project } from '../types';
 import styles from '../styles/Studio.module.css';
 
 const full = { x: 0, y: 0, width: 1, height: 1 };
+
+function seekNarration(audio: HTMLAudioElement, positionMs: number) {
+  if (audio.readyState >= 1 && Math.abs(audio.currentTime * 1000 - positionMs) > 150) {
+    audio.currentTime = positionMs / 1000;
+  }
+}
 
 export function VideoPreview({
   project,
@@ -31,6 +37,7 @@ export function VideoPreview({
 }) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
+  const selection = useEditor((state) => state.timelineSelection);
   const playhead = useEditor((state) => state.playhead);
   const seekRequest = useEditor((state) => state.seekRequest);
   const internalVideo = useRef<HTMLVideoElement>(null);
@@ -38,6 +45,8 @@ export function VideoPreview({
   const stage = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLCanvasElement>(null);
   const broll = useRef<HTMLVideoElement>(null);
+  const introNarration = useRef<HTMLAudioElement>(null);
+  const outroNarration = useRef<HTMLAudioElement>(null);
   const watermark = useRef<HTMLImageElement>(null);
   const sceneIndex = useRef(0);
   const renderer = useRef<AssRenderer | null>(null);
@@ -51,8 +60,24 @@ export function VideoPreview({
   const [loadedSource, setLoadedSource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [captionError, setCaptionError] = useState(false);
+  const [planned, setPlanned] = useState<{
+    clipId: string;
+    signature: string;
+    plan: PreviewPlan;
+  } | null>(null);
   const fonts = useQuery({ queryKey: ['fonts'], queryFn: api.fonts, enabled: Boolean(draft) });
   const document = draft?.document;
+  const signature = JSON.stringify(document);
+  const activePlan =
+    planned && planned.clipId === draft?.id && planned.signature === signature
+      ? planned.plan
+      : null;
+  const selectedText =
+    selection?.kind === 'visual'
+      ? document?.visual_layers?.find(
+          (layer) => layer.id === selection.id && ['text', 'note'].includes(layer.kind),
+        )
+      : null;
   const exact = Boolean(renderedAsset);
   const segmentKey = JSON.stringify(
     document ? sourceSegments(document) : [{ start_ms: 0, end_ms: project?.duration_ms ?? 0 }],
@@ -74,18 +99,45 @@ export function VideoPreview({
   const clipId = draft?.id;
   const roll =
     !exact &&
-    document?.visual_layers?.find(
-      (layer) =>
-        layer.enabled &&
-        layer.kind === 'broll' &&
-        layer.start_ms <= playhead &&
-        layer.end_ms > playhead,
-    );
+    document?.visual_layers
+      ?.filter(
+        (layer) =>
+          layer.enabled &&
+          layer.kind === 'broll' &&
+          layer.start_ms <= playhead &&
+          layer.end_ms > playhead,
+      )
+      .at(-1);
 
   useEffect(() => {
     sceneIndex.current = 0;
     cardClock.current.running = false;
+    introNarration.current?.pause();
+    outroNarration.current?.pause();
   }, [source, draft?.id]);
+
+  useEffect(() => {
+    const position = outputPosition.current;
+    const inIntro = !exact && position < intro;
+    const inOutro = !exact && position >= intro + duration;
+    const selected = inIntro ? introNarration.current : inOutro ? outroNarration.current : null;
+    for (const audio of [introNarration.current, outroNarration.current]) {
+      if (audio && audio !== selected) {
+        audio.pause();
+      }
+    }
+    if (!selected || !active) {
+      selected?.pause();
+      return;
+    }
+    const localPosition = inIntro ? position : position - intro - duration;
+    seekNarration(selected, localPosition);
+    if (cardClock.current.running && selected.paused) {
+      void selected.play().catch(() => setError(text.narrationPlaybackError));
+    } else if (!cardClock.current.running) {
+      selected.pause();
+    }
+  }, [active, exact, displayPosition, intro, duration, document, text.narrationPlaybackError]);
 
   useEffect(() => {
     repaint.current += 1;
@@ -174,6 +226,7 @@ export function VideoPreview({
           if (controller.signal.aborted || renderer.current !== current) {
             return;
           }
+          setPlanned({ clipId: draft.id, signature: JSON.stringify(draft.document), plan });
           await current.setTrack(plan.graphics);
           if (!controller.signal.aborted) {
             subtitle.current?.close();
@@ -337,7 +390,7 @@ export function VideoPreview({
           drawRegion(
             context!,
             video!,
-            punch?.crop ?? cameraAt(document, position),
+            punch?.crop ?? cameraAt(document, position, activePlan?.camera_motion),
             0,
             0,
             width,
@@ -351,7 +404,21 @@ export function VideoPreview({
         if (Math.abs(broll.current.currentTime - rollTime) > 0.1) {
           broll.current.currentTime = rollTime;
         }
+        const curve = activePlan?.layer_motion[roll.id];
+        const values = curve ? motionValuesAt(curve, position) : [0.5, 0.5, 1, 1];
+        const zoom = values[2];
+        const cropWidth = 1 / zoom;
+        const left = Math.max(0, Math.min(1 - cropWidth, values[0] - cropWidth / 2));
+        const top = Math.max(0, Math.min(1 - cropWidth, values[1] - cropWidth / 2));
+        context!.save();
+        context!.beginPath();
+        context!.rect(0, 0, width, height);
+        context!.clip();
+        context!.globalAlpha = values[3];
+        context!.scale(zoom, zoom);
+        context!.translate(-left * width, -top * height);
         drawRegion(context!, broll.current, full, 0, 0, width, height);
+        context!.restore();
       }
       context!.filter = 'none';
       if (!exact && !card && document?.video_adjustments?.warmth) {
@@ -428,6 +495,7 @@ export function VideoPreview({
     exact,
     intro,
     final,
+    activePlan,
     duration,
     width,
     height,
@@ -448,6 +516,21 @@ export function VideoPreview({
       cardClock.current.running = !cardClock.current.running;
       cardClock.current.stamp = performance.now();
       setPlaying(cardClock.current.running);
+      const audio =
+        outputPosition.current < intro ? introNarration.current : outroNarration.current;
+      if (audio) {
+        seekNarration(
+          audio,
+          outputPosition.current < intro
+            ? outputPosition.current
+            : outputPosition.current - intro - duration,
+        );
+        if (cardClock.current.running) {
+          void audio.play().catch(() => setError(text.narrationPlaybackError));
+        } else {
+          audio.pause();
+        }
+      }
       return;
     }
     if (video.paused) {
@@ -531,6 +614,28 @@ export function VideoPreview({
             >
               <track kind="captions" />
             </video>
+            {!exact && document?.intro_card?.narration && (
+              <audio
+                ref={introNarration}
+                src={assetUrl(document.intro_card.narration.asset_id)}
+                preload="auto"
+                aria-hidden="true"
+                onError={() => setError(text.narrationPlaybackError)}
+              >
+                <track kind="captions" />
+              </audio>
+            )}
+            {!exact && document?.outro_card?.narration && (
+              <audio
+                ref={outroNarration}
+                src={assetUrl(document.outro_card.narration.asset_id)}
+                preload="auto"
+                aria-hidden="true"
+                onError={() => setError(text.narrationPlaybackError)}
+              >
+                <track kind="captions" />
+              </audio>
+            )}
             {roll && roll.asset_id && (
               <video
                 key={roll.asset_id}
@@ -573,12 +678,83 @@ export function VideoPreview({
               document &&
               displayPosition >= intro &&
               displayPosition < intro + duration &&
+              selectedText &&
+              selectedText.start_ms <= playhead &&
+              selectedText.end_ms > playhead && (
+                <CropHandle
+                  label={text.textMotionDrag}
+                  pointerDirection="move"
+                  onMove={(horizontal, vertical) => {
+                    useEditor.getState().change((edit) => {
+                      const layer = edit.visual_layers?.find((item) => item.id === selectedText.id);
+                      if (!layer) {
+                        return;
+                      }
+                      const time_ms = Math.round(playhead);
+                      const current = layer.motion?.find((key) => key.time_ms === time_ms);
+                      if (layer.motion?.length) {
+                        const plan =
+                          planned?.clipId === draft?.id
+                            ? planned.plan.layer_motion[selectedText.id]
+                            : null;
+                        const values = plan ? motionValuesAt(plan, playhead) : null;
+                        layer.motion = layer.motion.filter((key) => key.time_ms !== time_ms);
+                        layer.motion.push({
+                          time_ms,
+                          x: Math.max(
+                            0,
+                            Math.min(1, (current?.x ?? values?.[0] ?? layer.x) + horizontal),
+                          ),
+                          y: Math.max(
+                            0,
+                            Math.min(1, (current?.y ?? values?.[1] ?? layer.y) + vertical),
+                          ),
+                          scale: current?.scale ?? values?.[2] ?? 1,
+                          opacity: current?.opacity ?? values?.[3] ?? 1,
+                          easing: current?.easing ?? { kind: 'linear' },
+                        });
+                        layer.motion.sort((first, second) => first.time_ms - second.time_ms);
+                        return;
+                      }
+                      layer.x = Math.max(0, Math.min(1, layer.x + horizontal));
+                      layer.y = Math.max(0, Math.min(1, layer.y + vertical));
+                    });
+                  }}
+                />
+              )}
+            {!exact &&
+              document &&
+              !selectedText &&
+              displayPosition >= intro &&
+              displayPosition < intro + duration &&
               ['portrait', 'square', 'landscape'].includes(layout) && (
                 <CropHandle
                   label={text.cropDrag}
                   onMove={(horizontal, vertical) => {
                     useEditor.getState().change((edit) => {
-                      const crop = cameraAt(edit, playhead);
+                      const motion =
+                        planned?.clipId === draft?.id ? planned.plan.camera_motion : null;
+                      const crop = cameraAt(edit, playhead, activePlan?.camera_motion ?? motion);
+                      if (edit.camera_motion?.length) {
+                        const time_ms = Math.round(playhead);
+                        const existing = edit.camera_motion.find((key) => key.time_ms === time_ms);
+                        const values = motion ? motionValuesAt(motion.curve, time_ms) : null;
+                        const zoom = existing?.zoom ?? values?.[2] ?? 1;
+                        const centerX = existing?.x ?? values?.[0] ?? crop.x + crop.width / 2;
+                        const centerY = existing?.y ?? values?.[1] ?? crop.y + crop.height / 2;
+                        edit.camera_motion = edit.camera_motion.filter(
+                          (key) => key.time_ms !== time_ms,
+                        );
+                        edit.camera_motion.push({
+                          time_ms,
+                          x: Math.max(0, Math.min(1, centerX + horizontal * crop.width)),
+                          y: Math.max(0, Math.min(1, centerY + vertical * crop.height)),
+                          zoom,
+                          easing: existing?.easing ?? { kind: 'linear' },
+                        });
+                        edit.camera_motion.sort((first, second) => first.time_ms - second.time_ms);
+                        return;
+                      }
                       const x = Math.max(
                         0,
                         Math.min(1 - crop.width, crop.x + horizontal * crop.width),

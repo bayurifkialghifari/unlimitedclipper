@@ -2,12 +2,18 @@ use crate::updates;
 use tauri::Manager;
 
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+    let mut builder = tauri::Builder::default();
+    // A debug-only isolated test host may run beside the user's desktop process.
+    let isolated_test =
+        cfg!(debug_assertions) && std::env::var_os("UC_NATIVE_TEST_INSTANCE").is_some();
+    if !isolated_test {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
             if let Some(window) = app.get_webview_window("studio") {
                 let _ = window.set_focus();
             }
-        }))
+        }));
+    }
+    builder
         .manage(updates::DesktopState::default())
         .invoke_handler(tauri::generate_handler![
             updates::check_application_update,

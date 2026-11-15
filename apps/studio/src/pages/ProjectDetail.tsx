@@ -96,6 +96,9 @@ export function ProjectDetail() {
                 <p>{text.noClipsDetail}</p>
               </div>
             )}
+            {Boolean(query.data?.clips.length) && (
+              <p className={styles.hint}>{text.perClipStyleHint}</p>
+            )}
             <div className={styles.gallery}>
               {query.data?.clips.map((clip) => (
                 <article key={clip.id} className={styles.projectCard}>
@@ -112,13 +115,21 @@ export function ProjectDetail() {
                       {time(finalDuration(clip.document))} · {time(clip.document.start_ms)} –{' '}
                       {time(clip.document.end_ms)}
                     </p>
-                    <Button
-                      variant="primary"
-                      disabled={Boolean(error)}
-                      onClick={() => navigate('/studio/' + clip.id)}
-                    >
-                      {text.editClip}
-                    </Button>
+                    <div className={styles.clipCardActions}>
+                      <Button
+                        variant="primary"
+                        disabled={Boolean(error)}
+                        onClick={() => navigate('/studio/' + clip.id)}
+                      >
+                        {text.editClip}
+                      </Button>
+                      <Button
+                        disabled={Boolean(error)}
+                        onClick={() => navigate('/studio/' + clip.id + '?panel=captions')}
+                      >
+                        {text.changeClipStyle}
+                      </Button>
+                    </div>
                   </div>
                 </article>
               ))}

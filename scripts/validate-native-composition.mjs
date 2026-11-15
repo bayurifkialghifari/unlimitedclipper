@@ -8,6 +8,7 @@ import { toolDirectory, modelDirectory } from './test-paths.mjs';
 
 assert.equal(process.platform, 'win32', 'This fixture verifies native Windows WebView2.');
 const environment = cargoEnvironment();
+const narrationPack = process.env.UC_NATIVE_NARRATION_PACK;
 const metadata = JSON.parse(
   execFileSync('cargo', ['metadata', '--locked', '--format-version', '1'], {
     cwd: root,
@@ -78,7 +79,7 @@ const child = spawn(executable, [], {
     UC_DATA_DIR: directory,
     UC_STUDIO_DIR: path.join(root, 'apps/studio/dist'),
     UC_TOOLS_DIR: toolDirectory,
-    UC_MODELS_DIR: modelDirectory,
+    UC_MODELS_DIR: narrationPack ?? modelDirectory,
     UC_MODELS_READ_ONLY: '1',
     WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: '--remote-debugging-port=9226',
   },
@@ -173,12 +174,54 @@ try {
   });
   assert.ok(
     signature.mean > 15 && signature.chroma > 5,
-    'Native live canvas must paint actual podcast footage.',
+    'Native live canvas must paint actual media frames.',
   );
   await page.screenshot({
     path: path.join(root, '.cache/native-composition-live.png'),
     fullPage: true,
   });
+  const nativeFrameHash = () =>
+    page.locator('canvas').evaluate((canvas) => {
+      const context = canvas.getContext('2d');
+      let total = 0;
+      for (let y = 0; y < 12; y += 1) {
+        for (let x = 0; x < 12; x += 1) {
+          const pixel = context.getImageData(
+            Math.floor((canvas.width * (x + 0.5)) / 12),
+            Math.floor((canvas.height * (y + 0.5)) / 12),
+            1,
+            1,
+          ).data;
+          total += pixel[0] * 3 + pixel[1] * 5 + pixel[2] * 7;
+        }
+      }
+      return total;
+    });
+  const beforeMotion = await nativeFrameHash();
+  await page.getByRole('tab', { name: 'Crop', exact: true }).click();
+  const motion = page.getByRole('region', { name: 'Gerak kamera', exact: true });
+  await motion.getByRole('button', { name: 'Tambah keyframe kamera di playhead' }).click();
+  await motion.getByLabel('Zoom (%)', { exact: true }).fill('200');
+  await motion.getByLabel('Tengah X (%)', { exact: true }).fill('75');
+  await expect
+    .poll(async () => Math.abs((await nativeFrameHash()) - beforeMotion))
+    .toBeGreaterThan(500);
+  await page.getByText('Tersimpan lokal', { exact: true }).waitFor();
+  const beforeBroll = await nativeFrameHash();
+  await page.getByRole('tab', { name: 'Segmen sumber', exact: true }).click();
+  await page.getByRole('button', { name: 'Tambah B-roll lokal', exact: true }).click();
+  await expect
+    .poll(async () => Math.abs((await nativeFrameHash()) - beforeBroll))
+    .toBeGreaterThan(500);
+  const mediaMotion = page.getByRole('region', { name: 'Gerak B-roll', exact: true });
+  const staticBroll = await nativeFrameHash();
+  await mediaMotion.getByRole('button', { name: 'Tambah keyframe B-roll di playhead' }).click();
+  await mediaMotion.getByLabel('Skala (%)', { exact: true }).fill('160');
+  await mediaMotion.getByLabel('Opasitas (%)', { exact: true }).fill('50');
+  await expect
+    .poll(async () => Math.abs((await nativeFrameHash()) - staticBroll))
+    .toBeGreaterThan(500);
+  await page.getByText('Tersimpan lokal', { exact: true }).waitFor();
   await page.getByRole('tab', { name: 'Filter video', exact: true }).click();
   await page.getByRole('button', { name: 'Monokrom', exact: true }).click();
   await page.getByText('Tersimpan lokal', { exact: true }).waitFor();
@@ -200,6 +243,30 @@ try {
   await closing.getByRole('button', { name: 'Tambah kartu', exact: true }).click();
   await closing.getByLabel('Durasi tampil (s)', { exact: true }).fill('1.5');
   await closing.getByLabel('Latar belakang', { exact: true }).fill('#2030d0');
+  if (narrationPack) {
+    await opening.getByLabel('Teks kartu', { exact: true }).fill('Halo dunia.');
+    await opening.getByLabel('Durasi tampil (s)', { exact: true }).fill('3');
+    const generate = opening.getByRole('button', { name: 'Buat narasi', exact: true });
+    await expect(generate).toBeEnabled({ timeout: 30_000 });
+    await generate.click();
+    const apply = opening.getByRole('button', { name: 'Pakai narasi ini', exact: true });
+    await expect(apply).toBeEnabled({ timeout: 120_000 });
+    await apply.click();
+    await opening.getByRole('button', { name: 'Hapus narasi', exact: true }).waitFor();
+    await opening.getByRole('button', { name: 'Preview kartu', exact: true }).click();
+    await page.getByRole('button', { name: 'Putar', exact: true }).click();
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const audio = document.querySelector('audio[aria-hidden="true"]');
+            return audio?.currentTime ?? 0;
+          }),
+        { timeout: 10_000 },
+      )
+      .toBeGreaterThan(0.15);
+    await page.getByRole('button', { name: 'Jeda', exact: true }).click();
+  }
   await opening.getByRole('button', { name: 'Preview kartu', exact: true }).click();
   const corner = async () => {
     const screenshot = await page.locator('canvas').screenshot();
@@ -257,10 +324,13 @@ try {
       {
         directory,
         native_bridge: true,
-        actual_podcast: true,
+        actual_media: true,
         live_frame: signature,
+        camera_motion: true,
+        media_motion: true,
         exact_playback: true,
         independent_cards: true,
+        native_card_narration: Boolean(narrationPack),
         single_canvas: (await page.locator('canvas').count()) === 1,
         errors,
       },

@@ -13,12 +13,13 @@ import {
 } from '@phosphor-icons/react';
 import { api, request } from '../lib/api';
 import { useLanguage, useText } from '../lib/i18n';
-import { languages } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
 import { PageHeader } from '../molecules/PageHeader';
+import { LanguageSelect } from '../molecules/LanguageSelect';
 import { isAndroidHost } from '../lib/native';
 import { QualityPackSettings } from '../organisms/QualityPackSettings';
 import { ModelSetup } from '../organisms/ModelSetup';
+import { NarrationPackSettings } from '../organisms/NarrationPackSettings';
 import { UpdateControls } from '../organisms/UpdateControls';
 import type { Settings } from '../types';
 import styles from '../styles/Studio.module.css';
@@ -84,18 +85,12 @@ function Preferences({ initial }: { initial: Settings }) {
         <option value="whisper-small">Whisper small Q5_1</option>
         <option value="whisper-medium">Whisper medium Q5_0</option>
       </Select>
-      <Select
+      <LanguageSelect
         label={text.language}
         disabled={isAndroidHost()}
         value={settings.transcription_language}
         onChange={(value) => change('transcription_language', value)}
-      >
-        {languages.map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </Select>
+      />
       <Select
         label={text.resolution}
         value={settings.resolution}
@@ -215,6 +210,7 @@ export function SettingsPage() {
       {message && <p role="status">{message}</p>}
       <div className={styles.settingsGrid}>
         <ModelSetup />
+        <NarrationPackSettings />
         <section className={styles.settingsSection}>
           <h2>{text.tools}</h2>
           <Button

@@ -1,4 +1,4 @@
-name: Tagged Windows release
+name: Tagged multi-platform preview
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   validate:
@@ -70,11 +71,29 @@ jobs:
           path: .cache/release-files/*
           if-no-files-found: error
 
+  unix:
+    needs: validate
+    uses: ./.github/workflows/desktop-packages.yml
+    with:
+      release_tag: ${{ github.ref_name }}
+    secrets: inherit
+
+  android_media:
+    needs: validate
+    uses: ./.github/workflows/android-native-tools.yml
+
+  android:
+    needs: android_media
+    uses: ./.github/workflows/android-apk.yml
+    with:
+      release_tag: ${{ github.ref_name }}
+
   publish:
-    needs: windows
+    needs: [windows, unix, android]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
@@ -85,6 +104,15 @@ jobs:
           pattern: windows-*
           merge-multiple: true
           path: .cache/release-files
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: .cache/release-files
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: UnlimitedClipper-android-arm64-preview-UNTESTED
+          path: .cache/android-package
       - run: node scripts/stage-release.mjs --publish
         env:
           GH_TOKEN: ${{ github.token }}

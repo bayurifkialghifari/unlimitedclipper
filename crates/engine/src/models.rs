@@ -72,6 +72,8 @@ impl SourceSegment {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct VisualLayer {
     pub id: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub motion: Vec<crate::motion::LayerKeyframe>,
     pub enabled: bool,
     pub start_ms: i64,
     pub end_ms: i64,
@@ -281,6 +283,15 @@ fn default_title_animation() -> String {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CardNarration {
+    pub asset_id: String,
+    pub text: String,
+    pub language: String,
+    pub voice: String,
+    pub duration_ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct HeadingCard {
     pub text: String,
     pub duration_ms: i64,
@@ -290,6 +301,8 @@ pub struct HeadingCard {
     pub background: String,
     pub position_y: f64,
     pub animation: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub narration: Option<CardNarration>,
 }
 
 impl HeadingCard {
@@ -306,6 +319,16 @@ impl HeadingCard {
             || !(0.05..=0.95).contains(&self.position_y)
         {
             return Err("A card needs text, a supported style, and 0.3 to 10 seconds.".into());
+        }
+        if let Some(narration) = &self.narration
+            && (narration.text != self.text
+                || !["id", "en"].contains(&narration.language.as_str())
+                || narration.voice != "M1"
+                || narration.asset_id.is_empty()
+                || narration.duration_ms <= 0
+                || narration.duration_ms > self.duration_ms)
+        {
+            return Err("Card narration must match its text and fit within the card.".into());
         }
         Ok(())
     }
@@ -362,6 +385,8 @@ impl Default for Watermark {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct EditDocument {
     pub version: u32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub camera_motion: Vec<crate::motion::CameraKeyframe>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub intro_card: Option<HeadingCard>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -396,6 +421,7 @@ impl EditDocument {
         let crop_width = (project.height as f64 * 9.0 / 16.0 / project.width as f64).min(1.0);
         Self {
             version: 2,
+            camera_motion: Vec::new(),
             intro_card: None,
             outro_card: None,
             segments: vec![SourceSegment::new(start_ms, end_ms)],
@@ -440,6 +466,7 @@ impl EditDocument {
 
     pub fn validate(&self, source_duration: i64) -> Result<(), String> {
         self.captions.validate()?;
+        crate::motion::validate(self)?;
         if self.version < 4 && (self.intro_card.is_some() || self.outro_card.is_some()) {
             return Err("Independent cards require document version 4.".into());
         }

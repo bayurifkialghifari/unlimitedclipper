@@ -16,6 +16,9 @@ Reading this as a video editing studio for independent creators, using blue grap
 
 Desktop layouts keep the preview beside the inspector. Narrow layouts use a stacked preview and tabbed settings without horizontal overflow. Use native controls where possible, minimum 44px touch targets, meaningful labels, and visible focus rings. Project galleries show real thumbnails and records, never invented usage statistics.
 
+Editor toolbars and the preview, inspector, and timeline use distinct spacing. On narrow screens,
+the preview status stacks its mode label and explanation above the footage.
+
 The focused visual editor uses footage on the left, a 440-pixel resizable inspector on the
 right, and a timeline underneath. A project gallery precedes editing; manual source ranges
 have a separate page. An expandable transcript belongs in Captions. One inspector scrollbar
@@ -24,6 +27,12 @@ Source scenes, caption words, visual layers, and audio layers use separate timel
 blue and amber distinguish media tracks, while amber outlines mark selection/playhead feedback. Drag
 previews have no decorative motion. Successful job notifications clear after six seconds to
 return access to the workspace; active processing and errors remain reviewable.
+
+The timeline keeps track names visible while footage and time scroll. Small source-derived frames
+give scene cuts visual evidence; time ticks and vertical guides serve precise seeking rather than
+background decoration. Caption words show playback and selection separately. A restrained amber
+playhead, selected scene, and selected clip tie the timeline to the clip rail. On narrow screens,
+preview, timeline, and clip rail appear before the inspector so the edit remains in reach.
 
 Only the inspector body scrolls inside the right panel; tabs stay visible. The outer panel
 must never add a second scrollbar. Scroll thumbs use muted blue-gray against the inset

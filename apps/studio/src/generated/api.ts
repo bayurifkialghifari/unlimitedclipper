@@ -118,7 +118,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    get: operations['get_auto_edit_proposal'];
     put?: never;
     post: operations['auto_edit'];
     delete?: never;
@@ -143,6 +143,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clips/{id}/cards/{kind}/narration': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_card_narration_job'];
+    put?: never;
+    post: operations['card_narration_job'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clips/{id}/export': {
     parameters: {
       query?: never;
@@ -153,6 +169,22 @@ export interface paths {
     get?: never;
     put?: never;
     post: operations['export_clip'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clips/{id}/hook-proposals': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_hook_proposals'];
+    put?: never;
+    post: operations['hook_proposals_job'];
     delete?: never;
     options?: never;
     head?: never;
@@ -511,6 +543,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/models/narration-pack': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['narration_pack_status'];
+    put?: never;
+    post: operations['download_narration_pack'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/models/quality-pack': {
     parameters: {
       query?: never;
@@ -633,6 +681,22 @@ export interface paths {
     get?: never;
     put?: never;
     post: operations['generate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/projects/{id}/storyboard': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['request_storyboard'];
     delete?: never;
     options?: never;
     head?: never;
@@ -795,10 +859,29 @@ export interface components {
       start_ms: number;
     };
     AutoEditRequest: {
+      auto_motion?: boolean;
       profile: string;
       remove_silence: boolean;
       /** Format: int64 */
       revision: number;
+    };
+    CameraKeyframe: {
+      easing?: components['schemas']['Easing'];
+      /** Format: int64 */
+      time_ms: number;
+      /** Format: double */
+      x: number;
+      /** Format: double */
+      y: number;
+      /** Format: double */
+      zoom: number;
+    };
+    CameraMotionPlan: {
+      /** Format: double */
+      base_height: number;
+      /** Format: double */
+      base_width: number;
+      curve: components['schemas']['MotionCurve'];
     };
     CaptionPreset: {
       category: string;
@@ -824,6 +907,19 @@ export interface components {
       size: number;
       uppercase?: boolean;
       words_per_line: number;
+    };
+    CardNarration: {
+      asset_id: string;
+      /** Format: int64 */
+      duration_ms: number;
+      language: string;
+      text: string;
+      voice: string;
+    };
+    CardNarrationRequest: {
+      language: string;
+      /** Format: int64 */
+      revision: number;
     };
     Clip: {
       /** Format: int64 */
@@ -868,8 +964,38 @@ export interface components {
       /** Format: double */
       y: number;
     };
+    Easing:
+      | {
+          /** @enum {string} */
+          kind: 'linear';
+        }
+      | {
+          /** @enum {string} */
+          kind: 'ease_in';
+        }
+      | {
+          /** @enum {string} */
+          kind: 'ease_out';
+        }
+      | {
+          /** @enum {string} */
+          kind: 'smooth';
+        }
+      | {
+          /** @enum {string} */
+          kind: 'hold';
+        }
+      | {
+          /** Format: double */
+          first: number;
+          /** @enum {string} */
+          kind: 'curve';
+          /** Format: double */
+          second: number;
+        };
     EditDocument: {
       audio_layers?: components['schemas']['AudioLayer'][];
+      camera_motion?: components['schemas']['CameraKeyframe'][];
       caption_model?: string | null;
       captions: components['schemas']['CaptionStyle'];
       crop: components['schemas']['CropRect'];
@@ -926,6 +1052,7 @@ export interface components {
       /** Format: int64 */
       duration_ms: number;
       font: string;
+      narration?: null | components['schemas']['CardNarration'];
       /** Format: double */
       position_y: number;
       /** Format: int32 */
@@ -942,6 +1069,23 @@ export interface components {
         [key: string]: boolean;
       };
       version: string;
+    };
+    HookProposal: {
+      explanation: string;
+      id: string;
+      source_quote: string;
+      text: string;
+    };
+    HookProposalSet: {
+      clip_id: string;
+      /** Format: int64 */
+      created_at: number;
+      id: string;
+      language: string;
+      proposals: components['schemas']['HookProposal'][];
+      /** Format: int64 */
+      revision: number;
+      source_signature?: string | null;
     };
     Job: {
       clip_id?: string | null;
@@ -961,6 +1105,19 @@ export interface components {
       updated_at: number;
     };
     Keyframe: {
+      /** Format: int64 */
+      time_ms: number;
+      /** Format: double */
+      x: number;
+      /** Format: double */
+      y: number;
+    };
+    LayerKeyframe: {
+      easing?: components['schemas']['Easing'];
+      /** Format: double */
+      opacity: number;
+      /** Format: double */
+      scale: number;
       /** Format: int64 */
       time_ms: number;
       /** Format: double */
@@ -989,6 +1146,29 @@ export interface components {
       downloaded_bytes: number;
       ready: boolean;
     };
+    MotionCurve: {
+      final_values: number[];
+      initial: number[];
+      intervals: components['schemas']['MotionInterval'][];
+    };
+    MotionInterval: {
+      coefficients: number[][];
+      /** Format: int64 */
+      end_ms: number;
+      /** Format: int64 */
+      start_ms: number;
+    };
+    NarrationPackStatus: {
+      /** Format: int64 */
+      downloaded_bytes: number;
+      id: string;
+      license: string;
+      name: string;
+      ready: boolean;
+      /** Format: int64 */
+      size_bytes: number;
+      source: string;
+    };
     PackStatus: {
       languages: string[];
       ready: boolean;
@@ -996,8 +1176,12 @@ export interface components {
       size_bytes: number;
     };
     PreviewPlan: {
+      camera_motion?: null | components['schemas']['CameraMotionPlan'];
       document: components['schemas']['EditDocument'];
       graphics: string;
+      layer_motion: {
+        [key: string]: components['schemas']['MotionCurve'];
+      };
       source_asset_id: string;
     };
     PreviewPlanRequest: {
@@ -1077,6 +1261,22 @@ export interface components {
       /** Format: int64 */
       start_ms: number;
     };
+    StoryboardFrame: {
+      asset_id?: string | null;
+      error?: string | null;
+      job_id?: string | null;
+      /** Format: int64 */
+      source_time_ms: number;
+      status: components['schemas']['StoryboardFrameStatus'];
+    };
+    /** @enum {string} */
+    StoryboardFrameStatus: 'ready' | 'pending' | 'failed' | 'unavailable';
+    StoryboardRequest: {
+      source_times_ms: number[];
+    };
+    StoryboardResponse: {
+      frames: components['schemas']['StoryboardFrame'][];
+    };
     TimelineRequest: {
       document: components['schemas']['EditDocument'];
       segments: components['schemas']['SourceSegment'][];
@@ -1146,6 +1346,7 @@ export interface components {
       end_ms: number;
       id: string;
       kind: string;
+      motion?: components['schemas']['LayerKeyframe'][];
       secondary_crop?: null | components['schemas']['CropRect'];
       /** Format: int32 */
       size: number;
@@ -1434,6 +1635,27 @@ export interface operations {
       };
     };
   };
+  get_auto_edit_proposal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': null | components['schemas']['Job'];
+        };
+      };
+    };
+  };
   auto_edit: {
     parameters: {
       query?: never;
@@ -1496,6 +1718,60 @@ export interface operations {
       };
     };
   };
+  get_card_narration_job: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        kind: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': null | components['schemas']['Job'];
+        };
+      };
+    };
+  };
+  card_narration_job: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        kind: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CardNarrationRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
+      };
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   export_clip: {
     parameters: {
       query?: never;
@@ -1506,6 +1782,52 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
+      };
+    };
+  };
+  get_hook_proposals: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': null | components['schemas']['HookProposalSet'];
+        };
+      };
+    };
+  };
+  hook_proposals_job: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RevisionRequest'];
+      };
+    };
     responses: {
       200: {
         headers: {
@@ -2014,6 +2336,44 @@ export interface operations {
       };
     };
   };
+  narration_pack_status: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NarrationPackStatus'];
+        };
+      };
+    };
+  };
+  download_narration_pack: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
+      };
+    };
+  };
   quality_pack_status: {
     parameters: {
       query?: never;
@@ -2199,6 +2559,31 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Job'];
+        };
+      };
+    };
+  };
+  request_storyboard: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StoryboardRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StoryboardResponse'];
         };
       };
     };

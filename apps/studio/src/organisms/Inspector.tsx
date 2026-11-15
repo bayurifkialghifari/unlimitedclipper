@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { Button, Field, Select, Segmented, Toggle } from '@unlimitedclipper/ui';
 import { ScissorsIcon, CropIcon, UploadSimpleIcon } from '@phosphor-icons/react';
 import { api, uploadFile } from '../lib/api';
@@ -8,15 +9,17 @@ import { flushEditor } from '../lib/save';
 import { useText } from '../lib/i18n';
 import { outputDuration } from '../lib/timeline';
 import { isAndroidHost } from '../lib/native';
-import { languages } from '../lib/format';
+import { applyLayout } from '../lib/editor-layout';
 import { CaptionPresetLibrary } from './CaptionPresetLibrary';
 import { ClipRatingPanel } from './ClipRatingPanel';
 import { CaptionRefinement } from './CaptionRefinement';
 import { EditorialPanel } from './EditorialPanel';
 import { TimelineEditor } from './TimelineEditor';
 import { HookEditor } from './HookEditor';
+import { CameraMotionEditor } from './CameraMotionEditor';
 import { VideoStyleEditor } from './VideoStyleEditor';
 import { ContentProfileSelect } from '../molecules/ContentProfileSelect';
+import { LanguageSelect } from '../molecules/LanguageSelect';
 import { TranscriptPanel } from './TranscriptPanel';
 import type { CropRect, Layout, Project } from '../types';
 import styles from '../styles/Studio.module.css';
@@ -34,10 +37,16 @@ export function Inspector({
   focused?: boolean;
 }) {
   const text = useText();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('panel');
+  const linkedTab =
+    focused && requestedTab && ['captions', 'style', 'title'].includes(requestedTab)
+      ? requestedTab
+      : null;
   const [chosenTab, setChosenTab] = useState(focused ? 'captions' : 'options');
   const selection = useEditor((state) => state.timelineSelection);
   const inspectorBody = useRef<HTMLDivElement>(null);
-  const tab = selection ? 'timeline' : chosenTab;
+  const tab = selection ? 'timeline' : (linkedTab ?? chosenTab);
   useEffect(() => {
     if (inspectorBody.current) {
       inspectorBody.current.scrollTop = 0;
@@ -46,6 +55,16 @@ export function Inspector({
   function setTab(value: string) {
     useEditor.setState({ timelineSelection: null });
     setChosenTab(value);
+    if (focused) {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.set('panel', value);
+          return next;
+        },
+        { replace: true },
+      );
+    }
   }
   const [selectedCount, setCount] = useState<number | null>(null);
   const [selectedDuration, setDuration] = useState<string | null>(null);
@@ -90,8 +109,13 @@ export function Inspector({
   );
   const editing = Boolean(
     activeJobs?.some(
-      (job) => ['title', 'track', 'captions'].includes(job.kind) && job.clip_id === draft?.id,
+      (job) =>
+        ['title', 'hook_proposals', 'track', 'captions'].includes(job.kind) &&
+        job.clip_id === draft?.id,
     ),
+  );
+  const generatingHooks = Boolean(
+    activeJobs?.some((job) => job.kind === 'hook_proposals' && job.clip_id === draft?.id),
   );
   const selectionReady = Boolean(
     models.data?.some(
@@ -230,15 +254,7 @@ export function Inspector({
 
   function setLayout(layout: Layout) {
     change((next) => {
-      next.layout = layout;
-      if (project) {
-        const ratio = layout === 'square' ? 1 : layout === 'landscape' ? 16 / 9 : 9 / 16;
-        const sourceRatio = project.width / project.height;
-        const width = Math.min(1, ratio / sourceRatio);
-        const height = Math.min(1, sourceRatio / ratio);
-        next.crop = { width, height, x: (1 - width) / 2, y: (1 - height) / 2 };
-        next.keyframes = [];
-      }
+      applyLayout(next, layout, project);
     });
   }
 
@@ -304,13 +320,7 @@ export function Inspector({
                 { value: '0', label: text.automatic },
               ]}
             />
-            <Select label={text.language} value={language} onChange={setLanguage}>
-              {languages.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
+            <LanguageSelect label={text.language} value={language} onChange={setLanguage} />
             <Field
               label={text.clipFocus}
               value={focus}
@@ -410,7 +420,14 @@ export function Inspector({
                 >
                   {(['portrait', 'square', 'landscape', 'contain', 'blur', 'gaming'] as const).map(
                     (layout) => (
-                      <option key={layout} value={layout}>
+                      <option
+                        key={layout}
+                        value={layout}
+                        disabled={
+                          Boolean(document.camera_motion?.length) &&
+                          !['portrait', 'square', 'landscape'].includes(layout)
+                        }
+                      >
                         {text[layout]}
                       </option>
                     ),
@@ -441,6 +458,7 @@ export function Inspector({
         {tab !== 'options' && !document && <p className={styles.hint}>{text.noClipsDetail}</p>}
         {tab === 'captions' && document && (
           <>
+            <p className={styles.hint}>{text.perClipStyleHint}</p>
             <details>
               <summary>{text.transcript}</summary>
               <TranscriptPanel key={draft?.id} showTextEditor={false} />
@@ -765,7 +783,14 @@ export function Inspector({
                 >
                   {(['portrait', 'square', 'landscape', 'contain', 'blur', 'gaming'] as const).map(
                     (layout) => (
-                      <option key={layout} value={layout}>
+                      <option
+                        key={layout}
+                        value={layout}
+                        disabled={
+                          Boolean(document.camera_motion?.length) &&
+                          !['portrait', 'square', 'landscape'].includes(layout)
+                        }
+                      >
                         {text[layout]}
                       </option>
                     ),
@@ -785,6 +810,28 @@ export function Inspector({
                   }))}
                 />
               </>
+            )}
+            {document.layout === 'gaming' && (
+              <section aria-label={text.gaming}>
+                <h3>{text.gaming}</h3>
+                <p className={styles.hint}>{text.gamingLayoutHint}</p>
+                <h3>{text.facecam}</h3>
+                {cropFields('facecam_crop')}
+                <h3>{text.gameplay}</h3>
+                {cropFields('gameplay_crop')}
+                <Field
+                  label={text.split + ' (%)'}
+                  type="range"
+                  min={10}
+                  max={90}
+                  value={document.split_ratio * 100}
+                  onChange={(event) =>
+                    change((next) => {
+                      next.split_ratio = Number(event.target.value) / 100;
+                    })
+                  }
+                />
+              </section>
             )}
             <Select
               label={text.framingMode}
@@ -823,89 +870,78 @@ export function Inspector({
                 })
               }
             >
-              {editing ? text.running : text.autoCrop}
+              {editing
+                ? text.running
+                : document.layout === 'gaming'
+                  ? text.autoPlaceFacecam
+                  : text.autoCrop}
             </Button>
             {cropFields('crop')}
-            <h3>{text.keyframes}</h3>
-            {document.keyframes.map((keyframe, index) => (
-              <div className={styles.wordEditor} key={keyframe.time_ms}>
-                <small>{(keyframe.time_ms / 1000).toFixed(2)}s</small>
-                <div className={styles.twoColumns}>
-                  <Field
-                    label={text.left + ' (%)'}
-                    type="number"
-                    min={0}
-                    max={(1 - document.crop.width) * 100}
-                    value={Number((keyframe.x * 100).toFixed(1))}
-                    onChange={(event) =>
-                      change((next) => {
-                        next.keyframes[index].x = clamp(
-                          Number(event.target.value) / 100,
-                          1 - next.crop.width,
-                        );
-                      })
-                    }
-                  />
-                  <Field
-                    label={text.top + ' (%)'}
-                    type="number"
-                    min={0}
-                    max={(1 - document.crop.height) * 100}
-                    value={Number((keyframe.y * 100).toFixed(1))}
-                    onChange={(event) =>
-                      change((next) => {
-                        next.keyframes[index].y = clamp(
-                          Number(event.target.value) / 100,
-                          1 - next.crop.height,
-                        );
-                      })
-                    }
-                  />
-                </div>
+            {!document.camera_motion?.length && (
+              <>
+                <h3>{text.keyframes}</h3>
+                {document.keyframes.map((keyframe, index) => (
+                  <div className={styles.wordEditor} key={keyframe.time_ms}>
+                    <small>{(keyframe.time_ms / 1000).toFixed(2)}s</small>
+                    <div className={styles.twoColumns}>
+                      <Field
+                        label={text.left + ' (%)'}
+                        type="number"
+                        min={0}
+                        max={(1 - document.crop.width) * 100}
+                        value={Number((keyframe.x * 100).toFixed(1))}
+                        onChange={(event) =>
+                          change((next) => {
+                            next.keyframes[index].x = clamp(
+                              Number(event.target.value) / 100,
+                              1 - next.crop.width,
+                            );
+                          })
+                        }
+                      />
+                      <Field
+                        label={text.top + ' (%)'}
+                        type="number"
+                        min={0}
+                        max={(1 - document.crop.height) * 100}
+                        value={Number((keyframe.y * 100).toFixed(1))}
+                        onChange={(event) =>
+                          change((next) => {
+                            next.keyframes[index].y = clamp(
+                              Number(event.target.value) / 100,
+                              1 - next.crop.height,
+                            );
+                          })
+                        }
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        change((next) => {
+                          next.keyframes.splice(index, 1);
+                        })
+                      }
+                    >
+                      {text.delete}
+                    </Button>
+                  </div>
+                ))}
                 <Button
-                  variant="ghost"
                   onClick={() =>
                     change((next) => {
-                      next.keyframes.splice(index, 1);
+                      const at = Math.round(playhead);
+                      next.keyframes = next.keyframes.filter((key) => key.time_ms !== at);
+                      next.keyframes.push({ time_ms: at, x: next.crop.x, y: next.crop.y });
+                      next.keyframes.sort((a, b) => a.time_ms - b.time_ms);
                     })
                   }
                 >
-                  {text.delete}
+                  {text.addKeyframe}
                 </Button>
-              </div>
-            ))}
-            <Button
-              onClick={() =>
-                change((next) => {
-                  const at = Math.round(playhead);
-                  next.keyframes = next.keyframes.filter((key) => key.time_ms !== at);
-                  next.keyframes.push({ time_ms: at, x: next.crop.x, y: next.crop.y });
-                  next.keyframes.sort((a, b) => a.time_ms - b.time_ms);
-                })
-              }
-            >
-              {text.addKeyframe}
-            </Button>
-            {document.layout === 'gaming' && (
-              <>
-                <h3>{text.facecam}</h3>
-                {cropFields('facecam_crop')}
-                <h3>{text.gameplay}</h3>
-                {cropFields('gameplay_crop')}
-                <Field
-                  label={text.split + ' (%)'}
-                  type="range"
-                  min={10}
-                  max={90}
-                  value={document.split_ratio * 100}
-                  onChange={(event) =>
-                    change((next) => {
-                      next.split_ratio = Number(event.target.value) / 100;
-                    })
-                  }
-                />
               </>
             )}
+            <CameraMotionEditor />
           </>
         )}
         {tab === 'title' && document && (
@@ -919,8 +955,10 @@ export function Inspector({
               largeReady &&
               document.words.some((word) => word.text.trim())
             }
-            generating={editing}
-            onGenerate={() => void action(() => api.clipAction(draft!.id, 'title'))}
+            generating={generatingHooks}
+            onGenerate={() =>
+              void action(() => api.generateHookProposals(draft!.id, draft!.revision))
+            }
           />
         )}
         {tab === 'style' && document && (

@@ -11,12 +11,19 @@ The Hook inspector also contains independent opening/closing cards. Add one from
 title/transcript text, then edit its styling or remove it. Preview card seeks the composition
 player without changing source scene ranges. The composition player shows the final duration;
 the editable scene timeline and transcript keep content-relative positions. Normal timeline
-seeks skip the opening card and preserve source/word provenance. Cards currently have no audio.
+seeks skip the opening card and preserve source/word provenance. A card is silent by default;
+optional reviewed local narration adds audio without changing scene or word timing.
+The Hook tab also lists saved local ideas with transcript quotes and explanations. Choosing an
+idea explicitly replaces the other opening mode, can be undone, and requires the matching saved
+revision. Revisions that changed since generation show the old ideas as disabled evidence.
 
 Projects open a clip gallery at /projects/:projectId. Editing a clip opens /studio/:clipId,
 with one player, a right inspector, and a bottom timeline. Manual range selection has its own
 /projects/:projectId/manual page; creating the range opens that clip in the studio. Imports
 remain available on Projects. Finishing an import never replaces a clip being edited.
+The clip gallery and export history link directly to /studio/:clipId?panel=captions for styling.
+The inspector's selected panel follows this route and updates its link when tabs change. Caption
+and video filter edits belong to the current clip and autosave without running clip discovery.
 
 The desktop inspector starts at 440 pixels and supports pointer or keyboard resizing from
 400 to 560 pixels on wide windows. Smaller screens stack the player and settings. The inspector
@@ -50,6 +57,22 @@ hosts without version 3 support show a restart/upgrade explanation and disable s
 
 ## Timeline transactions
 
+The timeline now has sticky track names, source-frame scene strips, an adaptive time ruler, and
+vertical timing guides. The ruler supports pointer scrubbing, 100 ms Arrow steps, one-second
+Shift+Arrow steps, and Home/End. Short clips use sub-second labels without duplicate timestamps.
+Caption blocks share the transcript's selected-word state and show the currently playing word.
+Empty tracks name the inspector panel that can fill them. Frame loading or failure never blocks
+scene edits, and a failed frame job has an explicit retry action.
+Storyboard frame jobs report their state in the timeline and clip rail without opening the
+global progress panel over the editor.
+
+The clip rail uses actual project clips, current names and durations, and a frame from each
+clip's first edited scene. Selecting another clip flushes the current draft before navigation;
+save failure keeps the current clip open. On narrow screens the timeline and rail precede the
+inspector. The storyboard API samples source time from the registered preview proxy, keeps at
+most 128 frames per project, and reports unavailable media without fabricating thumbnails.
+Project thumbnails are not repeated as scene or clip images.
+
 Caption words and visual/audio layers have separate tracks. Layers can move or trim; left
 trimming advances audio/B-roll source offsets, while moving preserves them. Numeric controls
 remain in the inspector for shorter items and precise offsets. Layer selection opens its
@@ -62,11 +85,33 @@ Scene body arrows reorder one position. Escape cancels a captured drag. Drag pre
 temporary; release applies one transaction. An asynchronous scene response must match the same
 clip and draft snapshot before it can apply. Undo/redo and revision-aware autosave remain shared.
 
+The Crop inspector adds camera keyframes at the playhead and edits their time, center, zoom,
+and easing. Its marker row seeks each anchor. Portrait, square, and landscape layouts support
+camera motion; other layouts disable the add control with an explanation. A selected text/note
+layer exposes equivalent position, scale, opacity, and easing controls plus timeline markers.
+The canvas drag handles move the current camera or text position with pointer or arrow keys.
+Adding a keyframe after the document changes during preview-plan loading shows an error instead
+of applying stale values. Edits use the existing undo/redo and revision-aware autosave path.
+
+A registered B-roll layer also exposes center, zoom, opacity, and easing keyframes in its
+inspector. Zoom remains between one and four to keep the video covering the frame. The visible
+preview uses the topmost active B-roll layer when they overlap, matching export order. Up to 24
+anchors and a 120-second layer are supported. B-roll motion uses numeric fields and timeline
+markers; direct canvas dragging is currently limited to camera and text positions.
+
+The Source segments inspector can request optional Auto Motion during automatic editing. Its
+saved proposal lists camera anchor times, center, zoom, single-face samples, and skipped
+multi-face samples. Select an anchor to inspect its source moment; applying the full proposal
+shows motion on the canvas and supports Undo/Redo. Existing manual camera motion blocks a new
+motion proposal. A verified silence-removal proposal also lists source-time gaps and allows
+seeking near each original gap before application.
+
 ## Live and exact preview
 
 One visible Canvas2D surface combines decoded footage and CPU libass graphics. Live preview
 follows edited scene order, crops, split/gaming framing, enabled B-roll, image watermarks, and
 caption/hook graphics. Color adjustments update immediately through an RGB approximation.
+Camera motion and animated text/note layers use engine-compiled easing from the preview plan.
 Seeking between scenes can cause a short discontinuity. Reaching the end of the source file
 continues into the next edited scene when that scene was moved earlier in the clip.
 

@@ -4,9 +4,11 @@ import styles from '../styles/Studio.module.css';
 export function CropHandle({
   label,
   onMove,
+  pointerDirection = 'pan',
 }: {
   label: string;
   onMove: (horizontal: number, vertical: number) => void;
+  pointerDirection?: 'pan' | 'move';
 }) {
   const position = useRef<{ x: number; y: number } | null>(null);
   return (
@@ -26,9 +28,10 @@ export function CropHandle({
         const horizontal = event.clientX - position.current.x;
         const vertical = event.clientY - position.current.y;
         position.current = { x: event.clientX, y: event.clientY };
+        const direction = pointerDirection === 'move' ? 1 : -1;
         onMove(
-          -horizontal / event.currentTarget.clientWidth,
-          -vertical / event.currentTarget.clientHeight,
+          (direction * horizontal) / event.currentTarget.clientWidth,
+          (direction * vertical) / event.currentTarget.clientHeight,
         );
       }}
       onPointerUp={() => {
