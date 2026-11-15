@@ -34,11 +34,12 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const video = useRef<HTMLVideoElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
+  const canvas = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const renderer = useRef<JASSUB | null>(null);
   const renderingActive = useRef(false);
+  const [loadedAsset, setLoadedAsset] = useState<string | null>(null);
   const jobs = useQuery({
     queryKey: ['preview-jobs', jobId],
     queryFn: api.jobs,
@@ -115,8 +116,13 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
       return;
     }
     const element = frame.current;
+    // JASSUB removes its canvas on destroy; keep that node outside React ownership.
+    const surface = window.document.createElement('canvas');
+    surface.style.width = '100%';
+    surface.style.height = '100%';
+    canvas.current.append(surface);
     const subtitle = new JASSUB({
-      canvas: canvas.current,
+      canvas: surface,
       subContent: '[Script Info]' + String.fromCharCode(10) + 'ScriptType: v4.00+',
       workerUrl,
       wasmUrl,
@@ -130,9 +136,24 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
     renderer.current = subtitle;
     let handle = 0;
     let working = false;
+    let disposed = false;
+    let failed = false;
+    let lastFrame = '';
     const update = () => {
-      if (!working && video.current && renderingActive.current) {
+      const nextFrame =
+        String(video.current?.currentTime) + ':' + element.clientWidth + ':' + element.clientHeight;
+      if (
+        !working &&
+        !failed &&
+        nextFrame !== lastFrame &&
+        video.current &&
+        video.current.readyState >= 2 &&
+        element.clientWidth > 0 &&
+        element.clientHeight > 0 &&
+        renderingActive.current
+      ) {
         working = true;
+        lastFrame = nextFrame;
         void subtitle.ready
           .then(() =>
             subtitle.manualRender(
@@ -145,7 +166,12 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
               true,
             ),
           )
-          .catch((failure: Error) => setError(failure.message))
+          .catch((failure: Error) => {
+            failed = true;
+            if (!disposed) {
+              setError(failure.message);
+            }
+          })
           .finally(() => {
             working = false;
           });
@@ -154,6 +180,7 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
     };
     handle = requestAnimationFrame(update);
     return () => {
+      disposed = true;
       cancelAnimationFrame(handle);
       renderer.current = null;
       void subtitle.destroy();
@@ -179,6 +206,9 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
         await subtitle.ready;
         if (!controller.signal.aborted) {
           await subtitle.renderer.setTrack(content);
+          if (frame.current && !controller.signal.aborted) {
+            await subtitle.resize(true, frame.current.clientWidth, frame.current.clientHeight);
+          }
         }
       })
       .catch((failure: Error) => {
@@ -210,16 +240,22 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
             position: 'relative',
             aspectRatio: aspect,
             width: frameWidth,
+            overflow: 'hidden',
           }}
         >
           {asset ? (
             <video
+              key={asset}
               ref={video}
               src={assetUrl(asset)}
               controls={active && !stale}
               playsInline
+              preload="auto"
               aria-label={text.renderPreview}
-              style={{ width: '100%', height: '100%' }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+              onLoadedData={() => setLoadedAsset(asset)}
+              onWaiting={() => setLoadedAsset(null)}
+              onCanPlay={() => setLoadedAsset(asset)}
               onPlay={() => {
                 if (!active || stale) {
                   video.current?.pause();
@@ -240,8 +276,7 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
           ) : (
             <p className={styles.hint}>{text.renderPreview}</p>
           )}
-          <canvas
-            key={asset}
+          <div
             ref={canvas}
             aria-hidden="true"
             style={{
@@ -253,6 +288,11 @@ export function ComposedPreview({ active = true }: { active?: boolean }) {
               visibility: stale ? 'hidden' : 'visible',
             }}
           />
+          {asset && loadedAsset !== asset && !error && (
+            <p role="status" className={styles.previewLoading}>
+              {text.previewLoadingVideo}
+            </p>
+          )}
         </div>
       </div>
       {stale && (

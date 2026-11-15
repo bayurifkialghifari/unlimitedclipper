@@ -83,7 +83,7 @@ export function VideoPreview({
   const frame = useRef<HTMLDivElement>(null);
   const primary = useRef<HTMLVideoElement>(null);
   const secondary = useRef<HTMLVideoElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
+  const canvas = useRef<HTMLDivElement>(null);
   const renderer = useRef<JASSUB | null>(null);
   const [size, setSize] = useState({ width: 270, height: 480 });
   const [playing, setPlaying] = useState(false);
@@ -153,8 +153,13 @@ export function VideoPreview({
     if (!canvas.current || !hasDocument || !fonts.data) {
       return;
     }
+    const surface = window.document.createElement('canvas');
+    surface.className = styles.subtitleCanvas;
+    surface.width = 1080;
+    surface.height = 1920;
+    canvas.current.append(surface);
     const subtitle = new JASSUB({
-      canvas: canvas.current,
+      canvas: surface,
       subContent: '[Script Info]\nScriptType: v4.00+\n',
       workerUrl,
       wasmUrl,
@@ -206,7 +211,7 @@ export function VideoPreview({
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [draft, document, size.width, size.height]);
+  }, [draft, document, size.width, size.height, fonts.data]);
 
   useEffect(() => {
     const video = primary.current;
@@ -437,14 +442,7 @@ export function VideoPreview({
               />
             )}
             {document && (
-              <canvas
-                key={clipId}
-                ref={canvas}
-                className={styles.subtitleCanvas}
-                width={1080}
-                height={1920}
-                aria-hidden="true"
-              />
+              <div key={clipId} ref={canvas} className={styles.subtitleCanvas} aria-hidden="true" />
             )}
             {document && ['portrait', 'square', 'landscape'].includes(layout) && (
               <CropHandle
