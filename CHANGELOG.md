@@ -18,6 +18,8 @@
   license, and source snapshot beside the debug APK.
 - macOS staging now mounts each produced disk image to inspect its embedded executable after
   Tauri removes the temporary application bundle.
+- The macOS Intel ONNX Runtime source build now targets only the shared runtime library and
+  resolves its versioned symlink before checking the Mach-O architecture.
 - Face tracking and card narration now resolve the packaged ONNX Runtime filename on each
   desktop OS; Unix runtime interaction still needs package-level evidence.
 - The Studio timeline now shows source-derived scene frames, persistent track names, adaptive

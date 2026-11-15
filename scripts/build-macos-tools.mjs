@@ -49,7 +49,7 @@ async function findFile(directory, name) {
   const entries = await readdir(directory, { withFileTypes: true });
   for (const entry of entries) {
     const location = path.join(directory, entry.name);
-    if (entry.isFile() && entry.name === name) {
+    if ((entry.isFile() || entry.isSymbolicLink()) && entry.name === name) {
       return location;
     }
     if (entry.isDirectory()) {
@@ -114,12 +114,17 @@ if (platform === 'macos-x64') {
       '--parallel',
       '2',
       '--skip_tests',
+      '--target',
+      'onnxruntime',
     ],
     onnx,
   );
   const runtime = await findFile(path.join(onnx, 'build'), 'libonnxruntime.dylib');
   if (!runtime) {
     throw new Error('The pinned ONNX Runtime source did not produce its shared library.');
+  }
+  if (output('lipo', ['-archs', runtime]) !== 'x86_64') {
+    throw new Error('The built ONNX Runtime library is not macOS Intel.');
   }
   await mkdir(path.join(destination, 'onnxruntime'), { recursive: true });
   await copyFile(runtime, path.join(destination, 'onnxruntime/libonnxruntime.dylib'));
