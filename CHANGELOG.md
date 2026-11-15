@@ -16,6 +16,8 @@
   artifact inspection before public availability.
 - The Android preview release bundle now retains its inspected native AAR, build evidence,
   license, and source snapshot beside the debug APK.
+- macOS staging now mounts each produced disk image to inspect its embedded executable after
+  Tauri removes the temporary application bundle.
 - Face tracking and card narration now resolve the packaged ONNX Runtime filename on each
   desktop OS; Unix runtime interaction still needs package-level evidence.
 - The Studio timeline now shows source-derived scene frames, persistent track names, adaptive

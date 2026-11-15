@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { copyFile, mkdir, open, readdir, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, open, readdir, rmdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { root } from './cargo.mjs';
 
@@ -48,30 +48,76 @@ async function verifyArchitecture() {
       await file.close();
     }
   }
-  const appDirectory = path.join(root, 'target', target, 'release/bundle/macos');
-  const apps = (await readdir(appDirectory)).filter((name) => name.endsWith('.app'));
-  if (apps.length !== 1) {
-    throw new Error('Expected exactly one macOS application bundle.');
+  const mountpoint = await mkdtemp(path.join(root, '.cache', 'release-dmg-'));
+  let attached = false;
+  let architecture;
+  let failure;
+  try {
+    const mount = spawnSync(
+      'hdiutil',
+      [
+        'attach',
+        '-readonly',
+        '-nobrowse',
+        '-noautoopen',
+        '-quiet',
+        '-mountpoint',
+        mountpoint,
+        artifact,
+      ],
+      { encoding: 'utf8' },
+    );
+    if (mount.status !== 0) {
+      throw new Error(
+        'Cannot mount the macOS disk image: ' + (mount.stderr || mount.error?.message),
+      );
+    }
+    attached = true;
+    const apps = (await readdir(mountpoint)).filter((name) => name.endsWith('.app'));
+    if (apps.length !== 1) {
+      throw new Error('Expected exactly one application inside the macOS disk image.');
+    }
+    const executableDirectory = path.join(mountpoint, apps[0], 'Contents/MacOS');
+    const executables = (await readdir(executableDirectory, { withFileTypes: true })).filter(
+      (entry) => entry.isFile(),
+    );
+    if (executables.length !== 1) {
+      throw new Error('Expected exactly one macOS application executable.');
+    }
+    const inspection = spawnSync(
+      'lipo',
+      ['-archs', path.join(executableDirectory, executables[0].name)],
+      { encoding: 'utf8' },
+    );
+    const expected = platform.endsWith('arm64') ? 'arm64' : 'x86_64';
+    if (inspection.status !== 0 || inspection.stdout.trim() !== expected) {
+      throw new Error('The macOS application architecture does not match ' + platform + '.');
+    }
+    architecture = expected;
+  } catch (error) {
+    failure = error;
   }
-  const executableDirectory = path.join(appDirectory, apps[0], 'Contents/MacOS');
-  const executables = (await readdir(executableDirectory, { withFileTypes: true })).filter(
-    (entry) => entry.isFile(),
-  );
-  if (executables.length !== 1) {
-    throw new Error('Expected exactly one macOS application executable.');
-  }
-  const inspection = spawnSync(
-    'lipo',
-    ['-archs', path.join(executableDirectory, executables[0].name)],
-    {
+  if (attached) {
+    const detach = spawnSync('hdiutil', ['detach', '-quiet', mountpoint], {
       encoding: 'utf8',
-    },
-  );
-  const expected = platform.endsWith('arm64') ? 'arm64' : 'x86_64';
-  if (inspection.status !== 0 || inspection.stdout.trim() !== expected) {
-    throw new Error('The macOS application architecture does not match ' + platform + '.');
+    });
+    if (detach.status !== 0 && !failure) {
+      failure = new Error(
+        'Cannot detach the macOS disk image: ' + (detach.stderr || detach.error?.message),
+      );
+    }
   }
-  return expected;
+  try {
+    await rmdir(mountpoint);
+  } catch (error) {
+    if (!failure) {
+      failure = error;
+    }
+  }
+  if (failure) {
+    throw failure;
+  }
+  return architecture;
 }
 
 const architecture = await verifyArchitecture();

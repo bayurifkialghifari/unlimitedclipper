@@ -37,6 +37,22 @@ passed package jobs for Linux x64/ARM64 and macOS ARM64; macOS Intel was still b
 source-pinned ONNX Runtime when this candidate was prepared. That run predates the notice archive
 and Android release attachment changes, so it does not validate the final release staging.
 
+The previous branch run
+[43749375471](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43749375471)
+found a macOS ARM staging defect after its disk image built: Tauri removed the temporary
+application directory before the architecture check. The staging fix mounts the disk image and
+inspects its embedded executable; hosted revalidation is pending. The separate
+[Android run 43749379633](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43749379633)
+passed APK inspection. Its downloaded 149,594,215-byte debug APK matched SHA-256
+859f18448e7a2e4064ce1763710a8986dae800a0f254795fc1973913899b596d; Android
+device behavior remains untested.
+
+The four pinned media source archives include FFmpeg source and build scripts, but the Linux
+build-script snapshot does not contain the source packages downloaded for linked libraries.
+The macOS and Android source snapshots likewise do not establish complete linked-library
+coverage. Corresponding-source and notice completeness is pending audit before public binary
+publication, as required by docs/third-party-notices.md.
+
 | Anti-slop During gate | Status  | Evidence and remaining scope                                                                                                                                      |
 | --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Direction and content | Pass    | Existing graphite/amber design, real clip/export records, and transcript-grounded Hook evidence.                                                                  |
