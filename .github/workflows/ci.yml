@@ -8,6 +8,12 @@ on:
     paths-ignore: ['**/*.md']
   workflow_call:
   workflow_dispatch:
+    inputs:
+      package_unix:
+        description: Build Linux and macOS preview packages after quality checks
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -56,3 +62,9 @@ jobs:
         if: runner.os == 'Windows'
       - run: cargo clippy --locked -p unlimitedclipper-desktop --all-targets -- -D warnings
         if: runner.os == 'Windows'
+
+  unix_packages:
+    if: github.event_name == 'workflow_dispatch' && inputs.package_unix
+    needs: [studio, engine]
+    uses: ./.github/workflows/desktop-packages.yml
+    secrets: inherit
