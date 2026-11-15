@@ -13,7 +13,10 @@ production compilation. Seven relevant browser scenarios passed after adding fil
 The actual imported source frame appears in all recipe cards; screenshot pixels confirm
 colored Natural and neutral Monochrome results. Keyboard selection, manual frame capture,
 saved filters, scene playback, and a single inspector scrollbar passed. Captures create no
-new render job or decoder. Native validation of this subsequent thumbnail change is pending.
+new render job or decoder. The ARM64 development host passed the same real-podcast thumbnail
+check at 1920 x 1009, with one themed scrollbar and unchanged edit/revision. Natural image
+chroma measured 13.598 and Monochrome 0.047. Evidence: .cache/filter-thumbnail-native.json.
+The separate published preview.8 check is recorded below.
 
 Anti-slop During gate, scoped: real-source images, original graphite/amber controls, readable
 names, pressed/focus states, lightweight thumbnails, explicit loading/missing states, and
@@ -56,8 +59,67 @@ Snapdragon X X126100 CPU with eight cores and approximately 16 GB physical RAM.
 Anti-slop During delivery gate: original graphite/amber identity, real media/data, functioning
 controls, keyboard labels/focus, preset selection, loading/error/disabled states, and a single
 outer inspector scrollbar passed scoped browser/native interactions. No duplicate SFX scrollbar
-was introduced. Full accessibility certification, installed updater execution, new packaged
-release checks, physical x64/macOS/Linux desktop runtime, and Android runtime remain pending.
+was introduced. Packaged preview.8 checks follow below. Full accessibility certification,
+installed updater execution, physical x64/macOS/Linux desktop runtime, and Android runtime
+remain pending.
+
+## Published preview.8 delivery, 2026-11-15
+
+Tagged source `0541949c0fe86f139e84c40605b2c31554bc707e` passed the hosted
+[quality workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43680853335),
+[native editorial media workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43680853326),
+and [Windows release workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43680857358).
+These workflows validate source/build behavior and scoped media interactions; they do not
+certify all desktop platforms or automatic selection accuracy.
+
+The [public preview.8 release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.8)
+contains eight assets. Anonymous downloads matched all eight server sizes and SHA-256 digests.
+Both installer publisher signatures passed independent verification, including their signed
+version. The ARM64 installer is 227,250,162 bytes; x64 is 288,198,793 bytes. Extracted application
+PE headers match ARM64 and x64. Evidence: .cache/preview8-published.json,
+.cache/preview8-signature-validation.json, and .cache/preview8-native-binaries.json.
+
+After fresh idle, unsaved-edit, upload, native-modal, and process-path checks, the extracted
+published ARM64 executable opened on the owner's laptop. Health reports 0.1.0-preview.8
+and the native bridge is present. The real edited podcast played visible 720 x 1280 video
+with 35 decoded frames, zero dropped frames, and mean video pixels 120.66/255. Paused caption
+disable/re-enable repainted the canvas; the document was restored. Selected audio exposed
+only its matching controls, changing inspector tabs reset scroll, and all 18 managed assets
+resolved. The original user clip matched a fresh pre-test SQLite baseline. Evidence:
+.cache/preview8-native-final.json and .cache/preview8-native-studio.png.
+
+The subsequent native filter check showed all five actual-source recipes with colored Natural
+and neutral Monochrome images, one themed scrollbar at 1920 x 1009, no horizontal overflow,
+and no edit/revision change from frame capture. Evidence: .cache/preview8-native-filters.json
+and .cache/filter-thumbnail-native.png. The hero and filter screenshot are committed under
+docs/media; browser evidence remains separate from this native package check.
+
+Anti-slop During delivery gate, scoped: actual footage, original palette, readable named
+controls, working caption repaint/frame capture, matching inspector controls, and bounded
+scrolling passed the interactions above. Full accessibility certification remains pending.
+Installer install/uninstall, Authenticode signing, automatic updater installation, physical x64,
+macOS/Linux desktop runtime, and Android runtime were not tested.
+
+After the package checks, audited cleanup removed 7,702,961,917 bytes (7.17 GiB) of conservative
+unique-file bytes from Rust build caches, obsolete native snapshots, preview.6 downloads,
+extracted packages, the archive utility, and three cold test libraries. Resolved targets
+remained inside the workspace; junctions were rejected, compiler activity was absent, and
+running-process references were checked immediately before each removal. Canonical data,
+tools, models, current installers/runtime, publisher keys, and four completed fixtures were
+retained. The final measurement was 13,804,760,726 unique file bytes (12.86 GiB), excluding
+symlink traversal. This is a point-in-time measurement; builds grow caches again.
+Evidence: .cache/preview8-cleanup-audit.json, .cache/preview8-cleanup-applied.json, and
+.cache/preview8-storage-final.json.
+
+The post-cleanup check passed four ready models, all 18 registered assets, unchanged clip
+JSON, and unchanged hashes for the published executable, studio entry point, and real demo
+export. An initial helper assertion compared SQLite row prototypes against parsed JSON;
+normalizing those rows to JSON fixed the checker, and the repeated value comparison passed.
+Evidence: .cache/preview8-retained-before.json and .cache/preview8-retained-after.json.
+The published ARM64 application remains open.
+Final documentation/media delivery passed npm run check, including ESLint, Prettier,
+TypeScript, four unit/asset checks, and production compilation. Rust source was unchanged
+after the tagged source checks.
 
 ## Caption library and local ratings, 2026-11-14
 

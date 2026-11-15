@@ -17,7 +17,7 @@ A local video clipping studio built with Rust, React, SQLite, and Tauri.
 **Made for fun, still experimental.** This is a side project for tinkering with local video tools,
 mostly for fun and learning, at a relaxed pace. Expect rough edges and changing features.
 
-<img src="docs/media/studio.png" alt="Published Windows ARM64 studio reviewing a real podcast with its transcript, scene timeline, and single-scroll caption inspector" width="1920" height="1009" />
+<img src="docs/media/studio.png" alt="Published preview.8 Windows ARM64 studio playing a real podcast edit with its opening hook, captions, transcript, and timeline" width="1920" height="1009" />
 
 Import a long recording, find or choose a cut, review its words, and export a captioned video.
 Speech recognition and clip selection run locally after the models are installed. No cloud AI
@@ -25,11 +25,11 @@ account or API key is required.
 
 ## Download the Windows preview
 
-[Download Windows ARM64 (216 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.6/UnlimitedClipper_0.1.0-preview.6_arm64-setup.exe)
+[Download Windows ARM64 (217 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.8/UnlimitedClipper_0.1.0-preview.8_arm64-setup.exe)
 for Snapdragon/ARM PCs, or
-[download Windows x64 (274 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.6/UnlimitedClipper_0.1.0-preview.6_x64-setup.exe)
+[download Windows x64 (275 MiB)](https://github.com/bayurifkialghifari/unlimitedclipper/releases/download/v0.1.0-preview.8/UnlimitedClipper_0.1.0-preview.8_x64-setup.exe)
 for Intel/AMD PCs. Both belong to the same
-[preview release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.6).
+[preview release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.8).
 
 The repository and preview downloads are public; no GitHub account is required. Install local models
 from the dropdown in Settings after installation; manual model-file import remains optional. Updater
@@ -99,6 +99,10 @@ The desktop window and localhost browser use the same Rust engine and saved libr
 supports Indonesian and English. Video files stay in managed folders; SQLite stores project data
 and edit revisions.
 
+Exports appear under **Export results** with playable MP4s and subtitle downloads. Development
+saves them in `.data/exports`; an installed app uses its OS application-data directory. A custom
+export folder in Settings is planned for a later update.
+
 For a constrained PC, choose Economy in Settings: 1.7B proposes moments and installed 4B reviews
 the complete candidates. Models load one at a time with a 4,096-token context. Start with
 Whisper small and 720p output; use optional medium only on uncertain cuts. This reduces the
@@ -106,6 +110,15 @@ scope of expensive work but does not guarantee speed or accurate clip selection.
 [local processing strategy](docs/research/economy-processing.md) and [actual validation](docs/validation.md).
 
 ## Screenshots
+
+### Compare video filters
+
+Five recipes show the same actual source frame. Capture another frame from the source player,
+then fine-tune brightness, contrast, saturation, and warmth. These lightweight images approximate
+the colors; render the edited preview to review the final composition. This screenshot comes
+from the published preview.8 ARM64 executable, with one themed inspector scrollbar.
+
+<img src="docs/media/filters.png" alt="Published Windows ARM64 studio with real-source Natural, Crisp, Warm, Cool, and Monochrome filter thumbnails" width="1920" height="1009" />
 
 ### Caption editing
 
@@ -185,8 +198,8 @@ reviewable automatic proposals. An optional 1.61 GiB
 native acoustic accuracy and speaker frontend remain unverified. No competitor-parity claim is made.
 
 Workspace getting large? Use the audited [cleanup helper](docs/storage.md). Recorded cleanup passes
-removed rebuildable outputs and cold fixtures; the final preview.5 workspace measured 14.73 GiB
-of unique file bytes, including both downloaded installers. Original videos,
+removed rebuildable outputs and cold fixtures; the latest preview.8 pass reclaimed 7.17 GiB,
+leaving about 12.86 GiB of unique file bytes, including both downloaded installers. Original videos,
 exports, and canonical models remain intact.
 
 Caption recognition still needs a human ear for slang, names, music, and shouting. Automatic moment

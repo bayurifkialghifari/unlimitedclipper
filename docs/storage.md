@@ -70,3 +70,22 @@ traversal and including both downloaded Windows installers. New builds will grow
 Evidence: .cache/preview5-cold-cleanup-applied.json, .cache/preview5-build-cleanup-applied.json,
 .cache/preview5-final-cleanup-applied.json, .cache/preview5-storage-final.json, and
 .cache/preview5-native-final.json.
+
+## Preview.8 cleanup
+
+Once the published ARM64 runtime passed preview, caption repaint, and filter-thumbnail checks,
+an explicit delivery allowlist removed Rust build caches, preview.6 downloads/runtime,
+obsolete development hosts, extracted preview.8 packages, the archive utility, and three
+cold test libraries. All targets were resolved inside the workspace, checked for junctions,
+and checked against fresh running-process paths. No compiler was active.
+
+The pass reclaimed 7,702,961,917 bytes (7.17 GiB) using a conservative count that excludes
+multiply-linked files. Canonical .data/.tools, models, publisher keys, the running
+.cache/preview8-live application, both published installers, and four completed processing
+fixtures were retained. All 18 managed assets, four ready models, clip JSON, and runtime/demo
+hashes passed a separate post-cleanup comparison.
+
+The point-in-time workspace measurement was 13,804,760,726 unique file bytes (12.86 GiB),
+deduplicating inode identities and skipping symbolic links. This includes both installers;
+later imports and builds will change the total. Evidence: .cache/preview8-cleanup-applied.json,
+.cache/preview8-retained-after.json, and .cache/preview8-storage-final.json.

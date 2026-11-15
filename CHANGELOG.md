@@ -9,6 +9,15 @@
 - Explicit thumbnail loading/missing states, named keyboard-operable presets, and small
   in-memory images. Final color review continues to use rendered preview/export.
 
+### Delivery and validation
+
+- Published Windows ARM64/x64 installers with verified anonymous downloads, SHA-256 checksums,
+  and version-bound publisher signatures.
+- Extracted ARM64 release playback, paused caption repaint, filter thumbnails, inspector
+  scrolling, and preservation of the original clip passed on a real podcast.
+- README includes current release downloads, native screenshots, a rendered hook/caption/SFX
+  example, and export-storage guidance. Installer execution and Android runtime remain untested.
+
 ## 0.1.0-preview.7 (2026-11-15)
 
 ### Added

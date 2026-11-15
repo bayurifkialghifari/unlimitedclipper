@@ -5,13 +5,23 @@ works from a fresh checkout without relying on ignored `.cache` or `.data` files
 
 ## Screenshots
 
-Captured on 14 November 2026 from the browser studio at a 1920 × 1080 viewport. Settings uses a
+`studio.png` and `filters.png` were captured on 15 November 2026 from the extracted published
+preview.8 Windows ARM64 executable at 1920 × 1009. They show the separate Local editor demo
+in the owner's real podcast library, using Indonesian UI text. The hero shows its rendered hook
+and live captions; the filter capture shows five actual-source image recipes. Caption toggling
+restored the demo document, and frame capture preserved its revision. The owner's original clip
+was unchanged. Evidence: .cache/preview8-native-final.json and .cache/preview8-native-filters.json.
+Installer execution was not part of these checks.
+
+The remaining screenshots were captured on 14 November 2026 from the browser studio at a
+1920 × 1080 viewport. Settings uses a
 1920 × 1503 full-page capture. The interface uses its English dictionary. A consistent SQLite
 snapshot and hard-linked managed footage provided an isolated copy of the actual library.
 Creating the manual demo changed only that copy. No competitor screenshots were substituted.
 
-- `studio.png`: an 18-second manual podcast review with two scenes and the Motion style filter.
-- `captions.png`: the same review with the Word box look and a selected transcript word.
+- `studio.png`: the real 16.26-second edited podcast preview with an Impact/Pop hook and captions.
+- `filters.png`: actual source-frame thumbnails with Warm selected and one themed scrollbar.
+- `captions.png`: an isolated 18-second, two-scene review with Word box and a selected word.
 - `projects.png`: two real imports of the 48-minute Matan podcast.
 - `settings.png`: actual installed models, download/import actions, and update controls.
 - `rating.png`: an actual Qwen transcript assessment of the manual review, scored 74/100.
