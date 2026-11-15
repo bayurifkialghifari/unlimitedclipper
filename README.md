@@ -39,6 +39,21 @@ and physical x64 runtime checks remain pending.
 
 ## Clip examples
 
+**Hook, captions, color, and sound:** a real 16.26-second podcast edit rendered on the
+developer's Windows ARM64 laptop. Click the frame to play the result.
+
+<p align="center">
+  <a href="docs/media/editor-demo.mp4?raw=1">
+    <img src="docs/media/editor-demo.png" alt="Watch the local podcast export with an opening hook, Impact captions, Warm color, and a whoosh" width="216" height="384" />
+  </a>
+</p>
+
+[Watch MP4](docs/media/editor-demo.mp4?raw=1) · [Subtitles](docs/media/editor-demo.srt).
+The 1080p export took about 34 seconds; its 720p edited preview took about 15.5 seconds on
+an eight-core Snapdragon X laptop with 16 GB RAM. This reuses existing captions and excludes
+transcription/discovery. The README copy is 720p. Source:
+[Matan's podcast](https://www.youtube.com/watch?v=duo5XCX91YM).
+
 Two actual exports from [Windah Basudara's Sunnybrook recording](https://www.youtube.com/watch?v=qTJIbYC2mFc).
 Click a preview to open its MP4. Each example also includes a downloadable subtitle file.
 
@@ -65,7 +80,8 @@ copies of the original 1080 × 1920 exports, with audio preserved.
 | In the studio          | What it does                                                                                                               |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                              |
-| Find a moment          | Choose Podcast/Gaming, give AI a focus and interest filter, and review the actual accepted/target count.                   |
+| Find a moment          | Choose Podcast, Gaming, Motivation, Education, or Other; set a focus and review the actual accepted/target count.          |
+| Choose your own cut    | Enter exact start/end seconds in the original recording. No AI model is required.                                          |
 | Make captions readable | Choose from 18 looks, including Reveal and Underline. Edit words and timing, customize styling, and save your own presets. |
 | Review clip potential  | Get a local 0–100 editorial score with quoted evidence and editing suggestions. It does not predict views or virality.     |
 | Edit on the timeline   | Select transcript ranges, reorder/split/trim scenes, and move or trim layers with snapping, keyboard controls, and undo.   |
@@ -73,7 +89,10 @@ copies of the original 1080 × 1920 exports, with audio preserved.
 | Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.                    |
 | Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.                       |
 | Frame the clip         | Follow faces across edited scenes, add two-face split layers, or constrain a gaming facecam. Review crops and keyframes.   |
-| Finish the edit        | Add a hook title or image/text watermark, with revisioned autosave and undo/redo.                                          |
+| Shape the opening      | Edit a multiline hook with three looks, start time, duration, and Fade/Pop animation.                                      |
+| Grade the footage      | Choose five color recipes or adjust brightness, contrast, saturation, and warmth.                                          |
+| Add sound              | Audition 21 offline CC0 whooshes/clicks/taps, place them at the playhead, and edit timing/gain.                            |
+| Finish the edit        | Add an image/text watermark, with revisioned autosave and undo/redo.                                                       |
 | Export the result      | Render a single cut or a batch to MP4 with SRT and ASS sidecars. Retries keep completed exports.                           |
 
 The desktop window and localhost browser use the same Rust engine and saved library. The interface

@@ -25,6 +25,21 @@ remain unchanged. Rating explanations describe transcript evidence rather than p
 
 ## Video examples
 
+`editor-demo.mp4` is a 16.26-second manual edit from
+[Matan's podcast](https://www.youtube.com/watch?v=duo5XCX91YM), source range
+404,480–420,740 ms. It preserves export revision 3 of the separate Local editor demo clip,
+export ID `99e756eb-d089-57c4-872f-a9d991499abc`. Native controls applied an Impact opening
+hook with Pop animation, Impact captions, Warm adjustments, and a downloaded CC0 whoosh.
+The original revision-9 clip was preserved. The source belongs to its creator and implies
+no endorsement. The demo includes strong language.
+
+Its original 1080 x 1920 MP4 passed full decode and native playback. The README copy is
+720 x 1280 H.264/AAC with fast-start metadata; geometry, duration, audio, and full decode
+passed independently. `editor-demo.png` is its frame at 1.2 seconds; `editor-demo.srt` retains
+the original output-relative timing. Evidence: .cache/editor-tools-native-demo.json and
+.cache/editor-demo-readme-media.json. Reported rendering times reuse existing captions,
+on an eight-core Snapdragon X laptop with approximately 16 GB RAM.
+
 Source: [Windah Basudara's Sunnybrook recording](https://www.youtube.com/watch?v=qTJIbYC2mFc). The footage
 belongs to its original creator. The examples demonstrate editing and rendering, not endorsement.
 
