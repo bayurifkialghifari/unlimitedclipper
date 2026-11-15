@@ -35,4 +35,9 @@ The owner approved the original frame-and-cut mark and the current graphite/ambe
 and README. Its master is resources/brand/app-icon.svg. Run npm run generate:icons to derive native
 icon formats and synchronize browser/README assets. Competitor marks are not reused.
 
+Filter choices use two columns of real-source image thumbnails, with full readable names
+and an amber selected state. A larger still image responds to adjustment sliders. Capturing
+an existing player frame avoids another decoder and render jobs on constrained PCs. The
+interface distinguishes this quick color comparison from the final rendered composition.
+
 Captions use short stable phrases so viewers can anticipate surrounding words while tracking the spoken word. Bold DM Sans is the default; compact uppercase Oswald provides a stronger reaction style. A red active-word box follows the reference's demonstrated interaction without importing its assets. Preset previews use the current clip's real words. Position and visibility remain separate from the chosen look. Accuracy controls sit next to caption edits because uncertain recognition needs an immediate correction path.

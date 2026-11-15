@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@unlimitedclipper/ui';
 import {
@@ -69,10 +69,12 @@ export function VideoPreview({
   project,
   onImport,
   active = true,
+  mediaRef,
 }: {
   project?: Project;
   onImport: () => void;
   active?: boolean;
+  mediaRef?: RefObject<HTMLVideoElement | null>;
 }) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
@@ -81,7 +83,8 @@ export function VideoPreview({
   const stage = useRef<HTMLDivElement>(null);
   const sceneIndex = useRef(0);
   const frame = useRef<HTMLDivElement>(null);
-  const primary = useRef<HTMLVideoElement>(null);
+  const internalVideo = useRef<HTMLVideoElement>(null);
+  const primary = mediaRef ?? internalVideo;
   const secondary = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLDivElement>(null);
   const renderer = useRef<JASSUB | null>(null);
@@ -147,7 +150,7 @@ export function VideoPreview({
       }
       offset += length;
     }
-  }, [segments, duration, active, clipId, seekRequest]);
+  }, [segments, duration, active, clipId, seekRequest, primary]);
 
   useEffect(() => {
     if (!canvas.current || !hasDocument || !fonts.data) {
@@ -279,7 +282,7 @@ export function VideoPreview({
     };
     handle = requestAnimationFrame(update);
     return () => cancelAnimationFrame(handle);
-  }, [project, segments, active, size.width, size.height, playing]);
+  }, [project, segments, active, size.width, size.height, playing, primary]);
 
   function seek(milliseconds: number) {
     useEditor.getState().seekTo(Math.max(0, Math.min(duration, milliseconds)));

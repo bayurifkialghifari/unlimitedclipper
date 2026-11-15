@@ -6,6 +6,21 @@ The implemented clipping workflow has passed real media, browser, and native ARM
 
 ## Local editor tools, 2026-11-15
 
+### Filter thumbnails
+
+The final frontend checks passed lint, formatting, types, four unit/asset checks, and
+production compilation. Seven relevant browser scenarios passed after adding filter images.
+The actual imported source frame appears in all recipe cards; screenshot pixels confirm
+colored Natural and neutral Monochrome results. Keyboard selection, manual frame capture,
+saved filters, scene playback, and a single inspector scrollbar passed. Captures create no
+new render job or decoder. Native validation of this subsequent thumbnail change is pending.
+
+Anti-slop During gate, scoped: real-source images, original graphite/amber controls, readable
+names, pressed/focus states, lightweight thumbnails, explicit loading/missing states, and
+honest approximate-color guidance. Full accessibility certification remains pending.
+
+### Hook, color, sound, and native rendering
+
 The local engine passed 44 Rust tests, Rustfmt, and Clippy with warnings denied. Frontend
 lint, formatting, types, four unit/asset checks, and production build passed. The complete
 12-test browser run exercised source imports, manual ranges, caption styles, scene editing,

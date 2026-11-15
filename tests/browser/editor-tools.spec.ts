@@ -61,6 +61,19 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
   await page.getByLabel('Display duration (s)').fill('1.2');
   await page.getByLabel('Animation', { exact: true }).selectOption('fade');
   await page.getByRole('tab', { name: 'Video filters', exact: true }).click();
+  const naturalCard = page.getByRole('button', { name: 'Natural', exact: true });
+  const monoCard = page.getByRole('button', { name: 'Monochrome', exact: true });
+  await expect(naturalCard.locator('img')).toBeVisible();
+  await expect(monoCard.locator('img')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Current color preview', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Use source player frame', exact: true }).click();
+  await expect(naturalCard.locator('img')).toHaveAttribute('src', /^data:image\/jpeg/);
+  const naturalThumbnail = await paintedPixels(page, await naturalCard.locator('img').screenshot());
+  const monoThumbnail = await paintedPixels(page, await monoCard.locator('img').screenshot());
+  expect(naturalThumbnail.chroma).toBeGreaterThan(5);
+  expect(monoThumbnail.chroma).toBeLessThan(3);
+  await monoCard.focus();
+  await page.keyboard.press('Space');
   await page.getByRole('button', { name: 'Monochrome', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Monochrome', exact: true })).toHaveAttribute(
     'aria-pressed',

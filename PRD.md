@@ -35,6 +35,9 @@ and 21 licensed offline SFX. These extend existing revisioned scenes and audio l
 review is rendered through the same composition as export; Source remains quick cut/framing
 review. See docs/features/video-filters.md, manual-clipping.md, and sound-effects.md.
 
+Video filter recipes include real-source thumbnails and a lightweight still-image comparison.
+A configurable export folder in Settings is deferred; current exports remain managed files.
+
 CAP-01 includes 18 original caption recipes, category previews, editable styling, and up to
 50 named reusable styles. AI-03 adds a revision-bound local clip potential score with four
 transcript-grounded dimensions and editing suggestions. It cannot predict reach or virality.

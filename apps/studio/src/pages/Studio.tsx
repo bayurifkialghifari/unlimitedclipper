@@ -35,6 +35,7 @@ export function Studio() {
   const jobs = useQuery({ queryKey: ['jobs'], queryFn: api.jobs, refetchInterval: 5000 });
   const editor = useEditor();
   const input = useRef<HTMLInputElement>(null);
+  const sourceVideo = useRef<HTMLVideoElement>(null);
   const [manual, setManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -253,6 +254,7 @@ export function Studio() {
           <div className={styles.playerSlot} hidden={mode !== 'source'}>
             <VideoPreview
               project={source}
+              mediaRef={sourceVideo}
               onImport={() => input.current?.click()}
               active={mode === 'source'}
             />
@@ -264,7 +266,7 @@ export function Studio() {
           )}
         </div>
         <div className={styles.rightPanel} data-visible={activePanel === 'settings'}>
-          <Inspector project={source} />
+          <Inspector project={source} sourceVideo={sourceVideo} />
         </div>
       </div>
       {editor.draft && (

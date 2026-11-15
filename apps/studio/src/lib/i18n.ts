@@ -20,6 +20,12 @@ const en = {
   profileEducation: 'Education and tutorials',
   profileGeneral: 'Other content',
   videoFilters: 'Video filters',
+  filterPreview: 'Current color preview',
+  filterCaptureFrame: 'Use source player frame',
+  filterPreviewUnavailable: 'Frame unavailable',
+  filterPreviewLoading: 'Loading frame…',
+  filterThumbnailHint:
+    'Thumbnails compare colors quickly using the same source frame. Render Edited for the exact video result.',
   videoFiltersHint:
     'Filters affect footage and B-roll. Render Edited preview to see the saved look; captions and titles keep their colors.',
   editorUpgrade: 'Restart with the latest application to enable these controls.',
@@ -426,6 +432,12 @@ const id: typeof en = {
   profileEducation: 'Edukasi dan tutorial',
   profileGeneral: 'Konten lainnya',
   videoFilters: 'Filter video',
+  filterPreview: 'Preview warna saat ini',
+  filterCaptureFrame: 'Pakai frame pemutar sumber',
+  filterPreviewUnavailable: 'Frame tidak tersedia',
+  filterPreviewLoading: 'Memuat frame…',
+  filterThumbnailHint:
+    'Thumbnail membandingkan warna dengan cepat dari frame sumber yang sama. Render hasil edit untuk hasil video yang tepat.',
   videoFiltersHint:
     'Filter diterapkan ke video dan B-roll. Render Hasil edit untuk melihat hasilnya; warna caption dan judul tetap sesuai pilihan.',
   editorUpgrade: 'Buka ulang aplikasi versi terbaru untuk mengaktifkan kontrol ini.',

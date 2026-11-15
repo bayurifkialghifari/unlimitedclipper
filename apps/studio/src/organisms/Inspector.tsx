@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Field, Select, Segmented, Toggle } from '@unlimitedclipper/ui';
 import { ScissorsIcon, CropIcon, UploadSimpleIcon } from '@phosphor-icons/react';
@@ -23,7 +23,13 @@ import styles from '../styles/Studio.module.css';
 const clamp = (value: number, maximum = 1) => Math.max(0, Math.min(maximum, value));
 const fonts = ['Noto Sans', 'DM Sans', 'Oswald'];
 
-export function Inspector({ project }: { project?: Project }) {
+export function Inspector({
+  project,
+  sourceVideo,
+}: {
+  project?: Project;
+  sourceVideo?: RefObject<HTMLVideoElement | null>;
+}) {
   const text = useText();
   const [chosenTab, setChosenTab] = useState('options');
   const selection = useEditor((state) => state.timelineSelection);
@@ -874,7 +880,9 @@ export function Inspector({ project }: { project?: Project }) {
             onGenerate={() => void action(() => api.clipAction(draft!.id, 'title'))}
           />
         )}
-        {tab === 'style' && document && <VideoStyleEditor />}
+        {tab === 'style' && document && (
+          <VideoStyleEditor project={project} sourceVideo={sourceVideo} />
+        )}
         {tab === 'branding' && document && (
           <>
             <h2>{text.branding}</h2>

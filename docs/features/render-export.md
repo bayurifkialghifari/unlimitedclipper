@@ -24,6 +24,13 @@ rendering with dense motion is untested.
 
 The recovery fixture cancels after the first completed item, retries the remainder, and reproduces a lost job checkpoint after exports have been committed. All five immutable files retain their hashes and modification times after explicit restart recovery. Five thirty-second exports from an 84-minute Indonesian source also passed 1080 × 1920 geometry, audio, duration, and full-decoding checks.
 
+## File storage
+
+Exports are managed files in the engine data directory's exports folder, with MP4, SRT,
+and ASS sharing the export ID. Development uses .data/exports; installed applications use
+their OS application-data location. A user-selectable export destination in Settings is
+planned for a later change and is not implemented in this preview.
+
 ## Interface
 
 Version 2 timelines concatenate video and audio together, normalize sample aspect ratio, and

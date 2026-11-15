@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-preview.8 (2026-11-15)
+
+### Added
+
+- Real-source image thumbnails for all five video filters, a slider-responsive color preview,
+  and current source-frame capture without extra decoding or render jobs.
+- Explicit thumbnail loading/missing states, named keyboard-operable presets, and small
+  in-memory images. Final color review continues to use rendered preview/export.
+
 ## 0.1.0-preview.7 (2026-11-15)
 
 ### Added
