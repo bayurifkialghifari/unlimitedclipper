@@ -14,13 +14,47 @@ impl EditDocument {
     }
 
     pub fn duration_ms(&self) -> i64 {
+        self.content_duration_ms()
+    }
+
+    pub fn content_duration_ms(&self) -> i64 {
         self.source_segments()
             .iter()
             .map(|segment| segment.end_ms - segment.start_ms)
             .sum()
     }
 
+    pub fn intro_duration_ms(&self) -> i64 {
+        self.intro_card.as_ref().map_or(0, |card| card.duration_ms)
+    }
+
+    pub fn final_duration_ms(&self) -> i64 {
+        self.intro_duration_ms()
+            + self.content_duration_ms()
+            + self.outro_card.as_ref().map_or(0, |card| card.duration_ms)
+    }
+
     pub fn source_to_output(&self, source_ms: i64) -> Option<i64> {
+        if self.version < 4 {
+            return self.source_to_content(source_ms);
+        }
+        self.source_to_content(source_ms)
+            .filter(|time| *time < self.content_duration_ms())
+            .map(|time| time + self.intro_duration_ms())
+    }
+
+    pub fn output_to_source(&self, output_ms: i64) -> Option<i64> {
+        if self.version < 4 {
+            return self.content_to_source(output_ms);
+        }
+        let content_ms = output_ms - self.intro_duration_ms();
+        if content_ms < 0 || content_ms >= self.content_duration_ms() {
+            return None;
+        }
+        self.content_to_source(content_ms)
+    }
+
+    pub fn source_to_content(&self, source_ms: i64) -> Option<i64> {
         let mut offset = 0;
         for segment in self.source_segments() {
             if source_ms >= segment.start_ms && source_ms < segment.end_ms {
@@ -39,7 +73,7 @@ impl EditDocument {
         }
     }
 
-    pub fn output_to_source(&self, output_ms: i64) -> Option<i64> {
+    pub fn content_to_source(&self, output_ms: i64) -> Option<i64> {
         if output_ms < 0 {
             return None;
         }
@@ -82,7 +116,7 @@ impl EditDocument {
             }
             previous = segment.end_ms;
         }
-        if self.version == 3 {
+        if self.version >= 3 {
             let mut ids = std::collections::HashSet::new();
             for segment in &self.segments {
                 if segment
@@ -219,7 +253,7 @@ impl EditDocument {
                     .remap_ranges(word.start_ms, word.end_ms, &result)
                     .into_iter()
                     .max_by_key(|range| range.1 - range.0)?;
-                let start = self.output_to_source(old_start)?;
+                let start = self.content_to_source(old_start)?;
                 let end = start + mapped_end - mapped_start;
                 let mut word = word.clone();
                 word.start_ms = mapped_start;
@@ -240,8 +274,8 @@ impl EditDocument {
             .sort_by_key(|word| (word.start_ms, word.end_ms));
         let mapping = result.clone();
         let remap = |time| {
-            self.output_to_source(time)
-                .and_then(|source| mapping.source_to_output(source))
+            self.content_to_source(time)
+                .and_then(|source| mapping.source_to_content(source))
         };
         result.keyframes = self
             .keyframes
@@ -256,7 +290,7 @@ impl EditDocument {
         if !self.keyframes.is_empty() {
             let mut offset = 0;
             for segment in result.source_segments() {
-                if let Some(time) = self.source_to_output(segment.start_ms) {
+                if let Some(time) = self.source_to_content(segment.start_ms) {
                     let from = self.keyframes.iter().rev().find(|key| key.time_ms <= time);
                     let to = self.keyframes.iter().find(|key| key.time_ms > time);
                     let (from_time, x, y) = from.map_or((0, self.crop.x, self.crop.y), |key| {
@@ -272,9 +306,9 @@ impl EditDocument {
                         y,
                     });
                 }
-                if result.version == 3 {
+                if result.version >= 3 {
                     let last = offset + segment.end_ms - segment.start_ms - 1;
-                    if let Some(time) = self.source_to_output(segment.end_ms - 1) {
+                    if let Some(time) = self.source_to_content(segment.end_ms - 1) {
                         let (x, y) = self.crop_position(time);
                         result.keyframes.push(Keyframe {
                             time_ms: last,
@@ -329,8 +363,9 @@ impl EditDocument {
 
     pub fn segment_envelope(&self, segments: Vec<SourceSegment>) -> Self {
         let mut result = self.clone();
-        result.version = if self.version == 3 || segments.iter().any(|segment| segment.id.is_some())
-        {
+        result.version = if self.version >= 4 {
+            4
+        } else if self.version == 3 || segments.iter().any(|segment| segment.id.is_some()) {
             3
         } else {
             2

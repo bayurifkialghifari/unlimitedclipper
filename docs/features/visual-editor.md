@@ -7,6 +7,12 @@ pending. See ../validation.md for the evidence and scope.
 
 ## Workspace
 
+The Hook inspector also contains independent opening/closing cards. Add one from existing
+title/transcript text, then edit its styling or remove it. Preview card seeks the composition
+player without changing source scene ranges. The composition player shows the final duration;
+the editable scene timeline and transcript keep content-relative positions. Normal timeline
+seeks skip the opening card and preserve source/word provenance. Cards currently have no audio.
+
 Projects open a clip gallery at /projects/:projectId. Editing a clip opens /studio/:clipId,
 with one player, a right inspector, and a bottom timeline. Manual range selection has its own
 /projects/:projectId/manual page; creating the range opens that clip in the studio. Imports

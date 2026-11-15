@@ -12,6 +12,7 @@ on:
       - 'scripts/validate-browser.mjs'
       - 'scripts/validate-editor-tools.mjs'
       - 'scripts/validate-composed-preview.mjs'
+      - 'scripts/validate-cards.mjs'
       - 'resources/sfx.json'
       - 'scripts/setup-tools.mjs'
       - 'scripts/setup-assets.mjs'
@@ -49,6 +50,7 @@ jobs:
       - run: node scripts/validate-editorial.mjs
       - run: node scripts/validate-scenes.mjs
       - run: node scripts/validate-editor-tools.mjs
+      - run: node scripts/validate-cards.mjs
       - run: node scripts/validate-caption-library.mjs
       - run: npx playwright install chromium
       - run: node scripts/validate-composed-preview.mjs
@@ -61,6 +63,7 @@ jobs:
             .cache/editorial-validation.json
             .cache/scene-media-validation.json
             .cache/editor-tools-media-validation.json
+            .cache/card-media-validation.json
             .cache/caption-media-validation.json
             .cache/caption-frames/
             .cache/composed-preview-validation.json

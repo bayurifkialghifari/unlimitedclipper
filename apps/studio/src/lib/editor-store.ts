@@ -13,7 +13,11 @@ type EditorState = {
   timelinePending: boolean;
   timelineSelection: { kind: 'scene' | 'visual' | 'audio'; id: string } | null;
   playhead: number;
-  seekRequest: { clipId: string | null; positionMs: number } | null;
+  seekRequest: {
+    clipId: string | null;
+    positionMs: number;
+    outputPositionMs?: number;
+  } | null;
   history: Clip[];
   future: Clip[];
   selectProject: (id: string) => void;
@@ -24,7 +28,7 @@ type EditorState = {
   acknowledge: (saved: Clip, snapshot: Clip) => void;
   setSaving: (saving: boolean, error?: string | null) => void;
   setPlayhead: (playhead: number) => void;
-  seekTo: (positionMs: number) => void;
+  seekTo: (positionMs: number, outputPositionMs?: number) => void;
   selectWords: (ids: string[]) => void;
   undo: () => void;
   redo: () => void;
@@ -146,8 +150,11 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
   setSaving: (saving, error = null) => set({ saving, error }),
   setPlayhead: (playhead) => set({ playhead }),
-  seekTo: (positionMs) => {
-    set({ seekRequest: { clipId: get().clipId, positionMs }, playhead: positionMs });
+  seekTo: (positionMs, outputPositionMs) => {
+    set({
+      seekRequest: { clipId: get().clipId, positionMs, outputPositionMs },
+      playhead: positionMs,
+    });
   },
   selectWords: (selectedWords) => set({ selectedWords }),
   undo: () => {

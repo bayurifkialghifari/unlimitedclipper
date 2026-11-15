@@ -136,9 +136,9 @@ async fn remove_silence(
         .iter()
         .map(|word| {
             let mut word = word.clone();
-            word.start_ms = document.output_to_source(word.start_ms).unwrap() - document.start_ms;
+            word.start_ms = document.content_to_source(word.start_ms).unwrap() - document.start_ms;
             word.end_ms =
-                document.output_to_source(word.end_ms - 1).unwrap() + 1 - document.start_ms;
+                document.content_to_source(word.end_ms - 1).unwrap() + 1 - document.start_ms;
             word
         })
         .collect::<Vec<_>>();
@@ -186,8 +186,8 @@ async fn remove_silence(
         let source_start = document.start_ms + aligned.start_ms;
         let source_end = document.start_ms + aligned.end_ms;
         if let (Some(start), Some(end)) = (
-            document.source_to_output(source_start),
-            document.source_to_output(source_end - 1),
+            document.source_to_content(source_start),
+            document.source_to_content(source_end - 1),
         ) {
             target.start_ms = start;
             target.end_ms = end + 1;
@@ -210,8 +210,8 @@ fn trimmed_segments(
             let from = (gap[0].end_ms + 120).max(segment.start_ms);
             let to = (gap[1].start_ms - 120).min(segment.end_ms);
             let protected = document.words.iter().any(|word| {
-                let start = document.output_to_source(word.start_ms).unwrap();
-                let end = document.output_to_source(word.end_ms - 1).unwrap() + 1;
+                let start = document.content_to_source(word.start_ms).unwrap();
+                let end = document.content_to_source(word.end_ms - 1).unwrap() + 1;
                 start < to && end > from
             });
             if to - from > 650 && !protected && from > keep_from {

@@ -280,6 +280,37 @@ fn default_title_animation() -> String {
     "none".into()
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct HeadingCard {
+    pub text: String,
+    pub duration_ms: i64,
+    pub font: String,
+    pub size: u32,
+    pub color: String,
+    pub background: String,
+    pub position_y: f64,
+    pub animation: String,
+}
+
+impl HeadingCard {
+    pub fn validate(&self) -> Result<(), String> {
+        validate_color(&self.color)?;
+        validate_color(&self.background)?;
+        if self.text.trim().is_empty()
+            || self.text.chars().count() > 300
+            || !(300..=10_000).contains(&self.duration_ms)
+            || !(12..=220).contains(&self.size)
+            || !["Noto Sans", "DM Sans", "Oswald"].contains(&self.font.as_str())
+            || !["none", "fade", "pop"].contains(&self.animation.as_str())
+            || !self.position_y.is_finite()
+            || !(0.05..=0.95).contains(&self.position_y)
+        {
+            return Err("A card needs text, a supported style, and 0.3 to 10 seconds.".into());
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 #[serde(default)]
 pub struct VideoAdjustments {
@@ -331,6 +362,10 @@ impl Default for Watermark {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct EditDocument {
     pub version: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intro_card: Option<HeadingCard>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outro_card: Option<HeadingCard>,
     #[serde(default)]
     pub segments: Vec<SourceSegment>,
     #[serde(default)]
@@ -361,6 +396,8 @@ impl EditDocument {
         let crop_width = (project.height as f64 * 9.0 / 16.0 / project.width as f64).min(1.0);
         Self {
             version: 2,
+            intro_card: None,
+            outro_card: None,
             segments: vec![SourceSegment::new(start_ms, end_ms)],
             visual_layers: Vec::new(),
             audio_layers: Vec::new(),
@@ -403,7 +440,13 @@ impl EditDocument {
 
     pub fn validate(&self, source_duration: i64) -> Result<(), String> {
         self.captions.validate()?;
-        if ![1, 2, 3].contains(&self.version)
+        if self.version < 4 && (self.intro_card.is_some() || self.outro_card.is_some()) {
+            return Err("Independent cards require document version 4.".into());
+        }
+        for card in [&self.intro_card, &self.outro_card].into_iter().flatten() {
+            card.validate()?;
+        }
+        if ![1, 2, 3, 4].contains(&self.version)
             || self.start_ms < 0
             || self.end_ms <= self.start_ms
             || self.end_ms > source_duration
@@ -447,7 +490,7 @@ impl EditDocument {
         previous = -1;
         let mut word_ids = std::collections::HashSet::new();
         for word in &self.words {
-            if self.version == 3 && (word.id.is_empty() || !word_ids.insert(&word.id)) {
+            if self.version >= 3 && (word.id.is_empty() || !word_ids.insert(&word.id)) {
                 return Err("Caption words need unique IDs.".into());
             }
             if word.start_ms < 0

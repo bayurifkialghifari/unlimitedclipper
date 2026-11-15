@@ -12,6 +12,20 @@ The output duration is the sum of scene lengths; the source envelope is their mi
 maximum end. The final output endpoint maps to the last output scene's source end, which can
 differ from the envelope end. Every persisted time uses integer milliseconds.
 
+Version 4 adds optional opening and closing cards, each lasting 300–10,000 milliseconds.
+Adding a card explicitly promotes an edit and assigns stable scene IDs. Existing versions
+1–3 are read without rewriting. Words, audio, video layers, crop anchors, and overlay hooks
+remain on the content clock. content_duration_ms is the sum of scenes; duration_ms retains
+that legacy meaning. final_duration_ms includes both cards. Source/content mapping retains
+the endpoint convention above; version 4 source/output mapping returns no source throughout
+cards or at the final endpoint. Scene reorder/trim preserves cards and remaps content only.
+
+Cards have editable text, duration, bundled font, size, foreground/background colors,
+vertical position, and None/Fade/Pop animation. They are silent. The live preview pauses the
+source decoder during cards; exact preview/export concatenate colored video and silent audio
+around the completed content mix. ASS/SRT/output VTT add the opening offset once; source VTT
+retains source timing. Narration and animated camera/media tracks remain pending.
+
 The Source segments inspector applies range changes through the Rust timeline-preview endpoint.
 Words retain their source timing and provenance. A word crossing a removed interval keeps its
 largest surviving fragment. Visual/audio layers split across kept ranges; audio and B-roll source

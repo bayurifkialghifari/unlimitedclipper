@@ -3,6 +3,10 @@
 Status: accepted implementation scope. Items below are pending unless individually verified
 in ../validation.md. Existing implemented behavior remains documented in its feature files.
 
+The focused gallery and composed-preview slice is implemented and validated. Version 4
+independent opening/closing cards passed separate media, browser, and Windows ARM64 native
+checks. Camera/text/media motion tracks and the remaining optional AI work are pending.
+
 ## Delivery sequence
 
 1. Focused project gallery, manual range page, and one visible live/exact preview surface.

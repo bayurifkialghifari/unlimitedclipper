@@ -379,7 +379,7 @@ export function Inspector({
                     step={0.1}
                     value={document.start_ms / 1000}
                     disabled={
-                      document.version === 3 ||
+                      document.version >= 3 ||
                       (document.segments?.length ?? 1) > 1 ||
                       Boolean(document.visual_layers?.length || document.audio_layers?.length)
                     }
@@ -394,7 +394,7 @@ export function Inspector({
                     max={(project?.duration_ms ?? 0) / 1000}
                     value={document.end_ms / 1000}
                     disabled={
-                      document.version === 3 ||
+                      document.version >= 3 ||
                       (document.segments?.length ?? 1) > 1 ||
                       Boolean(document.visual_layers?.length || document.audio_layers?.length)
                     }
@@ -416,7 +416,7 @@ export function Inspector({
                     ),
                   )}
                 </Select>
-                {(document.version === 3 ||
+                {(document.version >= 3 ||
                   (document.segments?.length ?? 1) > 1 ||
                   Boolean(document.visual_layers?.length || document.audio_layers?.length)) && (
                   <p className={styles.hint}>{text.timelineBoundaryHint}</p>

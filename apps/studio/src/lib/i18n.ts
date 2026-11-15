@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 
 const en = {
+  openingCard: 'Opening card',
+  closingCard: 'Closing card',
+  addCard: 'Add card',
+  removeCard: 'Remove card',
+  previewCard: 'Preview card',
+  cardText: 'Card text',
+  cardTextRequired: 'Write a hook or add captions before creating a card.',
+  cardBackground: 'Background',
+  cardTimingHint:
+    'Cards add time before or after the clip. Source footage and caption timing stay intact. Cards are silent.',
   soundEffects: 'Sound effects',
   sfxWhoosh: 'Whoosh',
   sfxClick: 'Click',
@@ -418,6 +428,16 @@ const en = {
 };
 
 const id: typeof en = {
+  openingCard: 'Kartu pembuka',
+  closingCard: 'Kartu penutup',
+  addCard: 'Tambah kartu',
+  removeCard: 'Hapus kartu',
+  previewCard: 'Preview kartu',
+  cardText: 'Teks kartu',
+  cardTextRequired: 'Isi hook atau tambahkan caption sebelum membuat kartu.',
+  cardBackground: 'Latar belakang',
+  cardTimingHint:
+    'Kartu menambah waktu sebelum atau sesudah klip. Video sumber dan timing caption tetap utuh. Kartu tanpa suara.',
   soundEffects: 'Efek suara',
   sfxWhoosh: 'Whoosh',
   sfxClick: 'Klik',

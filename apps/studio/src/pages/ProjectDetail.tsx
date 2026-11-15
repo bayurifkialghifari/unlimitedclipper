@@ -8,7 +8,7 @@ import { useEditor } from '../lib/editor-store';
 import { flushEditor } from '../lib/save';
 import { useText } from '../lib/i18n';
 import { time } from '../lib/format';
-import { outputDuration } from '../lib/timeline';
+import { finalDuration } from '../lib/timeline';
 import { PageHeader } from '../molecules/PageHeader';
 import { QueryState } from '../molecules/QueryState';
 import { Inspector } from '../organisms/Inspector';
@@ -109,7 +109,7 @@ export function ProjectDetail() {
                   <div className={styles.projectInfo}>
                     <h2>{clip.name}</h2>
                     <p>
-                      {time(outputDuration(clip.document))} · {time(clip.document.start_ms)} –{' '}
+                      {time(finalDuration(clip.document))} · {time(clip.document.start_ms)} –{' '}
                       {time(clip.document.end_ms)}
                     </p>
                     <Button

@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { outputDuration } from '../lib/timeline';
+import { CardEditor } from './CardEditor';
 import styles from '../styles/Studio.module.css';
 
 const recipes = [
@@ -205,6 +206,14 @@ export function HookEditor({
         {text.hookAtPlayhead}
       </Button>
       {!supported && <p className={styles.hint}>{text.editorUpgrade}</p>}
+      <CardEditor
+        kind="intro_card"
+        supported={health.data?.editor_features?.includes('heading_cards') ?? false}
+      />
+      <CardEditor
+        kind="outro_card"
+        supported={health.data?.editor_features?.includes('heading_cards') ?? false}
+      />
     </section>
   );
 }

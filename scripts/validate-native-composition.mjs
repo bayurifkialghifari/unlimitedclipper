@@ -45,9 +45,11 @@ execFileSync(
     'error',
     '-y',
     '-ss',
-    '600',
+    process.argv[3] ?? (process.argv[2] ? '0' : '600'),
     '-i',
-    path.join(root, '.data/sources/107f3d5e-c355-45d7-a498-f2ae72b2758b.mp4'),
+    path.resolve(
+      process.argv[2] ?? path.join(root, '.data/sources/107f3d5e-c355-45d7-a498-f2ae72b2758b.mp4'),
+    ),
     '-t',
     '8',
     '-vf',
@@ -189,6 +191,65 @@ try {
     path: path.join(root, '.cache/native-composition-exact.png'),
     fullPage: true,
   });
+  await page.getByRole('tab', { name: 'Hook', exact: true }).click();
+  const opening = page.getByRole('region', { name: 'Kartu pembuka', exact: true });
+  const closing = page.getByRole('region', { name: 'Kartu penutup', exact: true });
+  await opening.getByRole('button', { name: 'Tambah kartu', exact: true }).click();
+  await opening.getByLabel('Durasi tampil (s)', { exact: true }).fill('1');
+  await opening.getByLabel('Latar belakang', { exact: true }).fill('#d02020');
+  await closing.getByRole('button', { name: 'Tambah kartu', exact: true }).click();
+  await closing.getByLabel('Durasi tampil (s)', { exact: true }).fill('1.5');
+  await closing.getByLabel('Latar belakang', { exact: true }).fill('#2030d0');
+  await opening.getByRole('button', { name: 'Preview kartu', exact: true }).click();
+  const corner = async () => {
+    const screenshot = await page.locator('canvas').screenshot();
+    return page.evaluate(async (encoded) => {
+      const image = new Image();
+      image.src = 'data:image/png;base64,' + encoded;
+      await image.decode();
+      const sample = document.createElement('canvas');
+      sample.width = image.width;
+      sample.height = image.height;
+      const context = sample.getContext('2d');
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(0, 0, image.width, image.height).data;
+      let ink = 0;
+      for (let index = 0; index < pixels.length; index += 4) {
+        if (pixels[index] > 180 && pixels[index + 1] > 150 && pixels[index + 2] > 70) {
+          ink += 1;
+        }
+      }
+      return [
+        ...Array.from(
+          context.getImageData(Math.round(image.width * 0.2), Math.round(image.height * 0.8), 1, 1)
+            .data,
+        ),
+        ink,
+      ];
+    }, screenshot.toString('base64'));
+  };
+  await expect.poll(async () => (await corner())[0]).toBeGreaterThan(180);
+  await page.getByRole('button', { name: 'Putar', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('video')?.currentTime > 0.3);
+  await page.getByRole('button', { name: 'Jeda', exact: true }).click();
+  await closing.getByRole('button', { name: 'Preview kartu', exact: true }).click();
+  await expect.poll(async () => (await corner())[2]).toBeGreaterThan(180);
+  await expect.poll(async () => (await corner())[4]).toBeGreaterThan(10);
+  await page.screenshot({
+    path: path.join(root, '.cache/native-composition-card.png'),
+    fullPage: true,
+  });
+  await page.getByRole('button', { name: 'Render preview hasil edit', exact: true }).click();
+  await page.getByRole('button', { name: 'Hasil edit', exact: true }).waitFor({ timeout: 120_000 });
+  await page
+    .getByText('Memuat video preview...', { exact: true })
+    .waitFor({ state: 'hidden', timeout: 120_000 });
+  await expect.poll(async () => (await corner())[2]).toBeGreaterThan(180);
+  await expect.poll(async () => (await corner())[4]).toBeGreaterThan(10);
+  await page.screenshot({
+    path: path.join(root, '.cache/native-composition-card-exact.png'),
+    fullPage: true,
+  });
   assert.deepEqual(errors, []);
   await writeFile(
     path.join(root, '.cache/native-composition-validation.json'),
@@ -199,6 +260,7 @@ try {
         actual_podcast: true,
         live_frame: signature,
         exact_playback: true,
+        independent_cards: true,
         single_canvas: (await page.locator('canvas').count()) === 1,
         errors,
       },

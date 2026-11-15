@@ -66,6 +66,14 @@ alignment confidence. Automatic proposals and render jobs freeze revisions; appl
 uses the editor transaction and autosave checks. Caption groups stop at source cuts. Source VTT
 cues are sorted by source time; output VTT and rendered captions retain edited scene order.
 
+Version 4 adds optional HeadingCard values before/after content. Legacy duration_ms remains
+content duration; explicit content/final duration and content/source mappings prevent card
+offsets entering edits or acoustic alignment. Version 4 final-output mapping returns no source
+inside cards. Scene remaps preserve card clocks and document version. Rendering completes
+the content picture/audio first, concatenates silent card sections, and offsets ASS/SRT/output
+VTT once. Live playback uses a monotonic card clock while its source decoder is paused; the
+timeline playhead remains on the content clock. Health gates version 4/card controls.
+
 Edited preview and export share render_media, including AV concat, split framing, local B-roll,
 ASS graphics, and audio mixing. An exact preview bakes every graphic and creates no export
 record. A cache-version salt prevents older caption-free previews being reused as complete

@@ -4,6 +4,7 @@ export type Project = components['schemas']['Project'];
 export type ProjectDetail = components['schemas']['ProjectDetail'];
 export type Clip = components['schemas']['Clip'];
 export type EditDocument = components['schemas']['EditDocument'];
+export type HeadingCard = components['schemas']['HeadingCard'];
 export type PreviewPlan = components['schemas']['PreviewPlan'];
 export type Word = components['schemas']['Word'];
 export type CropRect = components['schemas']['CropRect'];

@@ -357,7 +357,7 @@ pub async fn render_media(
     let (source, _, _) = db::asset(&state.db, &state.root, &project.asset_id).await?;
     let mut document = clip.document.clone();
     document.captions.enabled &= captions;
-    let duration = document.duration_ms();
+    let duration = document.final_duration_ms();
     let working = state.root.join("temporary").join(&job.id);
     tokio::fs::create_dir_all(&working).await?;
     let ass_file = working.join("track.ass");
@@ -497,9 +497,10 @@ pub async fn render_media(
         next_input += 1;
         audio_count += 1;
     }
-    filter.push_str(&format!(";{audio_labels}amix=inputs={audio_count}:duration=first:normalize=0,alimiter=limit=0.95:latency=1[audioout]"));
+    filter.push_str(&format!(";{audio_labels}amix=inputs={audio_count}:duration=first:normalize=0,alimiter=limit=0.95:latency=1[contentaudio]"));
+    filter.push_str(&card_composition(&document, &video_label));
     filter.push_str(&format!(
-        ";[{video_label}]subtitles=filename='{}':fontsdir='{}',setsar=1[out]",
+        ";[finalvideo]subtitles=filename='{}':fontsdir='{}',setsar=1[out]",
         escape_filter_path(&ass_file),
         escape_filter_path(&state.tools_root().join("fonts"))
     ));
@@ -558,6 +559,39 @@ pub async fn render_media(
         "Rendered media failed geometry, duration, or audio verification."
     );
     Ok(())
+}
+
+pub fn card_composition(document: &EditDocument, video_label: &str) -> String {
+    let (width, height) = document.layout.dimensions(document.resolution);
+    let mut filter = format!(
+        ";[{video_label}]fps=30,format=yuv420p,setsar=1,settb=AVTB,setpts=PTS-STARTPTS[contentvideo];[contentaudio]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[normalizedaudio]"
+    );
+    let mut inputs = String::new();
+    let mut count = 1;
+    for (name, card) in [
+        ("intro", document.intro_card.as_ref()),
+        ("outro", document.outro_card.as_ref()),
+    ] {
+        if let Some(card) = card {
+            let duration = card.duration_ms as f64 / 1000.0;
+            let background = card.background.replace('#', "0x");
+            filter.push_str(&format!(
+                ";color=c={background}:s={width}x{height}:r=30:d={duration:.3},format=yuv420p,setsar=1,settb=AVTB,setpts=PTS-STARTPTS[{name}video];anullsrc=r=48000:cl=stereo,atrim=duration={duration:.3},asetpts=PTS-STARTPTS[{name}audio]"
+            ));
+            if name == "intro" {
+                inputs.push_str("[introvideo][introaudio]");
+            }
+            count += 1;
+        }
+    }
+    inputs.push_str("[contentvideo][normalizedaudio]");
+    if document.outro_card.is_some() {
+        inputs.push_str("[outrovideo][outroaudio]");
+    }
+    filter.push_str(&format!(
+        ";{inputs}concat=n={count}:v=1:a=1[finalvideo][audioout]"
+    ));
+    filter
 }
 
 pub async fn export_clip(

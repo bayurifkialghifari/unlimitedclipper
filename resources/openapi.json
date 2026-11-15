@@ -1011,8 +1011,14 @@
           "end_ms": { "type": "integer", "format": "int64" },
           "facecam_crop": { "$ref": "#/components/schemas/CropRect" },
           "gameplay_crop": { "$ref": "#/components/schemas/CropRect" },
+          "intro_card": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/HeadingCard" }]
+          },
           "keyframes": { "type": "array", "items": { "$ref": "#/components/schemas/Keyframe" } },
           "layout": { "$ref": "#/components/schemas/Layout" },
+          "outro_card": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/HeadingCard" }]
+          },
           "resolution": { "type": "integer", "format": "int32", "minimum": 0 },
           "segments": {
             "type": "array",
@@ -1066,6 +1072,29 @@
           "focus": { "type": "string" },
           "language": { "type": "string" },
           "minimum_score": { "type": "integer", "format": "int32", "minimum": 0 }
+        }
+      },
+      "HeadingCard": {
+        "type": "object",
+        "required": [
+          "text",
+          "duration_ms",
+          "font",
+          "size",
+          "color",
+          "background",
+          "position_y",
+          "animation"
+        ],
+        "properties": {
+          "animation": { "type": "string" },
+          "background": { "type": "string" },
+          "color": { "type": "string" },
+          "duration_ms": { "type": "integer", "format": "int64" },
+          "font": { "type": "string" },
+          "position_y": { "type": "number", "format": "double" },
+          "size": { "type": "integer", "format": "int32", "minimum": 0 },
+          "text": { "type": "string" }
         }
       },
       "Health": {

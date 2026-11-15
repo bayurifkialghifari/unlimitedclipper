@@ -52,6 +52,104 @@ fn document() -> EditDocument {
     ])
 }
 
+fn card(text: &str, duration_ms: i64) -> HeadingCard {
+    HeadingCard {
+        text: text.into(),
+        duration_ms,
+        font: "Oswald".into(),
+        size: 90,
+        color: "#FFFFFF".into(),
+        background: "#151B24".into(),
+        position_y: 0.5,
+        animation: "none".into(),
+    }
+}
+
+#[test]
+fn independent_cards_keep_source_provenance_and_content_tracks_after_reorder() {
+    let mut original = document();
+    original.version = 4;
+    original.intro_card = Some(card("Opening", 1000));
+    original.outro_card = Some(card("Closing", 1500));
+    original.validate(project().duration_ms).unwrap();
+    assert_eq!(original.content_duration_ms(), 4000);
+    assert_eq!(original.final_duration_ms(), 6500);
+    for time in [-1, 0, 999, 5000, 6499, 6500] {
+        assert_eq!(original.output_to_source(time), None);
+    }
+    assert_eq!(original.output_to_source(1000), Some(0));
+    assert_eq!(original.output_to_source(3000), Some(3000));
+    assert_eq!(original.source_to_output(3000), Some(3000));
+    assert_eq!(original.source_to_output(6000), None);
+    let reordered = original.replace_segments(vec![scene("c", 5000, 6000), scene("a", 0, 2000)]);
+    reordered.validate(project().duration_ms).unwrap();
+    assert_eq!(reordered.version, 4);
+    assert_eq!(reordered.final_duration_ms(), 5500);
+    assert_eq!(reordered.output_to_source(1000), Some(5000));
+    let third = reordered
+        .words
+        .iter()
+        .find(|word| word.id == "third")
+        .unwrap();
+    assert_eq!(third.start_ms, 600);
+    assert_eq!(third.timing.as_ref().unwrap().source_start_ms, 5600);
+    assert_eq!(reordered.intro_card.unwrap().duration_ms, 1000);
+    assert_eq!(reordered.outro_card.unwrap().duration_ms, 1500);
+}
+
+#[test]
+fn cards_offset_captions_once_and_source_vtt_stays_on_source_time() {
+    let mut original = document();
+    original.version = 4;
+    original.intro_card = Some(card("Opening", 1000));
+    original.outro_card = Some(card("Closing", 1500));
+    original.captions.preset = "plain".into();
+    let ass = unlimitedclipper_engine::subtitles::ass(&original);
+    assert!(ass.contains("Dialogue: 1,0:00:02.20,0:00:02.50,Caption"));
+    assert!(ass.contains("Dialogue: 6,0:00:00.00,0:00:01.00,Title"));
+    assert!(ass.contains("Dialogue: 6,0:00:05.00,0:00:06.50,Title"));
+    let srt = unlimitedclipper_engine::subtitles::srt(&original);
+    assert!(srt.contains("00:00:02,200 --> 00:00:02,500"));
+    let source = unlimitedclipper_engine::subtitles::vtt_timeline(&original, false);
+    let output = unlimitedclipper_engine::subtitles::vtt_timeline(&original, true);
+    assert!(source.contains("00:00:05.600 --> 00:00:05.900"));
+    assert!(output.contains("00:00:04.600 --> 00:00:04.900"));
+}
+
+#[test]
+fn legacy_documents_are_not_promoted_and_invalid_cards_are_rejected() {
+    for version in [1, 2, 3] {
+        let mut original = document();
+        if version < 3 {
+            original = EditDocument::new(&project(), 0, 6000);
+            if version == 1 {
+                original.segments.clear();
+            }
+        }
+        original.version = version;
+        let encoded = serde_json::to_value(&original).unwrap();
+        assert!(encoded.get("intro_card").is_none());
+        let loaded: EditDocument = serde_json::from_value(encoded).unwrap();
+        assert_eq!(loaded.version, version);
+        loaded.validate(project().duration_ms).unwrap();
+        original.intro_card = Some(card("Opening", 1000));
+        assert!(original.validate(project().duration_ms).is_err());
+    }
+    let mut original = document();
+    original.version = 4;
+    for invalid in [
+        card("", 1000),
+        card("Opening", -100),
+        card("Opening", 10_001),
+    ] {
+        original.intro_card = Some(invalid);
+        assert!(original.validate(project().duration_ms).is_err());
+    }
+    original.intro_card = Some(card("Opening", 1000));
+    original.segments[1].id = original.segments[0].id.clone();
+    assert!(original.validate(project().duration_ms).is_err());
+}
+
 #[test]
 fn legacy_styles_default_and_timed_hooks_keep_output_relative_bounds() {
     let original = document();

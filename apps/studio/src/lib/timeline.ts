@@ -14,6 +14,16 @@ export function outputDuration(document: EditDocument): number {
   );
 }
 
+export function introDuration(document: EditDocument): number {
+  return document.intro_card?.duration_ms ?? 0;
+}
+
+export function finalDuration(document: EditDocument): number {
+  return (
+    introDuration(document) + outputDuration(document) + (document.outro_card?.duration_ms ?? 0)
+  );
+}
+
 export function outputToSource(document: EditDocument, milliseconds: number): number | null {
   let offset = 0;
   for (const segment of sourceSegments(document)) {

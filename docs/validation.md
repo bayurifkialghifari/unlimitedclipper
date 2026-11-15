@@ -1,5 +1,45 @@
 # Validation evidence
 
+## Independent cards and version 4, 2026-11-15
+
+npm run check passed lint, formatting, type checks, four frontend checks, and production
+build. All 47 Rust tests, Rustfmt check, and Clippy with warnings denied passed. Three new
+scene tests verify legacy compatibility, card bounds, no source during cards, remapping,
+source provenance, and one-time ASS/SRT/output-VTT offsets.
+
+scripts/validate-cards.mjs passed real-media preview/export decoding: a 1,000 ms opening,
+2,000 ms of reordered content, and 1,500 ms closing produced 4,500 ms media. Card backgrounds
+and silent audio were checked; content retained audio after the opening. An export frozen
+before a later card edit retained its original duration and revision. Restart restored the
+new card and the original word source anchor. Evidence: .cache/card-media-validation.json.
+The existing filter/hook/SFX render fixture also passed after the composition change.
+
+All thirteen browser cases passed together against the final production build in 2.0 minutes.
+The new card case covers keyboard creation, styling, autosave, independent playback, exact
+rendering, reopening, and removal. An isolated Windows ARM64 debug app played the actual
+podcast, opening/content/closing transitions, and exact cards. Native screenshots verify
+visible background and text, rather than only reading a canvas buffer. Preview card seeks
+inside its animation so a paused Fade card shows its text. Evidence:
+.cache/native-composition-validation.json and .cache/native-composition-card{,-exact}.png.
+The published application and canonical projects were preserved.
+
+The scoped anti-slop During gate passes working card controls, source-grounded seed text,
+empty/disabled guidance, keyboard creation, one inspector rail, visible loading/error states,
+and actual composed frames. Cards are silent; optional narration, new motion tracks, and
+other advanced-editing work remain pending. Android runtime and new packaged-release runtime
+are untested; the isolated native check does not certify an installer or another OS.
+
+The earlier composed-preview commit fbe6446 passed hosted
+[quality checks](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43692193688)
+and [Windows ARM64 media checks](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43692193663).
+Hosted checks for the card delivery commit have not run yet.
+
+After all fixtures stopped, cleanup removed 1,413,155,440 unique file bytes (1.32 GiB) of
+copied validation executables. Resolved runtime paths stayed under .cache, contained no links,
+and were checked against active processes before deletion. Sources, exports, model/tool stores,
+fixture media/checkpoints, screenshots, and the running published app were retained. Evidence:
+.cache/validation-runtime-cleanup.json.
+
 ## Focused studio and composed preview, 2026-11-15
 
 scripts/validate-composed-preview.mjs passed painted footage, one visible canvas, immediate

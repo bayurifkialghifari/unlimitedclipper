@@ -877,8 +877,10 @@ export interface components {
       end_ms: number;
       facecam_crop: components['schemas']['CropRect'];
       gameplay_crop: components['schemas']['CropRect'];
+      intro_card?: null | components['schemas']['HeadingCard'];
       keyframes: components['schemas']['Keyframe'][];
       layout: components['schemas']['Layout'];
+      outro_card?: null | components['schemas']['HeadingCard'];
       /** Format: int32 */
       resolution: number;
       segments?: components['schemas']['SourceSegment'][];
@@ -916,6 +918,19 @@ export interface components {
       language: string;
       /** Format: int32 */
       minimum_score?: number;
+    };
+    HeadingCard: {
+      animation: string;
+      background: string;
+      color: string;
+      /** Format: int64 */
+      duration_ms: number;
+      font: string;
+      /** Format: double */
+      position_y: number;
+      /** Format: int32 */
+      size: number;
+      text: string;
     };
     Health: {
       edit_document_versions: number[];

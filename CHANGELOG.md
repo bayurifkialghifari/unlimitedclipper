@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Version 4 edits support independent opening/closing cards with editable text, duration,
+  colors, bundled fonts, position, and animation. Existing document versions remain readable.
+- Cards add final duration without changing source/word provenance, layer timing, or scene
+  ranges. Live review pauses source playback during cards; exact review/export include silent
+  card sections and apply the caption offset once. Scene remaps and restart preserve cards.
+
 - Live and exact review share one visible canvas, with CPU libass graphics and fully baked
   exact previews. Live filters, framing, and captions repaint without a video render.
 - Reordered scenes continue after the source file endpoint. Direct project/studio routes

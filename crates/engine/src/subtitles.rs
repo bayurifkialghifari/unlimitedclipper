@@ -1,4 +1,4 @@
-use crate::models::{EditDocument, Word};
+use crate::models::{EditDocument, HeadingCard, Word};
 
 pub fn caption_groups(document: &EditDocument) -> Vec<&[Word]> {
     let mut groups = Vec::new();
@@ -90,9 +90,10 @@ pub fn srt(document: &EditDocument) -> String {
             format!(
                 "{}\n{} --> {}\n{}\n\n",
                 index + 1,
-                clock(words[0].start_ms, false),
+                clock(words[0].start_ms + document.intro_duration_ms(), false),
                 clock(
-                    words.last().expect("Caption group is not empty").end_ms,
+                    words.last().expect("Caption group is not empty").end_ms
+                        + document.intro_duration_ms(),
                     false
                 ),
                 text
@@ -206,6 +207,7 @@ pub fn ass(document: &EditDocument) -> String {
     let (width, height) = document.layout.dimensions(document.resolution);
     let caption = &document.captions;
     let title = &document.title;
+    let offset = document.intro_duration_ms();
     let size_scale = width.min(height) as f64 / 1080.0;
     let caption_size = (caption.size as f64 * size_scale).round() as u32;
     let title_size = (title.size as f64 * size_scale).round() as u32;
@@ -293,8 +295,8 @@ pub fn ass(document: &EditDocument) -> String {
                 let animation = caption_animation(&caption.animation, true);
                 result.push_str(&dialogue(
                     1,
-                    words[0].start_ms,
-                    words.last().expect("Non-empty group").end_ms,
+                    words[0].start_ms + offset,
+                    words.last().expect("Non-empty group").end_ms + offset,
                     "Caption",
                     &format!("{{{caption_position}{animation}}}{content}"),
                 ));
@@ -315,8 +317,8 @@ pub fn ass(document: &EditDocument) -> String {
                         .max(word.start_ms + 1);
                     result.push_str(&dialogue(
                         1,
-                        word.start_ms,
-                        end,
+                        word.start_ms + offset,
+                        end + offset,
                         "Caption",
                         &format!("{{{caption_position}{animation}}}{content}"),
                     ));
@@ -327,8 +329,8 @@ pub fn ass(document: &EditDocument) -> String {
                         let base = styled_phrase(words, None, revealed, document);
                         result.push_str(&dialogue(
                             1,
-                            end,
-                            next.start_ms,
+                            end + offset,
+                            next.start_ms + offset,
                             "Caption",
                             &format!("{{{caption_position}}}{base}"),
                         ));
@@ -356,8 +358,8 @@ pub fn ass(document: &EditDocument) -> String {
         );
         result.push_str(&dialogue(
             2,
-            title.start_ms,
-            title.start_ms + visible_duration,
+            title.start_ms + offset,
+            title.start_ms + visible_duration + offset,
             "Title",
             &format!("{{{title_tags}}}{}", escape_ass(&title.text)),
         ));
@@ -370,20 +372,50 @@ pub fn ass(document: &EditDocument) -> String {
         );
         result.push_str(&dialogue(
             3,
-            0,
-            duration,
+            offset,
+            duration + offset,
             "Watermark",
             &format!("{{{tags}}}{}", escape_ass(&document.watermark.text)),
         ));
     }
     result.push_str(&graphics(document));
+    if let Some(card) = &document.intro_card {
+        result.push_str(&card_graphics(card, 0, width, height));
+    }
+    if let Some(card) = &document.outro_card {
+        result.push_str(&card_graphics(card, duration + offset, width, height));
+    }
     result
+}
+
+fn card_graphics(card: &HeadingCard, start: i64, width: u32, height: u32) -> String {
+    let size = card.size as f64 * width.min(height) as f64 / 1080.0;
+    let animation = match card.animation.as_str() {
+        "fade" => format!("\\fad({0},{0})", 140.min(card.duration_ms / 2)),
+        "pop" => "\\fscx85\\fscy85\\t(0,160,\\fscx100\\fscy100)".into(),
+        _ => String::new(),
+    };
+    dialogue(
+        6,
+        start,
+        start + card.duration_ms,
+        "Title",
+        &format!(
+            "{{\\an5\\pos({},{:.1})\\fn{}\\fs{size:.1}\\1c{}\\bord0\\shad0{animation}}}{}",
+            width / 2,
+            height as f64 * card.position_y,
+            card.font,
+            override_color(&card.color),
+            escape_ass(&card.text)
+        ),
+    )
 }
 
 fn graphics(document: &EditDocument) -> String {
     let (width, height) = document.layout.dimensions(document.resolution);
     let slash = char::from(92);
     let mut output = String::new();
+    let offset = document.intro_duration_ms();
     for layer in document.visual_layers.iter().filter(|layer| layer.enabled) {
         let x = layer.x * width as f64;
         let y = layer.y * height as f64;
@@ -393,7 +425,7 @@ fn graphics(document: &EditDocument) -> String {
                 let note_width = (layer.text.chars().count() as f64 * size * 0.65)
                     .clamp(size * 3.0, width as f64 * 0.75);
                 let note_height = size * 1.6;
-                output.push_str(&dialogue(4, layer.start_ms, layer.end_ms, "Title",
+                output.push_str(&dialogue(4, layer.start_ms + offset, layer.end_ms + offset, "Title",
                     &format!("{{{slash}an5{slash}pos({x:.1},{y:.1}){slash}p1{slash}bord0{slash}shad0{slash}1c{}}}m 0 0 l {note_width:.1} 0 {note_width:.1} {note_height:.1} 0 {note_height:.1}",
                         override_color(&layer.color))));
             }
@@ -402,7 +434,7 @@ fn graphics(document: &EditDocument) -> String {
             } else {
                 &layer.color
             };
-            output.push_str(&dialogue(5, layer.start_ms, layer.end_ms, "Title",
+            output.push_str(&dialogue(5, layer.start_ms + offset, layer.end_ms + offset, "Title",
                 &format!("{{{slash}an5{slash}pos({x:.1},{y:.1}){slash}fs{size:.1}{slash}1c{}{slash}bord1{slash}fad(70,70)}}{}",
                     override_color(text_color), escape_ass(&layer.text))));
         } else if layer.kind == "camera_frame" {
@@ -421,7 +453,7 @@ fn graphics(document: &EditDocument) -> String {
                 inset + arm,
                 bottom - arm
             );
-            output.push_str(&dialogue(4, layer.start_ms, layer.end_ms, "Title",
+            output.push_str(&dialogue(4, layer.start_ms + offset, layer.end_ms + offset, "Title",
                 &format!("{{{slash}an7{slash}pos(0,0){slash}p1{slash}1a&HFF&{slash}3c{}{slash}bord2{slash}shad0}}{path}",
                     override_color(&layer.color))));
         }
@@ -446,22 +478,22 @@ pub fn vtt_timeline(document: &EditDocument, output_time: bool) -> String {
     let mut content = String::from("WEBVTT\n\n");
     let mut groups = caption_groups(document);
     if !output_time {
-        groups.sort_by_key(|words| document.output_to_source(words[0].start_ms));
+        groups.sort_by_key(|words| document.content_to_source(words[0].start_ms));
     }
     for words in groups {
         let start = if output_time {
-            words[0].start_ms
+            words[0].start_ms + document.intro_duration_ms()
         } else {
             document
-                .output_to_source(words[0].start_ms)
+                .content_to_source(words[0].start_ms)
                 .unwrap_or(document.start_ms)
         };
         let local_end = words.last().expect("Nonempty word group").end_ms;
         let end = if output_time {
-            local_end
+            local_end + document.intro_duration_ms()
         } else {
             document
-                .output_to_source(local_end - 1)
+                .content_to_source(local_end - 1)
                 .unwrap_or(document.end_ms - 1)
                 + 1
         };
