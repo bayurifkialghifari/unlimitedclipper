@@ -17,6 +17,8 @@ inspector. Choosing Gaming split places the facecam region above gameplay. The C
 the independent facecam/gameplay rectangles and split ratio near the top. Auto-detect facecam
 is an explicit action that saves the current edit and runs the local framing job; the user must
 review its result because camera placement can change within a recording.
+The tracking worker resolves the packaged ONNX Runtime filename for Windows, Linux, or macOS.
+The native Windows interaction passed; packaged Unix face detection remains to be tested.
 
 PUT /api/v1/clips/{id}
 

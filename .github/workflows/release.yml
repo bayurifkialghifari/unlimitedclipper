@@ -115,4 +115,5 @@ jobs:
           path: .cache/android-package
       - run: node scripts/stage-release.mjs --publish
         env:
+          UC_RELEASE_DRAFT: '1'
           GH_TOKEN: ${{ github.token }}

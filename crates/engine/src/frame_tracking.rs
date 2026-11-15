@@ -116,7 +116,14 @@ async fn scan_segment(
     cancellation: &CancellationToken,
 ) -> Result<Vec<Shot>> {
     let (source, _, _) = db::asset(&state.db, &state.root, &project.asset_id).await?;
-    let runtime = state.tools_root().join("onnxruntime/onnxruntime.dll");
+    let runtime_name = if cfg!(windows) {
+        "onnxruntime.dll"
+    } else if cfg!(target_os = "macos") {
+        "libonnxruntime.dylib"
+    } else {
+        "libonnxruntime.so"
+    };
+    let runtime = state.tools_root().join("onnxruntime").join(runtime_name);
     let model = state.tools_root().join("yunet.onnx");
     let width = ((region.width * project.width as f64).floor() as u32 / 2 * 2).max(2);
     let height = ((region.height * project.height as f64).floor() as u32 / 2 * 2).max(2);

@@ -265,6 +265,8 @@ pub async fn generate(
         .join("onnxruntime")
         .join(if cfg!(windows) {
             "onnxruntime.dll"
+        } else if cfg!(target_os = "macos") {
+            "libonnxruntime.dylib"
         } else {
             "libonnxruntime.so"
         });

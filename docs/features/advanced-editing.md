@@ -106,6 +106,8 @@ Generated audio must fit a card of at most ten seconds. A real-media fixture pas
 browser playback, export decoding, restart, cancellation, and retry. Human voice quality,
 long-form narration, and speaker output quality remain unverified. Native WebView2 advanced the
 card audio clock during playback, but that check did not measure physical speaker output.
+The narration worker resolves the packaged ONNX Runtime filename per desktop OS. Its Windows
+native path passed; Unix package builds do not establish playback or synthesis behavior.
 
 [Light-ASD](https://github.com/Junhua-Liao/Light-ASD) is the MIT audiovisual speaker candidate;
 native ONNX export and reference parity are pending.

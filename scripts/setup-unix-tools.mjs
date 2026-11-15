@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { chmod, copyFile, mkdir, readdir, stat } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -172,11 +172,70 @@ if (!platform || !Object.hasOwn(variants, platform)) {
 if (process.platform === 'win32') {
   throw new Error('Unix toolchains must be staged on their native CI runner.');
 }
+const expectedSystem = platform.startsWith('macos') ? 'darwin' : 'linux';
+const expectedArchitecture = platform.endsWith('arm64') ? 'arm64' : 'x64';
+if (process.platform !== expectedSystem || process.arch !== expectedArchitecture) {
+  throw new Error('The native runner does not match the selected toolchain.');
+}
 
 const destination = path.join(root, '.tools', platform);
 const cache = path.join(root, '.cache/unix-tools', platform);
 await mkdir(destination, { recursive: true });
 await mkdir(cache, { recursive: true });
+
+const noticeFiles = {
+  'yt-dlp': [
+    [
+      'LICENSE.txt',
+      'https://raw.githubusercontent.com/yt-dlp/yt-dlp/2026.10.26/LICENSE',
+      '7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c',
+    ],
+  ],
+  deno: [
+    [
+      'LICENSE.md',
+      'https://raw.githubusercontent.com/denoland/deno/v2.9.8/LICENSE.md',
+      'f62497fffecc0852960c8d3e6934b9db86d16396e9b604072e923892cae3a588',
+    ],
+  ],
+  ffmpeg: [
+    [
+      'COPYING.GPLv3',
+      platform.startsWith('macos')
+        ? 'https://raw.githubusercontent.com/jellyfin/jellyfin-ffmpeg/v8.1.3-2/COPYING.GPLv3'
+        : 'https://raw.githubusercontent.com/FFmpeg/FFmpeg/f1acb0a266/COPYING.GPLv3',
+      '8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903',
+    ],
+  ],
+  whisper: [
+    [
+      'LICENSE.txt',
+      platform.startsWith('macos')
+        ? 'https://raw.githubusercontent.com/ggml-org/whisper.cpp/d1be6fde11ac6e0407606b4e42fe72d34add8037/LICENSE'
+        : 'https://raw.githubusercontent.com/ggml-org/whisper.cpp/b5454/LICENSE',
+      '94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d',
+    ],
+  ],
+  llama: [
+    [
+      'LICENSE.txt',
+      'https://raw.githubusercontent.com/ggml-org/llama.cpp/b12420/LICENSE',
+      '94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d',
+    ],
+  ],
+  onnxruntime: [
+    [
+      'LICENSE.txt',
+      'https://raw.githubusercontent.com/microsoft/onnxruntime/v1.32.0/LICENSE',
+      '2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c',
+    ],
+    [
+      'ThirdPartyNotices.txt',
+      'https://raw.githubusercontent.com/microsoft/onnxruntime/v1.32.0/ThirdPartyNotices.txt',
+      'd8696258afcf9df7827a5e01d6b6d55ee9b461b4e82020f5f48242deb9cc2270',
+    ],
+  ],
+};
 
 function run(command, arguments_, cwd = root) {
   const result = spawnSync(command, arguments_, {
@@ -218,6 +277,30 @@ async function download(spec) {
     throw new Error(family + ' archive checksum mismatch.');
   }
   return filename;
+}
+
+async function stageNotices(family) {
+  const directory = path.join(destination, 'licenses-and-source', family);
+  await mkdir(directory, { recursive: true });
+  for (const [name, url, digest] of noticeFiles[family]) {
+    const filename = path.join(cache, family + '-' + name);
+    const valid = await stat(filename)
+      .then(async () => (await sha256(filename)) === digest)
+      .catch(() => false);
+    if (!valid) {
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'UnlimitedClipper-Toolchain' },
+      });
+      if (!response.ok || !response.body) {
+        throw new Error(family + ' notice download failed: ' + response.status);
+      }
+      await pipeline(Readable.fromWeb(response.body), createWriteStream(filename));
+    }
+    if ((await sha256(filename)) !== digest) {
+      throw new Error(family + ' notice checksum mismatch: ' + name);
+    }
+    await copyFile(filename, path.join(directory, name));
+  }
 }
 
 async function filesUnder(directory) {
@@ -273,12 +356,73 @@ async function stageArchive(spec, archive) {
     if (/^lib.+(\.dylib|\.so(?:\.[0-9.]+)?)$/.test(basename) && !required.includes(basename)) {
       await copyFile(source, path.join(output, basename));
     }
+    if (/^(LICENSE|LICENCE|COPYING|NOTICE|COPYRIGHT)(?:[._-].*)?$/i.test(basename)) {
+      const notice = path.join(
+        destination,
+        'licenses-and-source',
+        family,
+        path.relative(extracted, source),
+      );
+      await mkdir(path.dirname(notice), { recursive: true });
+      await copyFile(source, notice);
+    }
   }
 }
 
 for (const spec of variants[platform]) {
   await stageArchive(spec, await download(spec));
+  await stageNotices(spec[0]);
 }
+if (platform.startsWith('macos')) {
+  await stageNotices('whisper');
+}
+if (platform === 'macos-x64') {
+  await stageNotices('onnxruntime');
+}
+
+const ffmpegSource = platform.startsWith('macos')
+  ? {
+      source:
+        'https://github.com/jellyfin/jellyfin-ffmpeg/tree/7250de8375a4959ac1c25c139ce9789fdac199fb',
+      build: 'https://github.com/jellyfin/jellyfin-ffmpeg/releases/tag/v8.1.3-2',
+    }
+  : {
+      source: 'https://github.com/FFmpeg/FFmpeg/tree/f1acb0a266',
+      build:
+        'https://github.com/FFmpeg-Builds/FFmpeg-Builds/tree/c9fe5114060e507409f7ee07edfd82efaf25d767',
+    };
+const provenance = variants[platform].map(([family, repository, version, asset, sha256]) => ({
+  family,
+  binary: 'https://github.com/' + repository + '/releases/download/' + version + '/' + asset,
+  sha256,
+  ...(family === 'ffmpeg'
+    ? ffmpegSource
+    : {
+        source:
+          family === 'whisper' && platform.startsWith('macos')
+            ? 'https://github.com/ggml-org/whisper.cpp/tree/d1be6fde11ac6e0407606b4e42fe72d34add8037'
+            : 'https://github.com/' + repository + '/tree/' + version,
+      }),
+}));
+if (platform.startsWith('macos')) {
+  provenance.push({
+    family: 'whisper',
+    source: 'https://github.com/ggml-org/whisper.cpp/tree/d1be6fde11ac6e0407606b4e42fe72d34add8037',
+    build: 'scripts/build-macos-tools.mjs',
+  });
+}
+if (platform === 'macos-x64') {
+  provenance.push({
+    family: 'onnxruntime',
+    source:
+      'https://github.com/microsoft/onnxruntime/tree/fab30a46491a40f5e4c968b80e8a59acbbb91b53',
+    build: 'scripts/build-macos-tools.mjs',
+  });
+}
+await writeFile(
+  path.join(destination, 'licenses-and-source', 'tool-provenance.json'),
+  JSON.stringify({ platform, tools: provenance }, null, 2) + String.fromCharCode(10),
+);
 
 if (platform.startsWith('macos')) {
   run('node', [path.join(root, 'scripts/build-macos-tools.mjs'), '--platform=' + platform]);
@@ -303,6 +447,10 @@ const encoders = run(path.join(destination, 'ffmpeg/ffmpeg'), ['-encoders']);
 if (!filters.includes('subtitles') || !encoders.includes('libx264')) {
   throw new Error('The packaged FFmpeg needs libass subtitles and libx264 encoding.');
 }
+await writeFile(
+  path.join(destination, 'licenses-and-source', 'ffmpeg', 'build-configuration.txt'),
+  run(path.join(destination, 'ffmpeg/ffmpeg'), ['-buildconf']),
+);
 if (!(await stat(path.join(destination, 'yunet.onnx'))).isFile()) {
   throw new Error('The face detector is missing from the packaged resources.');
 }

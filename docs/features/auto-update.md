@@ -23,6 +23,8 @@ paths relative to the Tauri project. The Cargo SDK cache may live on a different
 Tagged CI now stages Linux x64/ARM64 AppImages and macOS Intel/ARM disk images alongside Windows
 installers. The application update manifest still lists only Windows installers. Unix packages
 are manual preview downloads until their updater artifact and installation behavior are tested.
+The tagged workflow creates a draft after validating artifacts, source snapshots, and checksums.
+Publish the draft only after inspecting the packages and their notices.
 
 ## Interface
 

@@ -68,6 +68,10 @@ jobs:
         env:
           GITHUB_REF_NAME: ${{ inputs.release_tag }}
         run: node scripts/set-release-version.mjs --mobile-preview
+      - run: npm install --package-lock-only --ignore-scripts
+        if: inputs.release_tag != ''
+      - run: cargo update --workspace
+        if: inputs.release_tag != ''
       - run: npm ci
       - run: npm run check
       - run: npm run build:android

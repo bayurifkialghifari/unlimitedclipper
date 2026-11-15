@@ -20,13 +20,21 @@ UnlimitedClipper uses original application source and does not incorporate compe
 | React and frontend dependencies | package-lock.json                                                             | Retain package-level notices for the exact locked versions.                                                                                                            |
 
 Windows native archives and upstream notice/source files are retained under
-.tools/windows-ARCH/licenses-and-source. Unix CI currently stages pinned binaries from the
-upstream projects above. Its macOS FFmpeg/FFprobe pair comes from the
-[Jellyfin FFmpeg portable release](https://github.com/jellyfin/jellyfin-ffmpeg/releases/tag/v8.1.3-2);
-Linux uses the [FFmpeg-Builds release](https://github.com/FFmpeg-Builds/FFmpeg-Builds).
-The final distributable must contain the required materials for the exact binaries it ships.
-Review omissions before publishing; a source URL alone does not replace every corresponding-source
-obligation.
+.tools/windows-ARCH/licenses-and-source. Unix CI stages hash-pinned binaries, upstream license
+texts, ONNX Runtime third-party notices, and a provenance map inside each package. A separate
+notice archive accompanies each Unix package. Linux FFmpeg/FFprobe comes from the
+[FFmpeg-Builds release](https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/tag/autobuild-2026-11-12-15-40),
+with [FFmpeg source revision f1acb0a266](https://github.com/FFmpeg/FFmpeg/tree/f1acb0a266)
+and [dependency build scripts at c9fe511](https://github.com/FFmpeg-Builds/FFmpeg-Builds/tree/c9fe5114060e507409f7ee07edfd82efaf25d767).
+The macOS pair comes from the
+[Jellyfin FFmpeg portable release](https://github.com/jellyfin/jellyfin-ffmpeg/releases/tag/v8.1.3-2)
+and [source revision 7250de8](https://github.com/jellyfin/jellyfin-ffmpeg/tree/7250de8375a4959ac1c25c139ce9789fdac199fb).
+The tagged workflow attaches checksum-verified archives of those FFmpeg source trees and the
+Linux build scripts alongside the packages. Linked dependency sources are referenced by the
+build scripts; they are not included in these three archives.
+The final distributable must provide corresponding source for the exact binaries and linked
+libraries. Audit the complete source set and availability before publication; source pointers
+alone do not establish that obligation.
 
 The Android preview uses [FFmpegKit Next v9.0.2](https://github.com/arthenica/ffmpeg-kit-next/tree/v9.0.2)
 under LGPL-3.0-or-later, built from commit 9f04bf1e3c97def70b98e198cb80a57b43ef5b45. Its configuration

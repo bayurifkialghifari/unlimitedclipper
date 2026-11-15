@@ -33,12 +33,26 @@ if (process.argv.includes('--publish')) {
     const packageManifest = JSON.parse(
       await readFile(path.join(directory, 'package-' + platform + '.json'), 'utf8'),
     );
+    const suffix = platform.startsWith('macos') ? '.dmg' : '.AppImage';
+    let expectedArchitecture;
+    if (platform.startsWith('macos')) {
+      expectedArchitecture = platform.endsWith('arm64') ? 'arm64' : 'x86_64';
+    } else {
+      expectedArchitecture = platform.endsWith('arm64') ? 183 : 62;
+    }
+    const expectedFilename = 'UnlimitedClipper-' + version + '-' + platform + suffix;
+    const expectedNotices = 'UnlimitedClipper-' + version + '-' + platform + '-notices.tar.gz';
     const artifact = path.join(directory, packageManifest.filename);
     if (
       packageManifest.version !== version ||
       packageManifest.platform !== platform ||
+      packageManifest.architecture !== expectedArchitecture ||
+      packageManifest.filename !== expectedFilename ||
+      packageManifest.notice_filename !== expectedNotices ||
       packageManifest.bytes !== (await stat(artifact)).size ||
-      packageManifest.sha256 !== (await sha256(artifact))
+      packageManifest.sha256 !== (await sha256(artifact)) ||
+      packageManifest.notice_sha256 !==
+        (await sha256(path.join(directory, packageManifest.notice_filename)))
     ) {
       throw new Error('The ' + platform + ' bundle did not pass release staging checks.');
     }
@@ -61,6 +75,13 @@ if (process.argv.includes('--publish')) {
     path.join(androidDirectory, 'ANDROID-UNTESTED.md'),
     path.join(directory, 'ANDROID-UNTESTED.md'),
   );
+  await copyFile(
+    path.join(root, 'docs/third-party-notices.md'),
+    path.join(directory, 'THIRD-PARTY-NOTICES.md'),
+  );
+  execFileSync(process.execPath, [path.join(root, 'scripts/stage-source-archives.mjs')], {
+    stdio: 'inherit',
+  });
   await writeFile(
     path.join(directory, 'application.json'),
     JSON.stringify({ version, pub_date: new Date().toISOString(), platforms }, null, 2) + '\n',
@@ -90,6 +111,7 @@ if (process.argv.includes('--publish')) {
       '--notes-file',
       notesFile,
       ...(/-/.test(version) ? ['--prerelease'] : []),
+      ...(process.env.UC_RELEASE_DRAFT === '1' ? ['--draft'] : []),
     ],
     { stdio: 'inherit' },
   );
