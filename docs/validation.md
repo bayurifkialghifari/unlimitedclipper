@@ -4,6 +4,46 @@
 
 The implemented clipping workflow has passed real media, browser, and native ARM64 interaction checks. This is a development validation record, not a claim that every release gate or operating system is certified. Unrun scenarios remain pending.
 
+## Local editor tools, 2026-11-15
+
+The local engine passed 44 Rust tests, Rustfmt, and Clippy with warnings denied. Frontend
+lint, formatting, types, four unit/asset checks, and production build passed. The complete
+12-test browser run exercised source imports, manual ranges, caption styles, scene editing,
+hook timing, filter persistence/reset, offline SFX audition/placement, and composed playback.
+Painted screenshot pixels, not only video readiness, verified monochrome playback and mode
+switching. After paused-subtitle reuse and inspector-selection refinements, seven relevant
+browser scenarios passed again against the final production build.
+
+scripts/validate-editor-tools.mjs passed on a real six-second, reordered video fixture:
+720 x 1280 preview/export full decode, timed colored hook above monochrome footage, whoosh
+audio contribution, and immutable export revision 3 while revision 4 was saved. Preview took
+6,684 ms and export 6,701 ms. Evidence: .cache/editor-tools-media-validation.json.
+
+A newly built ARM64 Tauri host opened on the owner's Windows laptop after fresh unsaved-edit,
+upload, active-job, process-path, and native-modal checks, with a consistent SQLite backup.
+At 1920 x 1009, the original reported podcast clip rendered a visible 720 x 1280 first preview
+in 5,035 ms and played 35 frames with zero dropped frames. Its captured video pixels had mean
+116.45/255. The prior transient black result was not reproduced reliably, so this records a
+successful scoped playback check and canvas/load hardening, not a confirmed GPU root cause.
+Evidence: .cache/editor-tools-native-preview.json and editor-tools-native-preview.png.
+
+The separate Local editor demo used the owner's real podcast range 404,480–420,740 ms.
+Native controls applied an Impact hook, Pop animation, Impact captions, Warm color values,
+and one included whoosh. Its 720p preview job took 15,506 ms and 1080 x 1920 export took
+34,047 ms, including queue and job completion. The 16.26-second MP4 has audio, passed full
+decode, and played in native WebView2: 36 frames, zero dropped, mean video pixels 120.01/255.
+The original revision-9 clip's persisted JSON matches its pre-test backup exactly.
+Evidence: .cache/editor-tools-native-demo.json, editor-tools-native-demo.png, and
+editor-tools-native-export.png. These timings reuse existing transcript/caption edits and
+do not include model download, full transcription, or discovery. The tested laptop has a
+Snapdragon X X126100 CPU with eight cores and approximately 16 GB physical RAM.
+
+Anti-slop During delivery gate: original graphite/amber identity, real media/data, functioning
+controls, keyboard labels/focus, preset selection, loading/error/disabled states, and a single
+outer inspector scrollbar passed scoped browser/native interactions. No duplicate SFX scrollbar
+was introduced. Full accessibility certification, installed updater execution, new packaged
+release checks, physical x64/macOS/Linux desktop runtime, and Android runtime remain pending.
+
 ## Caption library and local ratings, 2026-11-14
 
 The frontend quality check passed ESLint, Prettier, TypeScript, three unit tests, and production

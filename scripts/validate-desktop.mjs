@@ -38,8 +38,14 @@ await page
   .waitFor({ timeout: 120_000 });
 await page.getByRole('button', { name: 'Buat klip', exact: true }).click();
 await page.getByLabel('Nama klip').fill('Installed desktop fixture');
-await page.getByLabel('Mulai (s)', { exact: true }).fill('1');
-await page.getByLabel('Selesai (s)', { exact: true }).fill('3');
+await page
+  .getByRole('dialog')
+  .getByLabel('Mulai di video sumber (detik)', { exact: true })
+  .fill('1');
+await page
+  .getByRole('dialog')
+  .getByLabel('Selesai di video sumber (detik)', { exact: true })
+  .fill('3');
 await page.getByRole('dialog').getByRole('button', { name: 'Buat klip' }).click();
 await page.getByRole('tab', { name: 'Judul', exact: true }).click();
 await page.getByLabel('Judul pembuka').fill('INSTALLED DESKTOP');

@@ -30,6 +30,11 @@ Independent creators working on podcasts, education, interviews, and gaming vide
 
 ## Reliability
 
+EDT-03 adds output-timed multiline hooks, video color adjustments, clear manual source ranges,
+and 21 licensed offline SFX. These extend existing revisioned scenes and audio layers. Filtered
+review is rendered through the same composition as export; Source remains quick cut/framing
+review. See docs/features/video-filters.md, manual-clipping.md, and sound-effects.md.
+
 CAP-01 includes 18 original caption recipes, category previews, editable styling, and up to
 50 named reusable styles. AI-03 adds a revision-bound local clip potential score with four
 transcript-grounded dimensions and editing suggestions. It cannot predict reach or virality.

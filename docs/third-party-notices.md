@@ -32,6 +32,12 @@ text icon rather than Tauri branding.
 
 Validation fixtures use the Whisper repository's JFK sample and scikit-image's NASA astronaut photograph. They remain in ignored test storage and are not product imagery or endorsements.
 
+The offline SFX library distributes unmodified selected WAV files from artisticdude's
+[Swishes Sound Pack](https://opengameart.org/content/swishes-sound-pack) and Kenney's
+[UI Sound Effects](https://opengameart.org/content/51-ui-sound-effects-buttons-switches-and-clicks),
+published under CC0 1.0. File/source archive hashes appear in resources/sfx.json; the packaged
+sfx/LICENSE.txt retains author/source/license information. These authors do not endorse the app.
+
 The optional speech pack retains model cards for
 [Indonesian XLSR](https://huggingface.co/cahya/wav2vec2-large-xlsr-indonesian),
 [English Wav2Vec2](https://huggingface.co/facebook/wav2vec2-base-960h), and

@@ -52,6 +52,13 @@ automatic refinement from being queued by an old discovery retry.
 
 ## Limits
 
+Content profiles include Podcast, Gaming, Motivation, Education, and Other content. Motivation
+prioritizes concrete obstacles, turning points, and complete practical lessons. Education keeps
+examples, answers, and necessary caveats. Other content uses self-contained stories/outcomes
+without assuming a podcast. Every non-Gaming profile requires at least eight seconds and the
+same independent grounded review. A profile changes editorial instructions, not model size,
+the context window, or the quality threshold. Accuracy on these categories is not certified.
+
 Selection is transcript-based. It cannot understand silent action, expressions, or active
 speakers, and poor recognition can produce poor suggestions. Small models may miss good clips
 or provide invalid evidence. Scores do not predict views. Review the source, edit captions,

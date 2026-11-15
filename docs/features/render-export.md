@@ -4,6 +4,14 @@ Requirement: FMT-01 / EXP-01. Status: implemented; validation coverage is record
 
 ## Behavior
 
+Render jobs bound the main decoder to at most two workers, the filter graph to one, and H.264
+encoding to half the available cores, clamped to one through four. This limits CPU/thread
+allocation; speed and memory still depend on geometry, source,
+and layer count. Output verification checks dimensions, duration, and audio. Edited review
+shows a loading state until video data is available. UI regression checks inspect painted
+frames in addition to media readiness. The reported transient black preview was not consistently
+reproduced; canvas lifecycle and first-load handling are hardened without claiming a GPU fix.
+
 Render portrait, square, landscape, preserved composition, blur background, or gaming layouts. Export 720p/1080p/1440p/2160p MP4 plus SRT and ASS, individually or in batches.
 
 The render snapshot is captured when the job is queued. Export IDs derive from the job, clip, and revision, so a retry can reuse a committed export even if its job checkpoint was interrupted. Batch progress includes the current item. All six compositions passed a real 720p timing test; native 1080p export passed separately.

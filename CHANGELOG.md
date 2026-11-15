@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.1.0-preview.7 (2026-11-15)
+
+### Added
+
+- Multiline hook editor with original reusable looks, output-relative start time, playhead
+  placement, and None/Fade/Pop animations shared with preview/export.
+- Five video color recipes and editable brightness, contrast, saturation, and warmth.
+- 21 offline CC0 whoosh/click/tap sounds with audition, integrity checks, managed imports,
+  and editable audio-layer placement.
+- Motivation, Education, and Other content discovery instructions with existing grounded
+  review, bounded context, and quality thresholds.
+
+### Fixed
+
+- Manual clipping now lives in the Studio toolbar, labels original-source seconds explicitly,
+  shows duration, and maps an edited playhead back to the correct source position.
+- Subtitle workers own their canvas without removing React's host during teardown. Edited
+  preview waits for video geometry, shows loading, and reuses paused subtitle frames.
+- Rendered files verify dimensions as well as duration/audio, with bounded FFmpeg workers.
+
+### Validation
+
+- Browser controls and real Windows ARM64 podcast preview/export passed. New installer,
+  physical x64, and Android runtime verification are pending; see docs/validation.md.
+
 ## 0.1.0-preview.6 (2026-11-15)
 
 ### Added

@@ -10,6 +10,8 @@ on:
       - 'scripts/validate-editorial.mjs'
       - 'scripts/validate-scenes.mjs'
       - 'scripts/validate-browser.mjs'
+      - 'scripts/validate-editor-tools.mjs'
+      - 'resources/sfx.json'
       - 'scripts/setup-tools.mjs'
       - 'scripts/setup-assets.mjs'
       - 'scripts/extract.ps1'
@@ -45,6 +47,7 @@ jobs:
       - run: cargo build --locked -p unlimitedclipper-engine
       - run: node scripts/validate-editorial.mjs
       - run: node scripts/validate-scenes.mjs
+      - run: node scripts/validate-editor-tools.mjs
       - run: node scripts/validate-caption-library.mjs
       - run: npx playwright install chromium
       - run: node scripts/validate-browser.mjs
@@ -55,6 +58,7 @@ jobs:
           path: |
             .cache/editorial-validation.json
             .cache/scene-media-validation.json
+            .cache/editor-tools-media-validation.json
             .cache/caption-media-validation.json
             .cache/caption-frames/
             test-results/

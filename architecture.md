@@ -42,6 +42,13 @@ equality. Later user edits invalidate that recovery marker.
 
 ## Persistence
 
+VideoAdjustments is an engine-validated optional legacy default within EditDocument. Its four
+integer values produce a fixed FFmpeg color plan applied before graphics. TitleStyle adds
+defaulted output-relative start time and animation. Health lists editor capabilities so older
+hosts disable unsupported controls. Built-in CC0 WAV files ship with the Studio, pass a hash
+check before import, and enter the existing managed-asset registry. The subtitle library owns
+its own canvas inside a React-owned host, so library teardown cannot remove React's host node.
+
 Caption recipes are engine-owned value objects. A separate caption_presets table stores up to
 50 validated user recipes; applying one copies styling into the edit document and preserves
 visibility/position. Deleting the recipe never changes an existing revision. Migration 0003

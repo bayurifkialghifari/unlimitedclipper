@@ -12,6 +12,10 @@ player, right inspector, and bottom timeline. The inspector and transcript scrol
 At narrower widths the side panels use labeled toggles; phones stack the player and selected
 panel. Project, processing, export, and settings pages use the full content width.
 
+Selecting a scene, visual layer, or audio layer opens its matching controls and hides unrelated
+media groups. Inspector tabs and selected layers reset their scroll position to the top. The
+full Source segments tab remains available for adding media when nothing is selected.
+
 The right inspector has one themed scrollbar in its body, with fixed tabs and an outer
 panel that does not scroll. Desktop, narrow, and phone layouts retain keyboard tab navigation.
 Forced-color mode uses the native scrollbar for accessibility.
@@ -57,6 +61,11 @@ Edited uses the same media composition as export, with a manual 720p render. The
 pauses when modes switch. Caption-only edits reuse the current proxy and live ASS overlay.
 Video/audio changes mark it stale, pause playback, disable its controls/seek, and hide the live
 caption overlay until a refreshed render finishes. Pointer movement never launches a media job.
+
+The subtitle library owns its canvas inside a React-owned host. Renderer teardown cannot remove
+the host, and initialization waits for nonzero video/frame geometry. Edited review indicates
+loading until decoded data is available. Paused previews reuse the last subtitle frame instead
+of repeatedly redrawing it. Track/style changes explicitly repaint the same output time.
 
 This editor does not provide real-time GPU compositing, source repetition, generative B-roll,
 cloud publishing, or a guarantee of OpusClip-equivalent AI selection/caption accuracy. Android

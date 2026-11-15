@@ -1,6 +1,7 @@
 # Feature documentation
 
 - [Source import](source-import.md)
+- [Manual clipping](manual-clipping.md)
 - [Local AI setup](local-ai.md)
 - [Clip discovery](clip-discovery.md)
 - [Clip potential rating](clip-rating.md)
@@ -8,6 +9,8 @@
 - [Editorial timeline](editorial-timeline.md)
 - [Speech quality pack](speech-quality-pack.md)
 - [Title editor](title-editor.md)
+- [Video filters](video-filters.md)
+- [Offline sound effects](sound-effects.md)
 - [Smart crop](smart-crop.md)
 - [Gaming split layout](gaming-layout.md)
 - [Watermark](watermark.md)
