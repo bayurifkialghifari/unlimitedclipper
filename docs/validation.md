@@ -58,7 +58,12 @@ passed all quality jobs and Linux x64/ARM64 plus macOS ARM package jobs, includi
 inspection inside the ARM disk image. Its macOS Intel job linked the ONNX Runtime shared library
 but failed to find the versioned symlink after also compiling unneeded test binaries. The next
 candidate follows the symlink, checks its Mach-O architecture, and builds only the shared runtime
-target. Hosted validation of that correction is pending.
+target. Run [43762607277](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43762607277)
+passed all quality checks and four Unix package jobs from commit acd0a74. CI staged and uploaded
+Linux x64/ARM64 AppImages, macOS Intel/ARM disk images, each package manifest, and its notice
+archive. Package inspection checked the AppImage ELF machine or executable Mach-O architecture
+inside the disk image. These are package/build checks; native Linux/macOS runtime, installation,
+system signing, and notarization remain unverified.
 
 | Anti-slop During gate | Status  | Evidence and remaining scope                                                                                                                                      |
 | --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
