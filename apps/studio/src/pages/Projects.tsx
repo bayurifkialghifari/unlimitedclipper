@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Button, Field } from '@unlimitedclipper/ui';
@@ -9,6 +9,7 @@ import { useText } from '../lib/i18n';
 import { time, date } from '../lib/format';
 import { QueryState } from '../molecules/QueryState';
 import { PageHeader } from '../molecules/PageHeader';
+import { ImportControls } from '../organisms/ImportControls';
 import styles from '../styles/Studio.module.css';
 
 export function Projects() {
@@ -18,6 +19,7 @@ export function Projects() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   async function action(work: () => Promise<unknown>) {
     setPending(true);
     setError(null);
@@ -40,6 +42,7 @@ export function Projects() {
           onChange={(event) => setSearch(event.target.value)}
         />
       </PageHeader>
+      <ImportControls inputRef={inputRef} />
       <QueryState
         pending={query.isPending}
         error={query.error}
@@ -54,7 +57,6 @@ export function Projects() {
         <div className={styles.empty}>
           <h2>{text.noProjects}</h2>
           <p>{text.noProjectsDetail}</p>
-          <Button onClick={() => navigate('/')}>{text.importVideo}</Button>
         </div>
       )}
       <div className={styles.gallery}>
@@ -78,8 +80,7 @@ export function Projects() {
                     variant="primary"
                     onClick={() =>
                       void action(async () => {
-                        useEditor.getState().selectProject(project.id);
-                        navigate('/');
+                        navigate('/projects/' + project.id);
                       })
                     }
                   >

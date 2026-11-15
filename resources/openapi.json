@@ -240,6 +240,30 @@
         }
       }
     },
+    "/api/v1/clips/{id}/preview-plan": {
+      "post": {
+        "tags": [],
+        "operationId": "preview_plan",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/PreviewPlanRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PreviewPlan" } }
+            }
+          },
+          "409": { "description": "" }
+        }
+      }
+    },
     "/api/v1/clips/{id}/preview-render": {
       "post": {
         "tags": [],
@@ -1152,6 +1176,23 @@
           "languages": { "type": "array", "items": { "type": "string" } },
           "ready": { "type": "boolean" },
           "size_bytes": { "type": "integer", "format": "int64", "minimum": 0 }
+        }
+      },
+      "PreviewPlan": {
+        "type": "object",
+        "required": ["source_asset_id", "document", "graphics"],
+        "properties": {
+          "document": { "$ref": "#/components/schemas/EditDocument" },
+          "graphics": { "type": "string" },
+          "source_asset_id": { "type": "string" }
+        }
+      },
+      "PreviewPlanRequest": {
+        "type": "object",
+        "required": ["revision", "document"],
+        "properties": {
+          "document": { "$ref": "#/components/schemas/EditDocument" },
+          "revision": { "type": "integer", "format": "int64" }
         }
       },
       "Project": {

@@ -17,21 +17,13 @@ export function useEngineEvents() {
       const event = JSON.parse(message.data) as { kind: string; job?: Job };
       void client.invalidateQueries({ queryKey: ['jobs'] });
       if (
-        !useEditor.getState().dirty &&
-        !useEditor.getState().saving &&
-        event.job?.status === 'completed' &&
-        event.job.project_id &&
-        ['import', 'youtube'].includes(event.job.kind)
-      ) {
-        useEditor.getState().selectProject(event.job.project_id);
-      }
-      if (
         event.kind !== 'job' ||
         event.job?.status === 'completed' ||
         event.job?.status === 'failed'
       ) {
         void client.invalidateQueries({ queryKey: ['projects'] });
         void client.invalidateQueries({ queryKey: ['project'] });
+        void client.invalidateQueries({ queryKey: ['clip'] });
         void client.invalidateQueries({ queryKey: ['models'] });
         void client.invalidateQueries({ queryKey: ['exports'] });
         void client.invalidateQueries({ queryKey: ['clip-rating'] });

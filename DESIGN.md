@@ -16,9 +16,10 @@ Reading this as a video editing studio for independent creators, using blue grap
 
 Desktop layouts keep the preview beside the inspector. Narrow layouts use a stacked preview and tabbed settings without horizontal overflow. Use native controls where possible, minimum 44px touch targets, meaningful labels, and visible focus rings. Project galleries show real thumbnails and records, never invented usage statistics.
 
-The visual editor uses a viewport-fitting three-column workspace: clips/transcript on the left,
-footage in the center, precise controls on the right, and a timeline underneath. Independent
-panel scrolling keeps the footage and playhead visible. Narrow layouts toggle side panels.
+The focused visual editor uses footage on the left, a 440-pixel resizable inspector on the
+right, and a timeline underneath. A project gallery precedes editing; manual source ranges
+have a separate page. An expandable transcript belongs in Captions. One inspector scrollbar
+keeps the footage and playhead visible. Narrow layouts stack the player and settings.
 Source scenes, caption words, visual layers, and audio layers use separate timeline rows; muted
 blue and amber distinguish media tracks, while amber outlines mark selection/playhead feedback. Drag
 previews have no decorative motion. Successful job notifications clear after six seconds to

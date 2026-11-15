@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
 import type { Clip, ProjectDetail } from '../../apps/studio/src/types';
+import { openTranscript } from './helpers';
 
 test('reorders real scenes, trims once per gesture, cuts transcript ranges, and protects stale previews', async ({
   page,
@@ -75,7 +76,7 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
     return project.clips.find((item) => item.id === clip.id)!;
   }
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.goto('/');
+  await page.goto('/studio/' + clip.id);
   const timeline = page.getByRole('region', { name: 'Timeline', exact: true });
   await expect(timeline).toBeVisible();
   const blue = timeline.getByRole('button', { name: 'Move layer · Scene 3', exact: true });
@@ -91,12 +92,13 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
     .poll(async () => (await saved()).document.segments?.map((scene) => scene.id))
     .toEqual(['blue', 'red', 'green']);
   expect(remaps).toBe(1);
-  const source = page.getByRole('region', { name: 'Source video', exact: true });
+  const source = page.getByRole('region', { name: 'Preview video', exact: true });
   const video = source.locator('video').first();
   await expect
     .poll(() => video.evaluate((element) => (element as HTMLVideoElement).readyState))
     .toBeGreaterThanOrEqual(1);
   await timeline.getByRole('button', { name: 'Video playhead', exact: true }).focus();
+  await openTranscript(page);
   const transcript = page.getByRole('region', { name: 'Transcript', exact: true });
   await transcript.getByRole('button', { name: 'BLUE', exact: true }).click();
   await expect
@@ -133,6 +135,7 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
   await page.keyboard.press('Escape');
   await page.mouse.up();
   expect(remaps).toBe(beforeCancel);
+  await openTranscript(page);
   await transcript.getByRole('button', { name: 'GREEN', exact: true }).click();
   await transcript.getByRole('button', { name: 'Remove caption text', exact: true }).click();
   await expect
@@ -142,9 +145,9 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
   await transcript.getByRole('button', { name: 'BLUE', exact: true }).click();
   await transcript.getByRole('button', { name: 'Cut from video', exact: true }).click();
   await expect.poll(async () => (await saved()).document.segments?.length).toBe(4);
-  await page.getByRole('button', { name: 'Edited', exact: true }).click();
   await page.getByRole('button', { name: 'Render edited preview', exact: true }).click();
-  const composed = page.getByRole('region', { name: 'Render edited preview', exact: true });
+  await page.getByRole('button', { name: 'Edited', exact: true }).waitFor();
+  const composed = page.getByRole('region', { name: 'Preview video', exact: true });
   await expect.poll(() => composed.locator('video').count()).toBe(1);
   await expect
     .poll(() =>
@@ -154,7 +157,7 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
   await timeline.getByRole('button', { name: 'Move layer · Scene 1', exact: true }).click();
   await page.getByRole('button', { name: 'Move later', exact: true }).click();
   await expect(
-    composed.getByText('Video edits changed. Refresh the preview to review the current edit.'),
+    page.getByText('Video edits changed. Refresh the preview to review the current edit.'),
   ).toBeVisible();
   await expect(composed.locator('video')).not.toHaveAttribute('controls', '');
   for (const viewport of [
@@ -172,7 +175,7 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
     }
   }
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.getByRole('button', { name: 'Source', exact: true }).click();
+  await page.getByRole('button', { name: 'Live preview', exact: true }).click();
   await page.screenshot({ path: 'test-results/visual-editor.png', fullPage: true });
   expect(errors).toEqual([]);
 });

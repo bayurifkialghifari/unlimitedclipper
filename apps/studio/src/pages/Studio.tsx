@@ -1,58 +1,76 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@unlimitedclipper/ui';
 import {
+  ArrowLeftIcon,
   DownloadSimpleIcon,
   ArrowCounterClockwiseIcon,
   ArrowClockwiseIcon,
-  TrashIcon,
-  ScissorsIcon,
 } from '@phosphor-icons/react';
-import { api, assetUrl } from '../lib/api';
+import { api } from '../lib/api';
 import { flushEditor } from '../lib/save';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
-import { jobMessage } from '../lib/job-text';
 import { time } from '../lib/format';
-import { outputDuration } from '../lib/timeline';
-import { useProject } from '../hooks/use-engine';
 import { QueryState } from '../molecules/QueryState';
 import { PageHeader } from '../molecules/PageHeader';
-import { ImportControls } from '../organisms/ImportControls';
-import { VideoPreview } from '../organisms/VideoPreview';
 import { ComposedPreview } from '../organisms/ComposedPreview';
 import { Inspector } from '../organisms/Inspector';
-import { TranscriptPanel } from '../organisms/TranscriptPanel';
 import { VisualTimeline } from '../organisms/VisualTimeline';
-import { ManualClipDialog } from '../organisms/ManualClipDialog';
-import type { Clip } from '../types';
 import shared from '../styles/Studio.module.css';
 import styles from '../styles/Editor.module.css';
 
 export function Studio() {
   const text = useText();
-  const project = useProject();
-  const jobs = useQuery({ queryKey: ['jobs'], queryFn: api.jobs, refetchInterval: 5000 });
+  const { clipId } = useParams();
+  const navigate = useNavigate();
   const editor = useEditor();
-  const input = useRef<HTMLInputElement>(null);
+  const clip = useQuery({
+    queryKey: ['clip', clipId],
+    queryFn: () => api.clip(clipId!),
+    enabled: Boolean(clipId),
+  });
+  const project = useQuery({
+    queryKey: ['project', clip.data?.project_id],
+    queryFn: () => api.project(clip.data!.project_id),
+    enabled: Boolean(clip.data),
+  });
   const sourceVideo = useRef<HTMLVideoElement>(null);
-  const [manual, setManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [mode, setMode] = useState('source');
-  const [panel, setPanel] = useState('transcript');
+  const [inspectorWidth, setInspectorWidth] = useState(440);
+  const [showInspector, setShowInspector] = useState(true);
 
   useEffect(() => {
-    if (!project.data) {
+    const saved = clip.data;
+    if (!saved) {
       return;
     }
-    const selected = project.data.clips.find((clip) => clip.id === useEditor.getState().clipId);
-    if (selected) {
-      useEditor.getState().acceptServer(selected);
-    } else if (!useEditor.getState().draft && project.data.clips[0]) {
-      useEditor.getState().selectClip(project.data.clips[0]);
+    let disposed = false;
+    async function select() {
+      const current = useEditor.getState();
+      if (current.clipId === saved!.id) {
+        current.acceptServer(saved!);
+        return;
+      }
+      try {
+        await flushEditor();
+        if (!disposed) {
+          useEditor.getState().selectProject(saved!.project_id);
+          useEditor.getState().selectClip(saved!);
+        }
+      } catch (failure) {
+        if (!disposed) {
+          setError((failure as Error).message);
+        }
+      }
     }
-  }, [project.data]);
+    void select();
+    return () => {
+      disposed = true;
+    };
+  }, [clip.data]);
 
   async function action(work: () => Promise<unknown>) {
     setPending(true);
@@ -67,83 +85,46 @@ export function Studio() {
     }
   }
 
-  function select(clip: Clip) {
-    void action(async () => {
-      useEditor.getState().selectClip(clip);
-    });
-  }
-
   const source = project.data?.project;
-  const lastDiscovery = jobs.data?.find(
-    (job) => job.kind === 'generate' && job.project_id === source?.id,
-  );
-  const noResults =
-    (lastDiscovery?.payload as { qualifying_moments?: number } | undefined)?.qualifying_moments ===
-    0;
+  const ready = editor.draft?.id === clipId;
   const busy = pending || editor.timelinePending;
-  const activePanel = editor.timelineSelection ? 'settings' : panel;
-
   return (
     <div className={styles.studio}>
-      <PageHeader
-        title={source?.name ?? text.studio}
-        detail={
-          source
-            ? time(source.duration_ms) + ' · ' + source.width + ' × ' + source.height
-            : text.offline
-        }
-        children={<ImportControls inputRef={input} />}
+      <PageHeader title={ready ? editor.draft!.name : text.studio} detail={source?.name}>
+        <Button
+          icon={<ArrowLeftIcon />}
+          disabled={busy}
+          onClick={() =>
+            void action(async () => {
+              navigate(source ? '/projects/' + source.id : '/projects');
+            })
+          }
+        >
+          {text.clipLibrary}
+        </Button>
+      </PageHeader>
+      <QueryState
+        pending={clip.isPending || Boolean(clip.data && project.isPending)}
+        error={clip.error ?? project.error}
+        retry={() => {
+          void clip.refetch();
+          if (clip.data) {
+            void project.refetch();
+          }
+        }}
       />
-      {editor.projectId && (
-        <QueryState
-          pending={project.isPending}
-          error={project.error}
-          retry={() => void project.refetch()}
-        />
-      )}
       {(error || editor.error) && (
-        <div className={shared.error} role="alert">
-          <p>{error ?? editor.error}</p>
-          {editor.error && (
-            <Button
-              onClick={() => {
-                const saved = project.data?.clips.find((clip) => clip.id === editor.clipId);
-                if (saved && window.confirm(text.reload)) {
-                  useEditor.getState().selectClip(saved);
-                }
-              }}
-            >
-              {text.reload}
-            </Button>
-          )}
-        </div>
+        <p className={shared.error} role="alert">
+          {error ?? editor.error}
+        </p>
       )}
-      <div className={styles.editorToolbar}>
-        <div className={styles.actions} aria-label={text.previewVideo}>
-          <Button aria-pressed={mode === 'source'} onClick={() => setMode('source')}>
-            {text.sourcePreview}
-          </Button>
-          <Button
-            aria-pressed={mode === 'edited'}
-            disabled={!editor.draft}
-            onClick={() => setMode('edited')}
-          >
-            {text.editedPreview}
-          </Button>
-        </div>
-        <div className={styles.actions}>
-          <Button
-            icon={<ScissorsIcon />}
-            disabled={!source || busy}
-            onClick={() => setManual(true)}
-          >
-            {text.manualClip}
-          </Button>
-          {editor.draft && (
-            <>
-              <span className={styles.hint} role="status">
-                {editor.saving ? text.saving : editor.dirty ? text.unsaved : text.saved}
-              </span>
+      {ready && (
+        <>
+          <div className={styles.editorToolbar}>
+            <span className={styles.hint} role="status">
+              {editor.saving ? text.saving : editor.dirty ? text.unsaved : text.saved}
+            </span>
+            <div className={styles.actions}>
               <Button
                 aria-label={text.undo}
                 disabled={!editor.history.length || busy}
@@ -158,124 +139,80 @@ export function Studio() {
               >
                 <ArrowClockwiseIcon />
               </Button>
+              <Button aria-pressed={showInspector} onClick={() => setShowInspector(!showInspector)}>
+                {text.options}
+              </Button>
               <Button
                 variant="primary"
+                icon={<DownloadSimpleIcon />}
                 disabled={busy}
-                onClick={() => void action(() => api.clipAction(editor.draft!.id, 'export'))}
+                onClick={() => void action(() => api.clipAction(clipId!, 'export'))}
               >
-                <DownloadSimpleIcon aria-hidden="true" />
                 {text.exportClip}
               </Button>
-              <Button
-                aria-label={text.delete}
-                disabled={busy}
-                onClick={() =>
-                  void action(async () => {
-                    await api.deleteClip(editor.draft!.id);
-                    useEditor.setState({
-                      draft: null,
-                      clipId: null,
-                      dirty: false,
-                      timelineSelection: null,
-                    });
-                    await project.refetch();
-                  })
-                }
-              >
-                <TrashIcon />
-              </Button>
-            </>
-          )}
-          <Button
-            disabled={!source || !project.data?.clips.length || busy}
-            onClick={() => void action(() => api.batchExport(source!.id))}
-          >
-            {text.exportAll}
-          </Button>
-        </div>
-      </div>
-      <div className={styles.mobileTabs} aria-label={text.options}>
-        {[
-          ['transcript', text.transcript],
-          ['settings', text.options],
-        ].map(([value, label]) => (
-          <Button
-            key={value}
-            aria-pressed={activePanel === value}
-            onClick={() => {
-              useEditor.setState({ timelineSelection: null });
-              setPanel(value);
-            }}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-      <div className={styles.editorBody}>
-        <aside className={styles.leftPanel} data-visible={activePanel === 'transcript'}>
-          <section className={styles.library} aria-label={text.clipLibrary}>
-            {lastDiscovery?.status === 'completed' &&
-              Boolean((lastDiscovery.payload as Record<string, unknown>)?.discovery_report) && (
-                <p className={styles.hint} role="status">
-                  {jobMessage(text, lastDiscovery)}
-                </p>
-              )}
-            <h2>
-              {text.clipLibrary} · {project.data?.clips.length ?? 0}
-            </h2>
-            {!project.data?.clips.length ? (
-              <p className={styles.hint}>
-                {lastDiscovery?.status === 'completed' && noResults
-                  ? jobMessage(text, lastDiscovery)
-                  : text.noClipsDetail}
-              </p>
-            ) : (
-              <div className={styles.clipList}>
-                {project.data.clips.map((clip) => (
-                  <button
-                    key={clip.id}
-                    disabled={busy}
-                    aria-pressed={editor.clipId === clip.id}
-                    onClick={() => select(clip)}
-                  >
-                    {source?.thumbnail_id && <img src={assetUrl(source.thumbnail_id)} alt="" />}
-                    <span>
-                      <strong>{clip.name}</strong>
-                      <small>{time(outputDuration(clip.document))}</small>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-          <TranscriptPanel key={editor.clipId} />
-        </aside>
-        <div className={styles.previewSlot}>
-          <div className={styles.playerSlot} hidden={mode !== 'source'}>
-            <VideoPreview
-              project={source}
-              mediaRef={sourceVideo}
-              onImport={() => input.current?.click()}
-              active={mode === 'source'}
-            />
-          </div>
-          {editor.draft && (
-            <div className={styles.playerSlot} hidden={mode !== 'edited'}>
-              <ComposedPreview key={editor.draft.id} active={mode === 'edited'} />
             </div>
-          )}
-        </div>
-        <div className={styles.rightPanel} data-visible={activePanel === 'settings'}>
-          <Inspector project={source} sourceVideo={sourceVideo} />
-        </div>
-      </div>
-      {editor.draft && (
-        <VisualTimeline
-          key={editor.draft.id}
-          sourceDuration={source?.duration_ms ?? editor.draft.document.end_ms}
-        />
+          </div>
+          <div
+            className={styles.editorBody}
+            style={{ '--inspector-width': inspectorWidth + 'px' } as React.CSSProperties}
+            data-inspector={showInspector}
+          >
+            <div className={styles.previewSlot}>
+              <ComposedPreview key={clipId} project={source} sourceVideo={sourceVideo} />
+            </div>
+            <button
+              type="button"
+              className={styles.inspectorResize}
+              role="slider"
+              aria-label={text.inspectorWidth}
+              aria-orientation="vertical"
+              tabIndex={0}
+              aria-valuemin={400}
+              aria-valuemax={560}
+              aria-valuenow={inspectorWidth}
+              onKeyDown={(event) => {
+                if (event.key === 'Home' || event.key === 'End') {
+                  event.preventDefault();
+                  setInspectorWidth(event.key === 'Home' ? 400 : 560);
+                }
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                  event.preventDefault();
+                  setInspectorWidth(
+                    Math.max(
+                      400,
+                      Math.min(560, inspectorWidth + (event.key === 'ArrowLeft' ? 20 : -20)),
+                    ),
+                  );
+                }
+              }}
+              onPointerDown={(event) => {
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerMove={(event) => {
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  const bounds = event.currentTarget.parentElement!.getBoundingClientRect();
+                  setInspectorWidth(Math.max(400, Math.min(560, bounds.right - event.clientX)));
+                }
+              }}
+              onPointerUp={(event) => {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }}
+            />
+            <div className={styles.rightPanel}>
+              <Inspector project={source} sourceVideo={sourceVideo} focused />
+            </div>
+          </div>
+          <VisualTimeline
+            key={clipId}
+            sourceDuration={source?.duration_ms ?? editor.draft!.document.end_ms}
+          />
+        </>
       )}
-      {manual && source && <ManualClipDialog project={source} onClose={() => setManual(false)} />}
+      {source && (
+        <span className={styles.hint}>
+          {time(source.duration_ms)} · {source.width} × {source.height}
+        </span>
+      )}
     </div>
   );
 }

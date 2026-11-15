@@ -175,6 +175,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clips/{id}/preview-plan': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['preview_plan'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clips/{id}/preview-render': {
     parameters: {
       query?: never;
@@ -964,6 +980,16 @@ export interface components {
       /** Format: int64 */
       size_bytes: number;
     };
+    PreviewPlan: {
+      document: components['schemas']['EditDocument'];
+      graphics: string;
+      source_asset_id: string;
+    };
+    PreviewPlanRequest: {
+      document: components['schemas']['EditDocument'];
+      /** Format: int64 */
+      revision: number;
+    };
     Project: {
       asset_id: string;
       /** Format: int64 */
@@ -1498,6 +1524,37 @@ export interface operations {
         content: {
           'text/plain': string;
         };
+      };
+    };
+  };
+  preview_plan: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PreviewPlanRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PreviewPlan'];
+        };
+      };
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

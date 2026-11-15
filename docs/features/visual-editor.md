@@ -7,10 +7,16 @@ pending. See ../validation.md for the evidence and scope.
 
 ## Workspace
 
-The desktop workspace fits the available window height with a clip/transcript panel, central
-player, right inspector, and bottom timeline. The inspector and transcript scroll independently.
-At narrower widths the side panels use labeled toggles; phones stack the player and selected
-panel. Project, processing, export, and settings pages use the full content width.
+Projects open a clip gallery at /projects/:projectId. Editing a clip opens /studio/:clipId,
+with one player, a right inspector, and a bottom timeline. Manual range selection has its own
+/projects/:projectId/manual page; creating the range opens that clip in the studio. Imports
+remain available on Projects. Finishing an import never replaces a clip being edited.
+
+The desktop inspector starts at 440 pixels and supports pointer or keyboard resizing from
+400 to 560 pixels on wide windows. Smaller screens stack the player and settings. The inspector
+toggle keeps its contents mounted so hiding it does not discard field values. Transcript range
+selection is expandable inside Captions. Project, processing, export, and settings pages use
+the full content width. A gallery currently uses the source thumbnail for each clip.
 
 Selecting a scene, visual layer, or audio layer opens its matching controls and hides unrelated
 media groups. Inspector tabs and selected layers reset their scroll position to the top. The
@@ -50,22 +56,30 @@ Scene body arrows reorder one position. Escape cancels a captured drag. Drag pre
 temporary; release applies one transaction. An asynchronous scene response must match the same
 clip and draft snapshot before it can apply. Undo/redo and revision-aware autosave remain shared.
 
-## Two preview modes
+## Live and exact preview
 
-Source follows output scene order in the original/proxy video without rendering a new file.
-It skips omitted ranges and drives captions/playhead in output time. It provides quick cut and
-base-framing review; it does not compose B-roll or audio layers. Small playback discontinuities
-can occur when the browser seeks between scenes.
+One visible Canvas2D surface combines decoded footage and CPU libass graphics. Live preview
+follows edited scene order, crops, split/gaming framing, enabled B-roll, image watermarks, and
+caption/hook graphics. Color adjustments update immediately through an RGB approximation.
+Seeking between scenes can cause a short discontinuity. Reaching the end of the source file
+continues into the next edited scene when that scene was moved earlier in the clip.
 
-Edited uses the same media composition as export, with a manual 720p render. The hidden player
-pauses when modes switch. Caption-only edits reuse the current proxy and live ASS overlay.
-Video/audio changes mark it stale, pause playback, disable its controls/seek, and hide the live
-caption overlay until a refreshed render finishes. Pointer movement never launches a media job.
+The revision-checked preview-plan API validates the document and registered assets and returns
+the engine ASS track. Caption rendering uses the pinned libass WASM in one worker, with one
+in-flight frame request. Track changes discard stale frame responses. Canvas size has a
+720-pixel maximum edge. Paused footage reuses its composition until an edit or seek changes it.
 
-The subtitle library owns its canvas inside a React-owned host. Renderer teardown cannot remove
-the host, and initialization waits for nonzero video/frame geometry. Edited review indicates
-loading until decoded data is available. Paused previews reuse the last subtitle frame instead
-of repeatedly redrawing it. Track/style changes explicitly repaint the same output time.
+Render edited preview produces a fully baked 720p video through the export pipeline, including
+captions and audio. The same canvas paints it, avoiding stacked native video/GPU surfaces.
+Live preview stays available during rendering. The finished render is shown only while its
+clip and entire edit-document signature match. Editing returns to live preview and marks the
+previous render stale. No pointer movement launches a render job. Asset leases renew every
+30 seconds while the matching cached preview is retained.
+
+Live preview uses the source soundtrack. Imported audio layers are heard in the exact render.
+Warmth and other live RGB adjustments approximate the export's YUV filters; the exact render
+is the final color and audio review. Loading, worker/media errors, and render progress remain
+visible. Preview jobs never create export records.
 
 This editor does not provide real-time GPU compositing, source repetition, generative B-roll,
 cloud publishing, or a guarantee of OpusClip-equivalent AI selection/caption accuracy. Android

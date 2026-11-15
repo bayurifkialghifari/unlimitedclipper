@@ -1,5 +1,41 @@
 # Validation evidence
 
+## Focused studio and composed preview, 2026-11-15
+
+scripts/validate-composed-preview.mjs passed painted footage, one visible canvas, immediate
+filter pixel changes, exact playback, and gallery reopen, with no console/page errors.
+Evidence: .cache/composed-preview-validation.json and .cache/composed-preview-{live,filter,exact}.png.
+The final rerun also passed revision-conflict and asset-kind rejection checks.
+
+An isolated Windows ARM64 debug desktop, built with a separate test application identifier,
+processed eight seconds from the existing 48-minute podcast. Native live video had mean
+luminance 143.19 and chroma 15.21. Its visible screenshot contains the speakers and manual
+hook. Monochrome exact playback painted footage. The native bridge and one canvas were
+present, with no page errors. Evidence: scripts/validate-native-composition.mjs,
+.cache/native-composition-validation.json, and .cache/native-composition-{live,exact}.png.
+The user's published app and canonical projects were not used for mutations. This verifies
+a native debug runtime, not installer or packaged release execution.
+
+The complete twelve-case browser suite passed together against the final production build
+in 1.6 minutes. Coverage includes manual creation, caption editing/styles,
+rating revisions, scene reorder/cuts, undo, autosave, exact playback, progress/recovery,
+bilingual settings, downloads, and narrow layouts. Evidence: tests/browser and test-results.
+
+scripts/validate-editorial.mjs, validate-scenes.mjs, and validate-editor-tools.mjs passed real
+media in six layouts, source color/audio ordering, immutable exports, filtered preview/export,
+timed hook color, SFX mixing, and full decoding. The six-second editor-tools preview took
+8.82 seconds and export 7.77 seconds in this run; these fixture times are not a long-video
+benchmark. Evidence: .cache/editorial-validation.json, .cache/scene-media-validation.json,
+and .cache/editor-tools-media-validation.json.
+
+The scoped anti-slop During gate passes original graphite/amber identity, actual managed
+records, working/disabled controls, keyboard tabs/resizing, one themed inspector rail,
+forced-color fallback, loading/errors, and visible-media evidence. Live RGB approximates
+final YUV grading and retains source audio; exact rendering is the final audio/color check.
+Gallery thumbnails currently reuse source thumbnails. Active-speaker accuracy, optional new
+AI packs, Android runtime, physical x64/macOS/Linux runtime, and a new packaged release remain
+pending. Additional editing work is tracked in features/advanced-editing.md.
+
 ## Status
 
 The implemented clipping workflow has passed real media, browser, and native ARM64 interaction checks. This is a development validation record, not a claim that every release gate or operating system is certified. Unrun scenarios remain pending.

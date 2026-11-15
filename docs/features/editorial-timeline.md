@@ -55,8 +55,9 @@ Overlapping speech, background music, and quiet laughter can defeat these heuris
 ## Preview and export
 
 Render edited preview creates a 720p registered proxy from the same media composition as export.
-Captions remain a live ASS overlay. Titles, graphics, branding, audio, and cuts are baked into the
-proxy. Media changes show a stale-preview message; caption-only changes use the existing proxy.
+Captions, titles, graphics, branding, audio, and cuts are baked into the proxy. Every document
+change invalidates the exact render. The live canvas remains available while rendering and
+when edits make the cached revision stale. See visual-editor.md for live composition limits.
 Preview jobs create no export records. The preview cache is limited to 4 GiB and active asset
 requests renew a two-minute lease. The open preview also renews its lease every 30 seconds.
 Suspended tabs can expire; render again if their asset is unavailable. Export always uses an
@@ -67,6 +68,7 @@ immutable saved revision.
 - POST /api/v1/clips/{id}/timeline-preview
 - POST /api/v1/clips/{id}/auto-edit
 - POST /api/v1/clips/{id}/preview-render
+- POST /api/v1/clips/{id}/preview-plan
 - GET and POST /api/v1/assets/audio
 - GET /api/v1/clips/{id}/subtitles?format=vtt&timeline=output
 

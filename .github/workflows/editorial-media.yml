@@ -11,6 +11,7 @@ on:
       - 'scripts/validate-scenes.mjs'
       - 'scripts/validate-browser.mjs'
       - 'scripts/validate-editor-tools.mjs'
+      - 'scripts/validate-composed-preview.mjs'
       - 'resources/sfx.json'
       - 'scripts/setup-tools.mjs'
       - 'scripts/setup-assets.mjs'
@@ -50,6 +51,7 @@ jobs:
       - run: node scripts/validate-editor-tools.mjs
       - run: node scripts/validate-caption-library.mjs
       - run: npx playwright install chromium
+      - run: node scripts/validate-composed-preview.mjs
       - run: node scripts/validate-browser.mjs
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         if: always()
@@ -61,5 +63,9 @@ jobs:
             .cache/editor-tools-media-validation.json
             .cache/caption-media-validation.json
             .cache/caption-frames/
+            .cache/composed-preview-validation.json
+            .cache/composed-preview-live.png
+            .cache/composed-preview-filter.png
+            .cache/composed-preview-exact.png
             test-results/
           if-no-files-found: warn

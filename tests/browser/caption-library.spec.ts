@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
+import { createManualClip } from './helpers';
 import type { ClipRating, Job, ModelStatus } from '../../apps/studio/src/types';
 
 test('edits and reuses caption styles, then reviews rating states without losing edits', async ({
@@ -74,12 +75,7 @@ test('edits and reuses caption styles, then reviews rating states without losing
     .locator('input[type="file"]')
     .first()
     .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
-  await expect(page.getByRole('heading', { name: 'speech-face.mp4' })).toBeVisible();
-  await page.getByRole('button', { name: 'Create a clip', exact: true }).click();
-  await page.getByLabel('Clip name').fill('Caption library browser fixture');
-  await page.getByRole('dialog').getByLabel('Source start (seconds)', { exact: true }).fill('0');
-  await page.getByRole('dialog').getByLabel('Source end (seconds)', { exact: true }).fill('4');
-  await page.getByRole('dialog').getByRole('button', { name: 'Create a clip' }).click();
+  await createManualClip(page, 'Caption library browser fixture');
   await page.getByRole('tab', { name: 'Captions', exact: true }).click();
   await page.getByRole('button', { name: 'Add caption word', exact: true }).click();
   await page.getByRole('tabpanel').getByLabel('Text', { exact: true }).fill('LOCAL');
@@ -118,8 +114,7 @@ test('edits and reuses caption styles, then reviews rating states without losing
       data: { name: 'Saved style second clip', start_ms: 4000, end_ms: 7000 },
     })
   ).json();
-  await page.reload();
-  await page.getByRole('button', { name: /Saved style second clip/ }).click();
+  await page.goto('/studio/' + second.id);
   await page.getByRole('tab', { name: 'Captions', exact: true }).click();
   await page.getByRole('button', { name: 'Saved styles', exact: true }).click();
   await gallery.getByRole('button', { name: 'Interview browser style', exact: true }).click();
@@ -136,8 +131,8 @@ test('edits and reuses caption styles, then reviews rating states without losing
   const retained = await (await request.get('/api/v1/clips/' + second.id)).json();
   expect(retained.document.captions).toEqual(styled.document.captions);
 
-  await page.getByRole('button', { name: /Caption library browser fixture/ }).click();
-  await page.getByRole('tab', { name: 'Clip options', exact: true }).click();
+  await page.goto('/studio/' + first.id);
+  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
   const panel = page
     .locator('details')
     .filter({ has: page.locator('summary').filter({ hasText: 'Clip potential' }) });
@@ -151,8 +146,7 @@ test('edits and reuses caption styles, then reviews rating states without losing
   finishRating?.();
   await expect(rate).toBeEnabled();
   await page.reload();
-  await page.getByRole('button', { name: /Caption library browser fixture/ }).click();
-  await page.getByRole('tab', { name: 'Clip options', exact: true }).click();
+  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
   await panel.locator('summary').click();
   await expect(panel.getByRole('meter')).toHaveCount(4);
   await expect(panel.getByRole('status', { name: 'Clip potential' })).toHaveText('80/100');
@@ -193,7 +187,7 @@ test('edits and reuses caption styles, then reviews rating states without losing
     .getByRole('complementary', { name: 'Progress and alerts', exact: true })
     .getByRole('button', { name: 'Close', exact: true })
     .click();
-  await page.getByRole('tab', { name: 'Clip options', exact: true }).click();
+  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
   await panel.locator('summary').click();
   await expect(rate).toBeDisabled();
   await expect(panel.getByRole('alert')).toHaveText('Controlled worker failure');
@@ -204,7 +198,6 @@ test('edits and reuses caption styles, then reviews rating states without losing
     (await (await request.get('/api/v1/clips/' + first.id)).json()).document.words[0].text,
   ).toBe('LOCAL');
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Clip options', exact: true }).click();
   await page.getByRole('tab', { name: 'Captions', exact: true }).click();
   await page.getByRole('button', { name: 'All styles', exact: true }).click();
   await expect(gallery.getByRole('button')).toHaveCount(18);

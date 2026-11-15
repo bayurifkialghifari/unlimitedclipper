@@ -17,6 +17,7 @@ import { TimelineEditor } from './TimelineEditor';
 import { HookEditor } from './HookEditor';
 import { VideoStyleEditor } from './VideoStyleEditor';
 import { ContentProfileSelect } from '../molecules/ContentProfileSelect';
+import { TranscriptPanel } from './TranscriptPanel';
 import type { CropRect, Layout, Project } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -26,12 +27,14 @@ const fonts = ['Noto Sans', 'DM Sans', 'Oswald'];
 export function Inspector({
   project,
   sourceVideo,
+  focused = false,
 }: {
   project?: Project;
   sourceVideo?: RefObject<HTMLVideoElement | null>;
+  focused?: boolean;
 }) {
   const text = useText();
-  const [chosenTab, setChosenTab] = useState('options');
+  const [chosenTab, setChosenTab] = useState(focused ? 'captions' : 'options');
   const selection = useEditor((state) => state.timelineSelection);
   const inspectorBody = useRef<HTMLDivElement>(null);
   const tab = selection ? 'timeline' : chosenTab;
@@ -110,7 +113,7 @@ export function Inspector({
     ['style', text.videoFilters],
     ['branding', text.branding],
     ['timeline', text.timelineSegments],
-  ];
+  ].filter(([value]) => (document ? !focused || value !== 'options' : value === 'options'));
 
   async function action(operation: () => Promise<unknown>) {
     setPending(true);
@@ -438,6 +441,10 @@ export function Inspector({
         {tab !== 'options' && !document && <p className={styles.hint}>{text.noClipsDetail}</p>}
         {tab === 'captions' && document && (
           <>
+            <details>
+              <summary>{text.transcript}</summary>
+              <TranscriptPanel key={draft?.id} showTextEditor={false} />
+            </details>
             <h2>{text.captions}</h2>
             <CaptionPresetLibrary
               current={document.captions}
@@ -743,6 +750,42 @@ export function Inspector({
         {tab === 'crop' && document && (
           <>
             <h2>{text.crop}</h2>
+            {focused && (
+              <>
+                <Field
+                  label={text.name}
+                  value={draft!.name}
+                  maxLength={150}
+                  onChange={(event) => useEditor.getState().rename(event.target.value)}
+                />
+                <Select
+                  label={text.format}
+                  value={document.layout}
+                  onChange={(value) => setLayout(value as Layout)}
+                >
+                  {(['portrait', 'square', 'landscape', 'contain', 'blur', 'gaming'] as const).map(
+                    (layout) => (
+                      <option key={layout} value={layout}>
+                        {text[layout]}
+                      </option>
+                    ),
+                  )}
+                </Select>
+                <Segmented
+                  label={text.resolution}
+                  value={String(document.resolution)}
+                  onChange={(value) =>
+                    change((next) => {
+                      next.resolution = Number(value);
+                    })
+                  }
+                  options={[720, 1080, 1440, 2160].map((value) => ({
+                    value: String(value),
+                    label: value + 'p',
+                  }))}
+                />
+              </>
+            )}
             <Select
               label={text.framingMode}
               value={tracking}
@@ -1012,7 +1055,29 @@ export function Inspector({
             )}
           </>
         )}
-        {tab === 'timeline' && document && <TimelineEditor key={draft!.id} />}
+        {tab === 'timeline' && document && (
+          <>
+            {focused && (
+              <>
+                <Field
+                  label={text.name}
+                  value={draft!.name}
+                  maxLength={150}
+                  onChange={(event) => useEditor.getState().rename(event.target.value)}
+                />
+                <ClipRatingPanel
+                  key={'rating-' + draft!.id}
+                  clip={draft!}
+                  modelReady={largeReady}
+                  dirty={dirty}
+                  saving={saving}
+                />
+                <EditorialPanel key={draft!.id} />
+              </>
+            )}
+            <TimelineEditor key={draft!.id} />
+          </>
+        )}
       </div>
     </aside>
   );

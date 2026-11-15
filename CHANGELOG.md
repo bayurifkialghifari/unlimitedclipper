@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- Live and exact review share one visible canvas, with CPU libass graphics and fully baked
+  exact previews. Live filters, framing, and captions repaint without a video render.
+- Reordered scenes continue after the source file endpoint. Direct project/studio routes
+  restore the matching persistent clip with a successful application response.
+- Imports refresh the library without replacing an active draft. Exact previews reject stale
+  document signatures and renew their managed cache leases.
+- Projects open a clip gallery; a selected clip opens a focused studio. Manual clipping has
+  a separate source-range page with exact seconds and playhead setters.
+- The right inspector starts at 440 pixels, supports pointer/keyboard resizing, and keeps
+  one scrollbar. Transcript range selection is expandable within Captions.
+- Windows ARM64 native WebView2 painted and played an actual podcast in live/exact review.
+  Real media checks passed six compositions, scene/audio timing, filters, hooks, and SFX.
+  Detailed browser, native, and release boundaries are recorded in docs/validation.md.
+
 ## 0.1.0-preview.8 (2026-11-15)
 
 ### Added

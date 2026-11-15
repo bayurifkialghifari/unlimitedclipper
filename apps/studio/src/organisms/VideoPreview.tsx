@@ -1,108 +1,56 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@unlimitedclipper/ui';
-import {
-  PlayIcon,
-  PauseIcon,
-  ArrowCounterClockwiseIcon,
-  ArrowClockwiseIcon,
-  FilmStripIcon,
-} from '@phosphor-icons/react';
-import JASSUB from 'jassub';
-import workerUrl from 'jassub/dist/worker/worker.js?worker&url';
-import wasmUrl from 'jassub/dist/wasm/jassub-worker.wasm?url';
-import modernWasmUrl from 'jassub/dist/wasm/jassub-worker-modern.wasm?url';
-import wasmWorkerUrl from 'jassub/dist/wasm/jassub-worker.js?url';
-import modernWasmWorkerUrl from 'jassub/dist/wasm/jassub-worker-modern.js?url';
+import { PlayIcon, PauseIcon, FilmStripIcon } from '@phosphor-icons/react';
 import { api, assetUrl } from '../lib/api';
+import { AssRenderer } from '../lib/ass-renderer';
+import { cameraAt, colorFilter, drawRegion } from '../lib/preview-drawing';
+import { sourceSegments } from '../lib/timeline';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { time } from '../lib/format';
-import type { CropRect, EditDocument, Project } from '../types';
-import styles from '../styles/Studio.module.css';
-import { CropHandle } from '../molecules/CropHandle';
-import { sourceSegments } from '../lib/timeline';
 import { usePreviewFrame } from '../hooks/use-preview-frame';
+import { CropHandle } from '../molecules/CropHandle';
+import type { Project } from '../types';
+import styles from '../styles/Studio.module.css';
 
-function currentCrop(document: EditDocument, milliseconds: number): CropRect {
-  let previous = { time_ms: 0, x: document.crop.x, y: document.crop.y };
-  for (const next of document.keyframes) {
-    if (next.time_ms > milliseconds) {
-      const ratio = Math.max(
-        0,
-        (milliseconds - previous.time_ms) / (next.time_ms - previous.time_ms),
-      );
-      return {
-        ...document.crop,
-        x: previous.x + (next.x - previous.x) * ratio,
-        y: previous.y + (next.y - previous.y) * ratio,
-      };
-    }
-    previous = next;
-  }
-  return { ...document.crop, x: previous.x, y: previous.y };
-}
-
-function videoStyle(
-  project: Project,
-  crop: CropRect,
-  width: number,
-  height: number,
-  contain = false,
-): CSSProperties {
-  const scale = contain
-    ? Math.min(width / project.width, height / project.height)
-    : Math.max(width / (project.width * crop.width), height / (project.height * crop.height));
-  return {
-    width: project.width * scale,
-    height: project.height * scale,
-    left: contain
-      ? (width - project.width * scale) / 2
-      : -crop.x * project.width * scale - (project.width * crop.width * scale - width) / 2,
-    top: contain
-      ? (height - project.height * scale) / 2
-      : -crop.y * project.height * scale - (project.height * crop.height * scale - height) / 2,
-  };
-}
+const full = { x: 0, y: 0, width: 1, height: 1 };
 
 export function VideoPreview({
   project,
   onImport,
   active = true,
   mediaRef,
+  renderedAsset,
 }: {
   project?: Project;
-  onImport: () => void;
+  onImport?: () => void;
   active?: boolean;
   mediaRef?: RefObject<HTMLVideoElement | null>;
+  renderedAsset?: string;
 }) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
   const playhead = useEditor((state) => state.playhead);
   const seekRequest = useEditor((state) => state.seekRequest);
-  const stage = useRef<HTMLDivElement>(null);
-  const sceneIndex = useRef(0);
-  const frame = useRef<HTMLDivElement>(null);
   const internalVideo = useRef<HTMLVideoElement>(null);
-  const primary = mediaRef ?? internalVideo;
-  const secondary = useRef<HTMLVideoElement>(null);
-  const canvas = useRef<HTMLDivElement>(null);
-  const renderer = useRef<JASSUB | null>(null);
-  const [size, setSize] = useState({ width: 270, height: 480 });
+  const videoRef = mediaRef ?? internalVideo;
+  const stage = useRef<HTMLDivElement>(null);
+  const surface = useRef<HTMLCanvasElement>(null);
+  const broll = useRef<HTMLVideoElement>(null);
+  const watermark = useRef<HTMLImageElement>(null);
+  const sceneIndex = useRef(0);
+  const renderer = useRef<AssRenderer | null>(null);
+  const subtitle = useRef<ImageBitmap | null>(null);
+  const repaint = useRef(0);
+  const trackVersion = useRef(0);
   const [playing, setPlaying] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
-  const [videoError, setVideoError] = useState<string | null>(null);
-  const [watermarkError, setWatermarkError] = useState<string | null>(null);
-  const [watermarkSize, setWatermarkSize] = useState<{
-    id: string;
-    width: number;
-    height: number;
-  } | null>(null);
-  const fonts = useQuery({ queryKey: ['fonts'], queryFn: api.fonts, enabled: Boolean(project) });
+  const [loadedSource, setLoadedSource] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [captionError, setCaptionError] = useState(false);
+  const fonts = useQuery({ queryKey: ['fonts'], queryFn: api.fonts, enabled: Boolean(draft) });
   const document = draft?.document;
-  const hasDocument = Boolean(document);
-  const clipId = draft?.id;
-  const captionsUrl = clipId ? '/api/v1/clips/' + clipId + '/subtitles?format=vtt' : undefined;
+  const exact = Boolean(renderedAsset);
   const segmentKey = JSON.stringify(
     document ? sourceSegments(document) : [{ start_ms: 0, end_ms: project?.duration_ms ?? 0 }],
   );
@@ -110,358 +58,415 @@ export function VideoPreview({
     () => JSON.parse(segmentKey) as { start_ms: number; end_ms: number }[],
     [segmentKey],
   );
-  const duration = segments.reduce((sum, scene) => sum + scene.end_ms - scene.start_ms, 0);
+  const duration = segments.reduce((sum, item) => sum + item.end_ms - item.start_ms, 0);
   const layout = document?.layout ?? 'landscape';
   const aspect = layout === 'square' ? 1 : layout === 'landscape' ? 16 / 9 : 9 / 16;
   const frameWidth = usePreviewFrame(stage, aspect);
-  const crop = document ? currentCrop(document, playhead) : { x: 0, y: 0, width: 1, height: 1 };
+  const width = Math.round(aspect >= 1 ? 720 : 720 * aspect);
+  const height = Math.round(aspect >= 1 ? 720 / aspect : 720);
+  const source = renderedAsset ?? project?.preview_asset_id ?? project?.asset_id;
+  const loaded = Boolean(source && loadedSource === source);
+  const clipId = draft?.id;
+  const roll =
+    !exact &&
+    document?.visual_layers?.find(
+      (layer) =>
+        layer.enabled &&
+        layer.kind === 'broll' &&
+        layer.start_ms <= playhead &&
+        layer.end_ms > playhead,
+    );
 
   useEffect(() => {
-    if (!frame.current) {
+    sceneIndex.current = 0;
+  }, [source, draft?.id]);
+
+  useEffect(() => {
+    repaint.current += 1;
+  }, [document, roll, width, height]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) {
       return;
     }
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-        setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
-      }
-    });
-    observer.observe(frame.current);
-    return () => observer.disconnect();
-  }, [project?.id]);
-
-  useEffect(() => {
+    if (!active) {
+      video.pause();
+      broll.current?.pause();
+      return;
+    }
     const position = Math.min(duration, useEditor.getState().playhead);
+    if (exact) {
+      video.currentTime = position / 1000;
+      return;
+    }
     let offset = 0;
-    for (let index = 0; index < segments.length; index += 1) {
-      const scene = segments[index];
+    for (const [index, scene] of segments.entries()) {
       const length = scene.end_ms - scene.start_ms;
       if (position < offset + length || index === segments.length - 1) {
         sceneIndex.current = index;
-        const seconds = (scene.start_ms + position - offset) / 1000;
-        for (const video of [primary.current, secondary.current]) {
-          if (video) {
-            video.currentTime = seconds;
-            if (!active) {
-              video.pause();
-            }
-          }
-        }
+        video.currentTime = (scene.start_ms + position - offset) / 1000;
         break;
       }
       offset += length;
     }
-  }, [segments, duration, active, clipId, seekRequest, primary]);
+  }, [segments, duration, active, exact, source, draft?.id, seekRequest, loaded, videoRef]);
 
   useEffect(() => {
-    if (!canvas.current || !hasDocument || !fonts.data) {
+    if (!clipId || !fonts.data || exact) {
       return;
     }
-    const surface = window.document.createElement('canvas');
-    surface.className = styles.subtitleCanvas;
-    surface.width = 1080;
-    surface.height = 1920;
-    canvas.current.append(surface);
-    const subtitle = new JASSUB({
-      canvas: surface,
-      subContent: '[Script Info]\nScriptType: v4.00+\n',
-      workerUrl,
-      wasmUrl,
-      modernWasmUrl,
-      wasmWorkerUrl,
-      modernWasmWorkerUrl,
-      fonts: fonts.data.map((name) => '/api/v1/fonts/' + encodeURIComponent(name)),
-      defaultFont: 'Noto Sans',
-      queryFonts: false,
+    const current = new AssRenderer(fonts.data);
+    renderer.current = current;
+    let disposed = false;
+    void current.ready.catch(() => {
+      if (!disposed) {
+        setCaptionError(true);
+      }
     });
-    renderer.current = subtitle;
-    void subtitle.ready.catch(() => setPreviewError(true));
     return () => {
+      disposed = true;
       renderer.current = null;
-      void subtitle.destroy();
+      subtitle.current?.close();
+      subtitle.current = null;
+      current.destroy();
     };
-  }, [clipId, hasDocument, fonts.data]);
+  }, [clipId, fonts.data, exact]);
 
   useEffect(() => {
-    if (!document || !draft) {
+    if (!draft || exact || !renderer.current) {
       return;
     }
+    trackVersion.current += 1;
+    const current = renderer.current;
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       void api
-        .preview(draft.id, document, controller.signal)
-        .then(async (content) => {
-          if (controller.signal.aborted) {
+        .previewPlan(draft, controller.signal)
+        .then(async (plan) => {
+          if (controller.signal.aborted || renderer.current !== current) {
             return;
           }
-          const subtitle = renderer.current;
-          if (subtitle) {
-            await subtitle.ready;
-            if (controller.signal.aborted) {
-              return;
-            }
-            await subtitle.renderer.setTrack(content);
-            await subtitle.resize(true, size.width, size.height);
-            setPreviewError(false);
+          await current.setTrack(plan.graphics);
+          if (!controller.signal.aborted) {
+            subtitle.current?.close();
+            subtitle.current = null;
+            repaint.current += 1;
+            setCaptionError(false);
           }
         })
-        .catch((error: Error) => {
-          if (error.name !== 'AbortError') {
-            setPreviewError(true);
+        .catch((failure: Error) => {
+          if (!controller.signal.aborted && failure.name !== 'AbortError') {
+            setCaptionError(true);
           }
         });
-    }, 150);
+    }, 100);
     return () => {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [draft, document, size.width, size.height, fonts.data]);
+  }, [draft, fonts.data, exact]);
 
   useEffect(() => {
-    const video = primary.current;
-    if (!video || !project || !active) {
+    const video = videoRef.current;
+    const canvas = surface.current;
+    if (!video || !canvas || !project || !active) {
+      return;
+    }
+    const context = canvas.getContext('2d', { alpha: false });
+    if (!context) {
+      setError(text.videoError);
       return;
     }
     let handle = 0;
-    let lastStoreUpdate = 0;
-    let busy = false;
-    const update = () => {
+    let lastUpdate = 0;
+    let lastDraw = '';
+    let lastSubtitle = '';
+    let subtitleBusy = false;
+    let disposed = false;
+    function update() {
+      handle = requestAnimationFrame(update);
+      if (video!.readyState < 2 || video!.seeking || performance.now() - lastUpdate < 33) {
+        return;
+      }
       let scene = segments[sceneIndex.current];
       if (!scene) {
         return;
       }
-      if (video.currentTime * 1000 >= scene.end_ms && (!video.paused || video.ended)) {
+      if (!exact && video!.currentTime * 1000 >= scene.end_ms && (!video!.paused || video!.ended)) {
         if (sceneIndex.current < segments.length - 1) {
-          sceneIndex.current += 1;
-          scene = segments[sceneIndex.current];
-          video.currentTime = scene.start_ms / 1000;
-          if (video.paused) {
-            void video.play().catch(() => setVideoError(project.id));
+          scene = segments[++sceneIndex.current];
+          video!.currentTime = scene.start_ms / 1000;
+          if (video!.paused) {
+            void video!.play().catch(() => setError(text.videoError));
           }
-        } else {
-          video.pause();
-          secondary.current?.pause();
+          return;
         }
+        video!.pause();
       }
       const offset = segments
         .slice(0, sceneIndex.current)
         .reduce((sum, item) => sum + item.end_ms - item.start_ms, 0);
-      const milliseconds =
-        offset +
-        Math.max(
-          0,
-          Math.min(scene.end_ms - scene.start_ms, video.currentTime * 1000 - scene.start_ms),
-        );
-      if (performance.now() - lastStoreUpdate > 80) {
-        useEditor.getState().setPlayhead(milliseconds);
-        lastStoreUpdate = performance.now();
+      const position = exact
+        ? video!.currentTime * 1000
+        : offset +
+          Math.max(
+            0,
+            Math.min(scene.end_ms - scene.start_ms, video!.currentTime * 1000 - scene.start_ms),
+          );
+      if (Math.abs(useEditor.getState().playhead - position) > 15) {
+        useEditor.getState().setPlayhead(position);
       }
-      const subtitle = renderer.current;
-      if (subtitle && !busy) {
-        busy = true;
-        void subtitle.ready
-          .then(() =>
-            subtitle.manualRender(
-              {
-                expectedDisplayTime: performance.now(),
-                width: size.width,
-                height: size.height,
-                mediaTime: milliseconds / 1000,
-              },
-              !playing,
-            ),
-          )
-          .catch(() => setPreviewError(true))
+      lastUpdate = performance.now();
+      const identity = video!.currentTime + ':' + repaint.current;
+      if (identity === lastDraw) {
+        return;
+      }
+      lastDraw = identity;
+      context!.filter = 'none';
+      context!.fillStyle = '#000000';
+      context!.fillRect(0, 0, width, height);
+      context!.filter = exact ? 'none' : colorFilter(document);
+      if (exact || !document) {
+        drawRegion(context!, video!, full, 0, 0, width, height);
+      } else if (layout === 'gaming') {
+        const split = height * document.split_ratio;
+        drawRegion(context!, video!, document.facecam_crop, 0, 0, width, split);
+        drawRegion(context!, video!, document.gameplay_crop, 0, split, width, height - split);
+      } else {
+        const splitLayer = document.visual_layers?.find(
+          (layer) =>
+            layer.enabled &&
+            layer.kind === 'split' &&
+            layer.start_ms <= position &&
+            layer.end_ms > position,
+        );
+        const punch = document.visual_layers?.find(
+          (layer) =>
+            layer.enabled &&
+            layer.kind === 'punch_in' &&
+            layer.start_ms <= position &&
+            layer.end_ms > position,
+        );
+        if (splitLayer?.crop && splitLayer.secondary_crop) {
+          drawRegion(context!, video!, splitLayer.crop, 0, 0, width, height / 2);
+          drawRegion(context!, video!, splitLayer.secondary_crop, 0, height / 2, width, height / 2);
+        } else {
+          if (layout === 'blur') {
+            context!.filter = colorFilter(document) + ' blur(18px)';
+            drawRegion(context!, video!, full, 0, 0, width, height);
+            context!.filter = colorFilter(document);
+          }
+          drawRegion(
+            context!,
+            video!,
+            punch?.crop ?? cameraAt(document, position),
+            0,
+            0,
+            width,
+            height,
+            layout === 'contain' || layout === 'blur',
+          );
+        }
+      }
+      if (roll && broll.current && broll.current.readyState >= 2) {
+        const rollTime = ((roll.source_start_ms ?? 0) + position - roll.start_ms) / 1000;
+        if (Math.abs(broll.current.currentTime - rollTime) > 0.1) {
+          broll.current.currentTime = rollTime;
+        }
+        drawRegion(context!, broll.current, full, 0, 0, width, height);
+      }
+      context!.filter = 'none';
+      if (!exact && document?.video_adjustments?.warmth) {
+        const warmth = document.video_adjustments.warmth;
+        context!.fillStyle = warmth > 0 ? 'rgba(255, 146, 40, 0.10)' : 'rgba(30, 130, 255, 0.10)';
+        context!.globalAlpha = Math.abs(warmth) / 100;
+        context!.fillRect(0, 0, width, height);
+        context!.globalAlpha = 1;
+      }
+      if (!exact && watermark.current?.complete && watermark.current.naturalWidth && document) {
+        const mark = document.watermark;
+        const image = watermark.current;
+        const markWidth = Math.min(
+          width * mark.scale,
+          (height * image.naturalWidth) / image.naturalHeight,
+        );
+        const markHeight = (markWidth * image.naturalHeight) / image.naturalWidth;
+        context!.globalAlpha = mark.opacity;
+        context!.drawImage(
+          image,
+          (width - markWidth) * mark.x,
+          (height - markHeight) * mark.y,
+          markWidth,
+          markHeight,
+        );
+        context!.globalAlpha = 1;
+      }
+      if (!exact && subtitle.current) {
+        context!.drawImage(subtitle.current, 0, 0, width, height);
+      }
+      const current = renderer.current;
+      const version = trackVersion.current;
+      const subtitleKey = position + ':' + repaint.current;
+      if (current && !subtitleBusy && subtitleKey !== lastSubtitle) {
+        subtitleBusy = true;
+        lastSubtitle = subtitleKey;
+        void current
+          .frame(position / 1000, width, height)
+          .then((bitmap) => {
+            if (disposed || renderer.current !== current || version !== trackVersion.current) {
+              bitmap.close();
+              return;
+            }
+            subtitle.current?.close();
+            subtitle.current = bitmap;
+            lastDraw = '';
+          })
+          .catch(() => {
+            if (!disposed) {
+              setCaptionError(true);
+            }
+          })
           .finally(() => {
-            busy = false;
+            subtitleBusy = false;
           });
       }
-      if (secondary.current && Math.abs(secondary.current.currentTime - video.currentTime) > 0.1) {
-        secondary.current.currentTime = video.currentTime;
-      }
-      handle = requestAnimationFrame(update);
-    };
+    }
     handle = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(handle);
-  }, [project, segments, active, size.width, size.height, playing, primary]);
-
-  function seek(milliseconds: number) {
-    useEditor.getState().seekTo(Math.max(0, Math.min(duration, milliseconds)));
-  }
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(handle);
+    };
+  }, [
+    project,
+    document,
+    segments,
+    active,
+    exact,
+    width,
+    height,
+    roll,
+    videoRef,
+    text.videoError,
+    layout,
+  ]);
 
   async function togglePlay() {
-    if (!primary.current) {
+    const video = videoRef.current;
+    if (!video) {
       return;
     }
-    if (primary.current.paused) {
+    if (video.paused) {
       if (playhead >= duration - 50) {
-        seek(0);
+        useEditor.getState().seekTo(0);
+        video.currentTime = exact ? 0 : segments[0].start_ms / 1000;
       }
-      await primary.current.play();
-      await secondary.current?.play();
+      await video.play();
+      await broll.current?.play();
     } else {
-      primary.current.pause();
-      secondary.current?.pause();
+      video.pause();
+      broll.current?.pause();
     }
   }
 
-  const source = project ? assetUrl(project.preview_asset_id ?? project.asset_id) : '';
-  const split = document?.split_ratio ?? 0.3;
-  const watermarkLoaded = watermarkSize?.id === document?.watermark.asset_id;
-  const watermarkWidth =
-    watermarkLoaded && watermarkSize
-      ? Math.min(
-          size.width * (document?.watermark.scale ?? 0.18),
-          (size.height * watermarkSize.width) / watermarkSize.height,
-        )
-      : 0;
-  const primaryRect = layout === 'gaming' ? document!.facecam_crop : crop;
-  const fullCrop = { x: 0, y: 0, width: 1, height: 1 };
   return (
-    <section className={styles.previewPanel} aria-label={text.source}>
+    <section className={styles.previewPanel} aria-label={text.previewVideo}>
       <div className={styles.previewTop}>
-        <span>{project ? project.width + ' × ' + project.height : text.source}</span>
-        <span>{text.sourcePreviewHint}</span>
+        <span>{exact ? text.editedPreview : text.livePreview}</span>
+        <span>{exact ? text.editedPreview : text.livePreviewHint}</span>
       </div>
       <div ref={stage} className={styles.previewStage}>
         {!project ? (
           <div className={styles.empty}>
             <FilmStripIcon className={styles.emptyIcon} aria-hidden="true" />
             <h2>{text.emptyTitle}</h2>
-            <p>{text.emptyDetail}</p>
-            <Button variant="primary" onClick={onImport}>
-              {text.chooseFile}
-            </Button>
+            {onImport && (
+              <Button variant="primary" onClick={onImport}>
+                {text.chooseFile}
+              </Button>
+            )}
           </div>
         ) : (
-          <div
-            ref={frame}
-            className={styles.videoFrame}
-            style={{ aspectRatio: aspect, width: frameWidth }}
-          >
-            {layout === 'blur' && (
-              <div className={styles.videoRegion}>
-                <video
-                  ref={secondary}
-                  src={source}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className={styles.sourceVideo}
-                  style={{
-                    ...videoStyle(project, fullCrop, size.width, size.height),
-                    filter: 'blur(20px)',
-                  }}
-                  aria-hidden="true"
-                >
-                  <track kind="captions" src={captionsUrl} />
-                </video>
-              </div>
-            )}
-            <div
-              className={styles.videoRegion}
-              style={
-                layout === 'gaming' ? { bottom: 'auto', height: split * 100 + '%' } : undefined
-              }
+          <div className={styles.videoFrame} style={{ aspectRatio: aspect, width: frameWidth }}>
+            <canvas
+              ref={surface}
+              width={width}
+              height={height}
+              className={styles.composedCanvas}
+              aria-label={project.name}
+            />
+            <video
+              ref={videoRef}
+              src={source ? assetUrl(source) : undefined}
+              className={styles.previewDecoder}
+              playsInline
+              preload="auto"
+              aria-hidden="true"
+              onLoadStart={() => {
+                setLoadedSource(null);
+                setError(null);
+              }}
+              onLoadedData={() => setLoadedSource(source ?? null)}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onEnded={() => setPlaying(false)}
+              onError={() => setError(text.videoError)}
             >
+              <track kind="captions" />
+            </video>
+            {roll && roll.asset_id && (
               <video
-                ref={primary}
-                src={source}
+                key={roll.asset_id}
+                ref={broll}
+                src={assetUrl(roll.asset_id)}
+                className={styles.previewDecoder}
+                muted
                 playsInline
-                preload="metadata"
-                className={styles.sourceVideo}
-                style={videoStyle(
-                  project,
-                  primaryRect,
-                  size.width,
-                  layout === 'gaming' ? size.height * split : size.height,
-                  layout === 'contain' || layout === 'blur',
-                )}
-                onLoadedMetadata={() => {
-                  setVideoError(null);
-                  seek(0);
+                preload="auto"
+                aria-hidden="true"
+                onLoadedData={() => {
+                  repaint.current += 1;
+                  if (playing) {
+                    void broll.current?.play().catch(() => setError(text.videoError));
+                  }
                 }}
-                onPlay={() => setPlaying(true)}
-                onPause={() => setPlaying(false)}
-                onError={() => setVideoError(project.id)}
-                aria-label={project.name}
+                onError={() => setError(text.videoError)}
               >
-                <track
-                  kind="captions"
-                  src={captionsUrl}
-                  srcLang={project.language ?? 'en'}
-                  label={text.captions}
-                />
+                <track kind="captions" />
               </video>
-            </div>
-            {layout === 'gaming' && document && (
-              <div className={styles.videoRegion} style={{ top: split * 100 + '%' }}>
-                <video
-                  ref={secondary}
-                  src={source}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className={styles.sourceVideo}
-                  style={videoStyle(
-                    project,
-                    document.gameplay_crop,
-                    size.width,
-                    size.height * (1 - split),
-                  )}
-                  aria-hidden="true"
-                >
-                  <track kind="captions" src={captionsUrl} />
-                </video>
-              </div>
             )}
-            {document?.watermark.mode === 'image' && document.watermark.asset_id && (
+            {!exact && document?.watermark.mode === 'image' && document.watermark.asset_id && (
               <img
-                key={document.watermark.asset_id}
+                ref={watermark}
                 src={assetUrl(document.watermark.asset_id)}
                 alt=""
-                className={styles.imageWatermark}
-                onLoad={(event) => {
-                  setWatermarkError(null);
-                  setWatermarkSize({
-                    id: document.watermark.asset_id!,
-                    width: event.currentTarget.naturalWidth,
-                    height: event.currentTarget.naturalHeight,
-                  });
+                className={styles.previewDecoder}
+                onLoad={() => {
+                  repaint.current += 1;
                 }}
-                onError={() => setWatermarkError(document.watermark.asset_id ?? null)}
-                style={{
-                  left: document.watermark.x * 100 + '%',
-                  top: document.watermark.y * 100 + '%',
-                  width: watermarkWidth,
-                  visibility: watermarkLoaded ? 'visible' : 'hidden',
-                  opacity: document.watermark.opacity,
-                  transform:
-                    'translate(' +
-                    -document.watermark.x * 100 +
-                    '%, ' +
-                    -document.watermark.y * 100 +
-                    '%)',
-                }}
+                onError={() => setError(text.videoError)}
               />
             )}
-            {document && (
-              <div key={clipId} ref={canvas} className={styles.subtitleCanvas} aria-hidden="true" />
+            {!loaded && !error && (
+              <p role="status" className={styles.previewLoading}>
+                {text.previewLoadingVideo}
+              </p>
             )}
-            {document && ['portrait', 'square', 'landscape'].includes(layout) && (
+            {!exact && document && ['portrait', 'square', 'landscape'].includes(layout) && (
               <CropHandle
                 label={text.cropDrag}
                 onMove={(horizontal, vertical) => {
                   useEditor.getState().change((edit) => {
-                    const current = currentCrop(edit, playhead);
+                    const crop = cameraAt(edit, playhead);
                     const x = Math.max(
                       0,
-                      Math.min(1 - current.width, current.x + horizontal * current.width),
+                      Math.min(1 - crop.width, crop.x + horizontal * crop.width),
                     );
                     const y = Math.max(
                       0,
-                      Math.min(1 - current.height, current.y + vertical * current.height),
+                      Math.min(1 - crop.height, crop.y + vertical * crop.height),
                     );
-                    if (edit.keyframes.length > 0 && playhead > 0) {
+                    if (edit.keyframes.length && playhead > 0) {
                       const time_ms = Math.round(playhead);
                       edit.keyframes = edit.keyframes.filter((key) => key.time_ms !== time_ms);
                       edit.keyframes.push({ time_ms, x, y });
@@ -477,49 +482,25 @@ export function VideoPreview({
           </div>
         )}
       </div>
-      {project && videoError === project.id && (
-        <p className={styles.error} role="alert">
-          {text.videoError}
+      {error && (
+        <p role="alert" className={styles.error}>
+          {error}
         </p>
       )}
-      {document?.watermark.mode === 'image' &&
-        document.watermark.asset_id &&
-        watermarkError === document.watermark.asset_id && (
-          <p className={styles.error} role="alert">
-            {text.watermarkError}
-          </p>
-        )}
-      {previewError && (
-        <p className={styles.hint} role="status">
+      {captionError && (
+        <p role="status" className={styles.hint}>
           {text.previewError}
         </p>
       )}
       {project && (
         <div className={styles.playerControls}>
-          <div className={styles.playerButtons}>
-            <Button
-              variant="ghost"
-              aria-label={text.undo + ' 5s'}
-              onClick={() => seek(playhead - 5000)}
-            >
-              <ArrowCounterClockwiseIcon size={19} />
-            </Button>
-            <Button
-              variant="primary"
-              className={styles.playButton}
-              aria-label={playing ? text.pause : text.play}
-              onClick={() => void togglePlay().catch(() => setPreviewError(true))}
-            >
-              {playing ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
-            </Button>
-            <Button
-              variant="ghost"
-              aria-label={text.redo + ' 5s'}
-              onClick={() => seek(playhead + 5000)}
-            >
-              <ArrowClockwiseIcon size={19} />
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            aria-label={playing ? text.pause : text.play}
+            onClick={() => void togglePlay().catch(() => setError(text.videoError))}
+          >
+            {playing ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
+          </Button>
           <input
             type="range"
             min={0}
@@ -527,7 +508,7 @@ export function VideoPreview({
             step={10}
             value={Math.min(playhead, duration)}
             aria-label={text.playhead}
-            onChange={(event) => seek(Number(event.target.value))}
+            onChange={(event) => useEditor.getState().seekTo(Number(event.target.value))}
           />
           <span>
             {time(playhead)} / {time(duration)}

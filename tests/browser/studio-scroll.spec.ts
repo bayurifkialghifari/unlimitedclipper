@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
+import { createManualClip } from './helpers';
 
 test('keeps one inspector scrollbar after clip creation at desktop and narrow sizes', async ({
   page,
@@ -12,11 +13,7 @@ test('keeps one inspector scrollbar after clip creation at desktop and narrow si
     .locator('input[type="file"]')
     .first()
     .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
-  await expect(page.getByRole('heading', { name: 'speech-face.mp4' })).toBeVisible();
-  await page.getByRole('button', { name: 'Create a clip', exact: true }).click();
-  await page.getByLabel('Clip name').fill('Scrollbar interaction fixture');
-  await page.getByRole('dialog').getByLabel('Source end (seconds)', { exact: true }).fill('4');
-  await page.getByRole('dialog').getByRole('button', { name: 'Create a clip' }).click();
+  await createManualClip(page, 'Scrollbar interaction fixture');
   for (const viewport of [
     { width: 1920, height: 1009 },
     { width: 1280, height: 720 },
@@ -24,9 +21,6 @@ test('keeps one inspector scrollbar after clip creation at desktop and narrow si
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    if (viewport.width <= 1100) {
-      await page.getByRole('button', { name: 'Clip options', exact: true }).click();
-    }
     await page.getByRole('tab', { name: 'Captions', exact: true }).click();
     const panel = page.getByRole('tabpanel');
     const geometry = await panel.evaluate((element) => {
@@ -58,8 +52,8 @@ test('keeps one inspector scrollbar after clip creation at desktop and narrow si
     await panel.evaluate((element) => {
       element.scrollTop = 0;
     });
-    await page.getByRole('tab', { name: 'Clip options', exact: true }).focus();
-    await page.keyboard.press('ArrowRight');
+    await page.getByRole('tab', { name: 'Crop', exact: true }).focus();
+    await page.keyboard.press('ArrowLeft');
     await expect(page.getByRole('tab', { name: 'Captions', exact: true })).toBeFocused();
   }
   await page.emulateMedia({ forcedColors: 'active' });

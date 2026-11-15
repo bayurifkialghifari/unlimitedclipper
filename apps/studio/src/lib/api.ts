@@ -1,6 +1,7 @@
 import type {
   Clip,
   EditDocument,
+  PreviewPlan,
   Export,
   Health,
   CaptionPreset,
@@ -43,6 +44,13 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 }
 
 export const api = {
+  clip: (id: string) => request<Clip>('/clips/' + id),
+  previewPlan: (clip: Clip, signal?: AbortSignal) =>
+    request<PreviewPlan>('/clips/' + clip.id + '/preview-plan', {
+      method: 'POST',
+      body: JSON.stringify({ revision: clip.revision, document: clip.document }),
+      signal,
+    }),
   audioAssets: () => request<AudioAsset[]>('/assets/audio'),
   qualityPack: () => request<PackStatus>('/models/quality-pack'),
   autoEdit: (id: string, revision: number, profile: string, remove_silence: boolean) =>

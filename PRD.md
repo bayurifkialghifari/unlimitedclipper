@@ -33,7 +33,9 @@ Independent creators working on podcasts, education, interviews, and gaming vide
 EDT-03 adds output-timed multiline hooks, video color adjustments, clear manual source ranges,
 and 21 licensed offline SFX. These extend existing revisioned scenes and audio layers. Filtered
 review is rendered through the same composition as export; Source remains quick cut/framing
-review. See docs/features/video-filters.md, manual-clipping.md, and sound-effects.md.
+review. Live canvas edits now show RGB filter approximations immediately; exact rendering
+includes every caption and audio layer. See docs/features/video-filters.md, manual-clipping.md,
+visual-editor.md, and sound-effects.md.
 
 Video filter recipes include real-source thumbnails and a lightweight still-image comparison.
 A configurable export folder in Settings is deferred; current exports remain managed files.

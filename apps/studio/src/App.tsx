@@ -14,6 +14,12 @@ const Studio = lazy(async () => {
 const Projects = lazy(async () => {
   return { default: (await import('./pages/Projects')).Projects };
 });
+const ProjectDetail = lazy(async () => {
+  return { default: (await import('./pages/ProjectDetail')).ProjectDetail };
+});
+const ManualClip = lazy(async () => {
+  return { default: (await import('./pages/ManualClip')).ManualClip };
+});
 const Exports = lazy(async () => {
   return { default: (await import('./pages/Exports')).Exports };
 });
@@ -89,8 +95,11 @@ export function App() {
       <Shell>
         <Suspense fallback={<p role="status">{text.waiting}</p>}>
           <Routes>
-            <Route path="/" element={<Studio />} />
+            <Route path="/" element={<Navigate to="/projects" replace />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:projectId" element={<ProjectDetail />} />
+            <Route path="/projects/:projectId/manual" element={<ManualClip />} />
+            <Route path="/studio/:clipId" element={<Studio />} />
             <Route path="/exports" element={<Exports />} />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/settings" element={<SettingsPage />} />

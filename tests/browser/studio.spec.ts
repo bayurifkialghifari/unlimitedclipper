@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
+import { createManualClip, openTranscript } from './helpers';
 
 test.beforeEach(async ({ request }) => {
   const settings = await (await request.get('/api/v1/settings')).json();
@@ -23,22 +24,8 @@ test('imports, edits, saves, reopens, renders captions and exports real media', 
     .locator('input[type="file"]')
     .first()
     .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
-  await expect(page.getByRole('heading', { name: 'speech-face.mp4' })).toBeVisible({
-    timeout: 120_000,
-  });
-  await page.getByRole('button', { name: 'Buat klip', exact: true }).click();
-  await page.getByLabel('Nama klip').fill('Browser caption fixture');
-  await page
-    .getByRole('dialog')
-    .getByLabel('Mulai di video sumber (detik)', { exact: true })
-    .fill('1');
-  await page
-    .getByRole('dialog')
-    .getByLabel('Selesai di video sumber (detik)', { exact: true })
-    .fill('5');
-  await page.getByRole('dialog').getByRole('button', { name: 'Buat klip' }).click();
-  await expect(page.getByRole('button', { name: /Browser caption fixture/ })).toBeVisible();
-  await page.getByRole('tab', { name: 'Caption', exact: true }).click();
+  await createManualClip(page, 'Browser caption fixture', 1, 5, 'id');
+  await openTranscript(page, 'id');
   await page.getByRole('button', { name: 'Tambah kata caption' }).click();
   await page.getByRole('tabpanel').getByLabel('Teks', { exact: true }).fill('LOCAL');
   await expect(
@@ -58,7 +45,7 @@ test('imports, edits, saves, reopens, renders captions and exports real media', 
     await expect(captionPosition).toHaveValue(savedPosition);
   }
   await page.getByRole('button', { name: 'Studio', exact: true }).click();
-  await page.getByRole('tab', { name: 'Judul', exact: true }).click();
+  await page.getByRole('tab', { name: 'Hook', exact: true }).click();
   await page.getByLabel('Judul pembuka').fill('LOCAL CAPTION TEST');
   await expect(page.getByText('Tersimpan lokal', { exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Crop', exact: true }).click();
@@ -73,7 +60,9 @@ test('imports, edits, saves, reopens, renders captions and exports real media', 
   await page.getByRole('button', { name: 'Jeda', exact: true }).click();
   await page.screenshot({ path: 'test-results/studio-desktop.png', fullPage: true });
   await page.reload();
-  await expect(page.getByRole('button', { name: /Browser caption fixture/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Browser caption fixture', exact: true }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Ekspor klip', exact: true }).click();
   await page.getByRole('link', { name: 'Hasil ekspor', exact: true }).click();
   await expect(
@@ -99,7 +88,12 @@ test('supports English settings and a narrow studio without horizontal overflow'
   await expect(second.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   await secondContext.close();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('link', { name: 'Studio', exact: true }).click();
+  await page.getByRole('link', { name: 'Projects', exact: true }).click();
+  await page
+    .locator('input[type="file"]')
+    .first()
+    .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
+  await createManualClip(page, 'Narrow studio fixture');
   await page.screenshot({ path: 'test-results/studio-mobile.png', fullPage: true });
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
@@ -120,12 +114,7 @@ test('edits source segments and local layers, then plays a composed preview', as
     .locator('input[type="file"]')
     .first()
     .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
-  await expect(page.getByRole('heading', { name: 'speech-face.mp4' })).toBeVisible();
-  await page.getByRole('button', { name: 'Create a clip', exact: true }).click();
-  await page.getByLabel('Clip name').fill('Timeline browser fixture');
-  await page.getByRole('dialog').getByLabel('Source start (seconds)', { exact: true }).fill('1');
-  await page.getByRole('dialog').getByLabel('Source end (seconds)', { exact: true }).fill('3');
-  await page.getByRole('dialog').getByRole('button', { name: 'Create a clip' }).click();
+  await createManualClip(page, 'Timeline browser fixture', 1, 3);
   await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
   const timeline = page.getByRole('region', { name: 'Source segments', exact: true });
   await timeline.getByLabel('Start (s)', { exact: true }).last().fill('5');
@@ -179,10 +168,10 @@ test('edits source segments and local layers, then plays a composed preview', as
   await page.keyboard.press('ArrowRight');
   await audio.getByLabel('End (s)', { exact: true }).fill('0.5');
   await expect(page.getByText('Saved locally', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Edited', exact: true }).click();
   await page.getByRole('button', { name: 'Render edited preview', exact: true }).click();
-  const composed = page.getByRole('region', { name: 'Render edited preview', exact: true });
-  await expect(composed.locator('video')).toBeVisible({ timeout: 90000 });
+  await page.getByRole('button', { name: 'Edited', exact: true }).waitFor({ timeout: 90000 });
+  const composed = page.getByRole('region', { name: 'Preview video', exact: true });
+  await expect(composed.locator('canvas')).toBeVisible();
   await expect
     .poll(() => composed.locator('video').evaluate((video: HTMLVideoElement) => video.readyState))
     .toBeGreaterThan(1);
@@ -200,7 +189,6 @@ test('edits source segments and local layers, then plays a composed preview', as
   await page.screenshot({ path: 'test-results/editorial-studio.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
-  await page.getByRole('button', { name: 'Clip options', exact: true }).click();
   await timeline
     .getByRole('group', { name: 'Add camera frame', exact: true })
     .getByRole('button', { name: 'Delete', exact: true })

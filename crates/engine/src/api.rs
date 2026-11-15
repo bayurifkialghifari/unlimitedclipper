@@ -88,6 +88,19 @@ pub struct TimelineRequest {
 }
 
 #[derive(Deserialize, ToSchema)]
+pub struct PreviewPlanRequest {
+    pub revision: i64,
+    pub document: EditDocument,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct PreviewPlan {
+    pub source_asset_id: String,
+    pub document: EditDocument,
+    pub graphics: String,
+}
+
+#[derive(Deserialize, ToSchema)]
 pub struct CreateClipRequest {
     pub name: String,
     pub start_ms: i64,
@@ -158,6 +171,7 @@ pub struct Health {
         import_model,
         clip_subtitles,
         preview_subtitles,
+        preview_plan,
         preview_render,
         timeline_preview,
         auto_edit,
@@ -202,6 +216,8 @@ pub struct Health {
         RevisionRequest,
         AutoEditRequest,
         TimelineRequest,
+        PreviewPlanRequest,
+        PreviewPlan,
         crate::quality_pack::PackStatus,
         crate::caption_presets::CaptionPreset,
         crate::caption_presets::SaveCaptionPreset,
@@ -324,6 +340,7 @@ pub fn router(state: AppState) -> Router {
         .route("/clips/{id}/rating", get(get_clip_rating).post(rate_clip))
         .route("/clips/{id}/subtitles", get(clip_subtitles))
         .route("/clips/{id}/preview", post(preview_subtitles))
+        .route("/clips/{id}/preview-plan", post(preview_plan))
         .route("/clips/{id}/preview-render", post(preview_render))
         .route("/clips/{id}/timeline-preview", post(timeline_preview))
         .route("/clips/{id}/auto-edit", post(auto_edit))
@@ -431,7 +448,11 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Health>> {
         tools.insert(name.into(), crate::tools::available(&state, family, name));
     }
     Ok(Json(Health {
-        editor_features: vec!["video_adjustments".into(), "timed_hooks".into()],
+        editor_features: vec![
+            "video_adjustments".into(),
+            "timed_hooks".into(),
+            "preview_plan".into(),
+        ],
         edit_document_versions: vec![1, 2, 3],
         version: env!("CARGO_PKG_VERSION").into(),
         platform: std::env::consts::ARCH.into(),
@@ -1319,6 +1340,58 @@ async fn preview_subtitles(
         subtitles::ass(&document),
     )
         .into_response())
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/preview-plan", request_body = PreviewPlanRequest,
+    responses((status = 200, body = PreviewPlan), (status = 409)))]
+async fn preview_plan(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<PreviewPlanRequest>,
+) -> ApiResult<Json<PreviewPlan>> {
+    let clip = db::clip(&state.db, &id).await?;
+    if clip.revision != request.revision {
+        return Err(ApiError::conflict());
+    }
+    let project = db::project(&state.db, &clip.project_id).await?;
+    request
+        .document
+        .validate(project.duration_ms)
+        .map_err(ApiError::bad_request)?;
+    for layer in &request.document.visual_layers {
+        if let Some(asset) = &layer.asset_id {
+            let (_, _, kind) = db::asset(&state.db, &state.root, asset).await?;
+            if kind != "video" {
+                return Err(ApiError::bad_request(
+                    "A video layer requires a managed video asset.",
+                ));
+            }
+        }
+    }
+    for layer in &request.document.audio_layers {
+        if let Some(asset) = &layer.asset_id {
+            let (_, _, kind) = db::asset(&state.db, &state.root, asset).await?;
+            if !["audio", "video"].contains(&kind.as_str()) {
+                return Err(ApiError::bad_request(
+                    "An audio layer requires a managed audio or video asset.",
+                ));
+            }
+        }
+    }
+    if let Some(asset) = &request.document.watermark.asset_id {
+        let (_, _, kind) = db::asset(&state.db, &state.root, asset).await?;
+        if kind != "image" {
+            return Err(ApiError::bad_request(
+                "A watermark requires a managed image asset.",
+            ));
+        }
+    }
+    let graphics = subtitles::ass(&request.document);
+    Ok(Json(PreviewPlan {
+        source_asset_id: project.preview_asset_id.unwrap_or(project.asset_id),
+        document: request.document,
+        graphics,
+    }))
 }
 
 #[utoipa::path(post, path = "/api/v1/clips/{id}/preview-render", request_body = RevisionRequest,

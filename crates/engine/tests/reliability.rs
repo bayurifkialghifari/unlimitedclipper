@@ -32,6 +32,15 @@ fn native_configuration_uses_its_own_library_resources_and_session_origin() {
         assert_ne!(engine.port, 0);
         assert_eq!(engine.state.root, data);
         assert_eq!(engine.state.tools_root(), resources.join("tools"));
+        for route in [
+            "/projects/fixture",
+            "/projects/fixture/manual",
+            "/studio/fixture",
+        ] {
+            let response = client.get(format!("{origin}{route}")).send().await.unwrap();
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(response.text().await.unwrap(), "Native host fixture");
+        }
         assert_eq!(
             client
                 .get(&origin)

@@ -18,6 +18,7 @@ import { AppIcon } from '../atoms/AppIcon';
 
 export function Shell({ children }: { children: ReactNode }) {
   const text = useText();
+  const clipId = useEditor((state) => state.clipId);
   useEngineEvents();
   useAutosave();
   useEffect(() => {
@@ -30,7 +31,7 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('beforeunload', protect);
   }, []);
   const links = [
-    { to: '/', label: text.studio, icon: FilmStripIcon },
+    ...(clipId ? [{ to: '/studio/' + clipId, label: text.studio, icon: FilmStripIcon }] : []),
     { to: '/projects', label: text.library, icon: FolderIcon },
     { to: '/exports', label: text.exports, icon: DownloadSimpleIcon },
     { to: '/jobs', label: text.jobs, icon: QueueIcon },
@@ -45,7 +46,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <NavLink
               key={to}
               to={to}
-              end
+              end={to !== '/projects'}
               className={({ isActive }) =>
                 styles.navLink + (isActive ? ' ' + styles.navActive : '')
               }

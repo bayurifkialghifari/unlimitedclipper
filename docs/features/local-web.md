@@ -8,6 +8,9 @@ Serve the same compiled React studio and API on loopback. Browser users upload f
 
 The Tauri WebView and browser use one loopback engine and database. Exact origin checks reject other localhost services. Session cookies survive an idle engine restart until their original expiration. The Open browser studio desktop control issues a fresh one-time bootstrap link.
 
+Direct project, manual-range, and studio routes serve the application shell with HTTP 200.
+The React router then loads the persistent record or displays its API error and retry action.
+
 ## Interface
 
 POST /api/v1/session; /api/v1 routes; GET /api/v1/events

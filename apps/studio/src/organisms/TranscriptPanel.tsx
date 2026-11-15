@@ -8,7 +8,7 @@ import { removeOutputRange } from '../lib/timeline';
 import { useTimelineRemap } from '../hooks/use-timeline-remap';
 import styles from '../styles/Editor.module.css';
 
-export function TranscriptPanel() {
+export function TranscriptPanel({ showTextEditor = true }: { showTextEditor?: boolean }) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
   const selected = useEditor((state) => state.selectedWords);
@@ -81,7 +81,7 @@ export function TranscriptPanel() {
           {text.removeCaption}
         </Button>
       </div>
-      {word && (
+      {word && showTextEditor && (
         <Field
           label={text.text}
           value={word.text}

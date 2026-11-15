@@ -16,6 +16,12 @@ shows real immutable records with revision/date metadata, download links, and an
 preview. Opening a preview loads the registered MP4 and converts its immutable SRT sidecar to a
 browser VTT track. Closed previews do not download video media.
 
+Projects open a gallery of saved clips with their actual names and source/output durations.
+Edit clip opens its persistent /studio/:clipId route. Create a clip opens a separate source-range
+page with seconds and playhead setters. Direct studio links restore the matching revision.
+New imports refresh the project list without selecting a different clip in an active editor.
+Gallery thumbnails currently reuse each project's source thumbnail.
+
 GET /api/v1/projects; GET /api/v1/projects/{id}; GET /api/v1/exports
 
 ## States and failure handling

@@ -113,7 +113,7 @@ async fn start_host(
     state.port.store(port, std::sync::atomic::Ordering::SeqCst);
     let studio = config.studio_dir;
     let router = api::router(state.clone()).fallback_service(
-        tower_http::services::ServeDir::new(&studio).not_found_service(
+        tower_http::services::ServeDir::new(&studio).fallback(
             tower_http::services::ServeFile::new(studio.join("index.html")),
         ),
     );

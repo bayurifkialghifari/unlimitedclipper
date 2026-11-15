@@ -67,13 +67,21 @@ uses the editor transaction and autosave checks. Caption groups stop at source c
 cues are sorted by source time; output VTT and rendered captions retain edited scene order.
 
 Edited preview and export share render_media, including AV concat, split framing, local B-roll,
-ASS graphics, and audio mixing. A preview omits captions for a live browser ASS overlay and creates
-no export record. Managed previews have a bounded cache. Audio imports use registered managed files
+ASS graphics, and audio mixing. An exact preview bakes every graphic and creates no export
+record. A cache-version salt prevents older caption-free previews being reused as complete
+compositions. Managed previews have a bounded cache. Audio imports use registered managed files
 and persisted durations, with no filesystem paths exposed through layer controls.
 Dense crop anchors compile to balanced piecewise interpolation rather than a linear chain
 of nested conditions. Desktop media jobs write their graph to a managed temporary argument
 file consumed by the pinned FFmpeg build. This avoids expression-depth and Windows argument
 length failures without removing motion anchors. Native Android keeps its inline adapter.
+
+Live review paints hidden media decoders and CPU libass bitmaps into one visible Canvas2D
+surface. A revision-checked preview-plan endpoint validates the draft and managed layer IDs
+and supplies the engine ASS track. Exact review paints the fully rendered video into that
+same surface. Live RGB filters approximate the exporter and source audio is retained; exact
+rendering remains the final audio/color review. Project galleries and persistent clip routes
+separate discovery/range creation from focused editing. Imports cannot replace an active draft.
 
 UC_MODELS_DIR freezes a shared model-store path at startup. UC_MODELS_READ_ONLY=1 disables model
 imports/downloads for fixtures borrowing the canonical store. Optional native alignment uses

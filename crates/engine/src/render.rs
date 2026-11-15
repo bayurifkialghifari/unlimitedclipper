@@ -10,10 +10,11 @@ pub async fn preview_job(
 ) -> Result<()> {
     let mut clip: Clip = serde_json::from_value(job.payload["snapshot"].clone())?;
     clip.document.resolution = 720;
-    clip.document.words.clear();
-    clip.document.captions = CaptionStyle::default();
-    clip.document.caption_model = None;
-    let identity = hex::encode(Sha256::digest(serde_json::to_vec(&clip.document)?));
+    let mut digest = Sha256::new();
+    // Older previews omitted captions. Never reuse them as a fully composed revision.
+    digest.update(b"composed-preview-2\0");
+    digest.update(serde_json::to_vec(&clip.document)?);
+    let identity = hex::encode(digest.finalize());
     let relative = format!("temporary/previews/{}-{identity}.mp4", clip.project_id);
     let destination = state.root.join(&relative);
     tokio::fs::create_dir_all(destination.parent().expect("Preview parent exists")).await?;
@@ -22,7 +23,7 @@ pub async fn preview_job(
             .root
             .join("temporary")
             .join(format!("{}.preview.mp4", job.id));
-        render_media(state, job, &clip, &temporary, false, cancellation).await?;
+        render_media(state, job, &clip, &temporary, true, cancellation).await?;
         ensure_preview_capacity(state, tokio::fs::metadata(&temporary).await?.len()).await?;
         tokio::fs::rename(&temporary, &destination).await?;
     }

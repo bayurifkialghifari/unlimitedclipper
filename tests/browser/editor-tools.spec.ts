@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
+import { createManualClip } from './helpers';
 
 async function paintedPixels(page: Page, png: Buffer) {
   return page.evaluate(async (encoded) => {
@@ -45,16 +46,8 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
     .locator('input[type="file"]')
     .first()
     .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
-  await expect(page.getByRole('heading', { name: 'speech-face.mp4' })).toBeVisible();
-  await page.getByRole('button', { name: 'Create a clip', exact: true }).click();
-  const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Clip name').fill('Editor tools fixture');
-  await dialog.getByLabel('Source start (seconds)').fill('1');
-  await dialog.getByLabel('Source end (seconds)').fill('5');
-  await expect(dialog.getByRole('status')).toContainText('4.000 s');
-  await dialog.getByRole('button', { name: 'Create a clip', exact: true }).click();
-  await expect(dialog).not.toBeVisible();
-  await page.getByRole('tab', { name: 'Title', exact: true }).click();
+  await createManualClip(page, 'Editor tools fixture', 1, 5);
+  await page.getByRole('tab', { name: 'Hook', exact: true }).click();
   await page.getByLabel('Opening title').fill('MAKE IT CLEAR\nKeep the context');
   await page.getByRole('button', { name: 'Clean', exact: true }).click();
   await page.getByLabel('Show from (s)').fill('0.5');
@@ -86,11 +79,11 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
   await page.getByRole('button', { name: 'Add at playhead Whoosh 1', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Local source', exact: true })).toHaveValue(/.+/);
   await expect(page.getByText('Saved locally', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Edited', exact: true }).click();
   await page.getByRole('button', { name: 'Render edited preview', exact: true }).click();
-  const composed = page.getByRole('region', { name: 'Render edited preview', exact: true });
+  await page.getByRole('button', { name: 'Edited', exact: true }).waitFor();
+  const composed = page.getByRole('region', { name: 'Preview video', exact: true });
   const video = composed.locator('video');
-  await expect(video).toBeVisible();
+  await expect(composed.locator('canvas')).toBeVisible();
   await expect
     .poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState))
     .toBeGreaterThanOrEqual(2);
@@ -102,17 +95,20 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
     .poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime))
     .toBeGreaterThan(0.2);
   await video.evaluate((element: HTMLVideoElement) => element.pause());
-  const pixels = await paintedPixels(page, await video.screenshot());
+  const pixels = await paintedPixels(page, await composed.locator('canvas').screenshot());
   expect(pixels.mean).toBeGreaterThan(15);
   expect(pixels.deviation).toBeGreaterThan(20);
   expect(pixels.chroma).toBeLessThan(8);
-  await page.getByRole('button', { name: 'Source', exact: true }).click();
+  await page.getByRole('button', { name: 'Live preview', exact: true }).click();
   await page.getByRole('button', { name: 'Edited', exact: true }).click();
-  const switched = await paintedPixels(page, await video.screenshot());
+  await expect
+    .poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState))
+    .toBeGreaterThanOrEqual(2);
+  const switched = await paintedPixels(page, await composed.locator('canvas').screenshot());
   expect(switched.mean).toBeGreaterThan(15);
   await expect(composed.locator('canvas')).toHaveCount(1);
   await page.reload();
-  await page.getByRole('tab', { name: 'Title', exact: true }).click();
+  await page.getByRole('tab', { name: 'Hook', exact: true }).click();
   await expect(page.getByLabel('Opening title')).toHaveValue('MAKE IT CLEAR\nKeep the context');
   await expect(page.getByLabel('Show from (s)')).toHaveValue('0.5');
   await expect(page.getByLabel('Animation', { exact: true })).toHaveValue('fade');
