@@ -998,6 +998,7 @@
           "start_ms": { "type": "integer", "format": "int64" },
           "title": { "$ref": "#/components/schemas/TitleStyle" },
           "version": { "type": "integer", "format": "int32", "minimum": 0 },
+          "video_adjustments": { "$ref": "#/components/schemas/VideoAdjustments" },
           "visual_layers": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/VisualLayer" }
@@ -1045,12 +1046,21 @@
       },
       "Health": {
         "type": "object",
-        "required": ["edit_document_versions", "version", "platform", "native", "tools", "models"],
+        "required": [
+          "editor_features",
+          "edit_document_versions",
+          "version",
+          "platform",
+          "native",
+          "tools",
+          "models"
+        ],
         "properties": {
           "edit_document_versions": {
             "type": "array",
             "items": { "type": "integer", "format": "int32", "minimum": 0 }
           },
+          "editor_features": { "type": "array", "items": { "type": "string" } },
           "models": { "type": "array", "items": { "$ref": "#/components/schemas/ModelStatus" } },
           "native": { "type": "boolean" },
           "platform": { "type": "string" },
@@ -1270,12 +1280,14 @@
         "type": "object",
         "required": ["text", "preset", "font", "size", "color", "position_y", "duration_ms"],
         "properties": {
+          "animation": { "type": "string" },
           "color": { "type": "string" },
           "duration_ms": { "type": "integer", "format": "int64" },
           "font": { "type": "string" },
           "position_y": { "type": "number", "format": "double" },
           "preset": { "type": "string" },
           "size": { "type": "integer", "format": "int32", "minimum": 0 },
+          "start_ms": { "type": "integer", "format": "int64" },
           "text": { "type": "string" }
         }
       },
@@ -1305,6 +1317,15 @@
           "ready": { "type": "boolean" },
           "restart_required": { "type": "boolean" },
           "version": { "type": "string" }
+        }
+      },
+      "VideoAdjustments": {
+        "type": "object",
+        "properties": {
+          "brightness": { "type": "integer", "format": "int32", "default": 0 },
+          "contrast": { "type": "integer", "format": "int32", "default": 0 },
+          "saturation": { "type": "integer", "format": "int32", "default": 0 },
+          "warmth": { "type": "integer", "format": "int32", "default": 0 }
         }
       },
       "VisualLayer": {

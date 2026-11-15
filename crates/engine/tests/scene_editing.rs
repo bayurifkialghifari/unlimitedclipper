@@ -52,6 +52,32 @@ fn document() -> EditDocument {
     ])
 }
 
+#[test]
+fn legacy_styles_default_and_timed_hooks_keep_output_relative_bounds() {
+    let original = document();
+    let mut legacy = serde_json::to_value(&original).unwrap();
+    legacy.as_object_mut().unwrap().remove("video_adjustments");
+    legacy["title"].as_object_mut().unwrap().remove("start_ms");
+    legacy["title"].as_object_mut().unwrap().remove("animation");
+    let mut loaded: EditDocument = serde_json::from_value(legacy).unwrap();
+    assert_eq!(loaded.video_adjustments, VideoAdjustments::default());
+    assert_eq!(loaded.title.start_ms, 0);
+    assert_eq!(loaded.title.animation, "none");
+    loaded.title.text = "Keep the context".into();
+    loaded.title.start_ms = 500;
+    loaded.title.duration_ms = 1200;
+    loaded.title.animation = "fade".into();
+    loaded.validate(project().duration_ms).unwrap();
+    let ass = unlimitedclipper_engine::subtitles::ass(&loaded);
+    assert!(ass.contains("Dialogue: 2,0:00:00.50,0:00:01.70,Title"));
+    assert!(ass.contains("\\fad(140,140)"));
+    loaded.video_adjustments.brightness = 101;
+    assert!(loaded.validate(project().duration_ms).is_err());
+    loaded.video_adjustments.brightness = 0;
+    loaded.title.animation = "unknown".into();
+    assert!(loaded.validate(project().duration_ms).is_err());
+}
+
 fn note(start_ms: i64, end_ms: i64) -> VisualLayer {
     VisualLayer {
         id: "note".into(),

@@ -171,6 +171,17 @@ pub fn composition(document: &EditDocument, source_width: u32, source_height: u3
     composition_dimensions(document, source_width, source_height, width, height)
 }
 
+pub fn video_adjustment_filter(settings: &VideoAdjustments) -> String {
+    let brightness = f64::from(settings.brightness) * 0.003;
+    let contrast = 1.0 + f64::from(settings.contrast) * 0.0075;
+    let saturation = 1.0 + f64::from(settings.saturation) * 0.01;
+    let warmth = f64::from(settings.warmth) * 0.0015;
+    format!(
+        "eq=brightness={brightness:.4}:contrast={contrast:.4}:saturation={saturation:.4},colorbalance=rs={warmth:.4}:bs={:.4}:pl=1",
+        -warmth
+    )
+}
+
 fn composition_dimensions(
     document: &EditDocument,
     source_width: u32,
@@ -350,11 +361,18 @@ pub async fn render_media(
     tokio::fs::create_dir_all(&working).await?;
     let ass_file = working.join("track.ass");
     tokio::fs::write(&ass_file, subtitles::ass(&document)).await?;
+    let codec_workers =
+        std::thread::available_parallelism().map_or(1, |count| (count.get() / 2).clamp(1, 4));
     let mut args = vec![
         "-hide_banner".into(),
         "-loglevel".into(),
         "error".into(),
         "-y".into(),
+        // Bound filter and codec workers so short exports do not consume every CPU core.
+        "-filter_complex_threads".into(),
+        "1".into(),
+        "-threads".into(),
+        codec_workers.min(2).to_string(),
         "-ss".into(),
         format!("{:.3}", document.start_ms as f64 / 1000.0),
         "-t".into(),
@@ -414,6 +432,13 @@ pub async fn render_media(
             layer.start_ms as f64 / 1000.0, layer.start_ms as f64 / 1000.0, layer.end_ms as f64 / 1000.0));
         video_label = format!("cutaway{index}");
         next_input += 1;
+    }
+    if document.video_adjustments != VideoAdjustments::default() {
+        filter.push_str(&format!(
+            ";[{video_label}]{}[graded]",
+            video_adjustment_filter(&document.video_adjustments)
+        ));
+        video_label = "graded".into();
     }
     if document.watermark.mode == "image" {
         let asset_id = document
@@ -501,6 +526,8 @@ pub async fn render_media(
         format!("{:.3}", duration as f64 / 1000.0),
         "-c:v".into(),
         "libx264".into(),
+        "-threads".into(),
+        codec_workers.to_string(),
         "-preset".into(),
         "fast".into(),
         "-crf".into(),
@@ -522,9 +549,12 @@ pub async fn render_media(
     ]);
     tools::ffmpeg_progress(state, job, &args, duration, cancellation).await?;
     let probe = tools::probe(state, destination, cancellation).await?;
+    let dimensions = document.layout.dimensions(document.resolution);
     anyhow::ensure!(
-        (probe.duration_ms - duration).abs() <= 100 && probe.has_audio,
-        "Rendered media failed duration or audio verification."
+        (probe.duration_ms - duration).abs() <= 100
+            && probe.has_audio
+            && (probe.width, probe.height) == dimensions,
+        "Rendered media failed geometry, duration, or audio verification."
     );
     Ok(())
 }

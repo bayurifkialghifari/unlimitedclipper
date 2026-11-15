@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Field, Select, Segmented, Toggle } from '@unlimitedclipper/ui';
 import { ScissorsIcon, CropIcon, UploadSimpleIcon } from '@phosphor-icons/react';
@@ -14,23 +14,26 @@ import { ClipRatingPanel } from './ClipRatingPanel';
 import { CaptionRefinement } from './CaptionRefinement';
 import { EditorialPanel } from './EditorialPanel';
 import { TimelineEditor } from './TimelineEditor';
+import { HookEditor } from './HookEditor';
+import { VideoStyleEditor } from './VideoStyleEditor';
+import { ContentProfileSelect } from '../molecules/ContentProfileSelect';
 import type { CropRect, Layout, Project } from '../types';
 import styles from '../styles/Studio.module.css';
 
 const clamp = (value: number, maximum = 1) => Math.max(0, Math.min(maximum, value));
 const fonts = ['Noto Sans', 'DM Sans', 'Oswald'];
 
-export function Inspector({
-  project,
-  onManualClip,
-}: {
-  project?: Project;
-  onManualClip: () => void;
-}) {
+export function Inspector({ project }: { project?: Project }) {
   const text = useText();
   const [chosenTab, setChosenTab] = useState('options');
   const selection = useEditor((state) => state.timelineSelection);
+  const inspectorBody = useRef<HTMLDivElement>(null);
   const tab = selection ? 'timeline' : chosenTab;
+  useEffect(() => {
+    if (inspectorBody.current) {
+      inspectorBody.current.scrollTop = 0;
+    }
+  }, [tab, selection?.id]);
   function setTab(value: string) {
     useEditor.setState({ timelineSelection: null });
     setChosenTab(value);
@@ -98,6 +101,7 @@ export function Inspector({
     ['captions', text.captions],
     ['crop', text.crop],
     ['title', text.title],
+    ['style', text.videoFilters],
     ['branding', text.branding],
     ['timeline', text.timelineSegments],
   ];
@@ -257,6 +261,7 @@ export function Inspector({
         ))}
       </div>
       <div
+        ref={inspectorBody}
         className={styles.inspectorBody}
         role="tabpanel"
         id={'panel-' + tab}
@@ -270,10 +275,7 @@ export function Inspector({
         {tab === 'options' && (
           <>
             <h2>{text.options}</h2>
-            <Select label={text.contentProfile} value={profile} onChange={setProfile}>
-              <option value="podcast">{text.profilePodcast}</option>
-              <option value="gaming">{text.profileGaming}</option>
-            </Select>
+            <ContentProfileSelect value={profile} onChange={setProfile} />
             <Field
               label={text.clipCount}
               type="number"
@@ -343,9 +345,6 @@ export function Inspector({
             {(!selectionReady || !speechReady) && (
               <p className={styles.hint}>{text.modelsRequired}</p>
             )}
-            <Button disabled={!project || pending} onClick={onManualClip}>
-              {text.manualClip}
-            </Button>
             {document && (
               <>
                 <hr className={styles.separator} />
@@ -861,112 +860,21 @@ export function Inspector({
           </>
         )}
         {tab === 'title' && document && (
-          <>
-            <h2>{text.title}</h2>
-            <Button
-              disabled={
-                isAndroidHost() ||
-                pending ||
-                editing ||
-                dirty ||
-                saving ||
-                !largeReady ||
-                !document.words.some((word) => word.text.trim())
-              }
-              onClick={() => void action(() => api.clipAction(draft!.id, 'title'))}
-            >
-              {editing ? text.running : text.generateTitle}
-            </Button>
-            {!document.words.some((word) => word.text.trim()) && (
-              <p className={styles.hint}>{text.titleWordsRequired}</p>
-            )}
-            <Field
-              label={text.titleText}
-              value={document.title.text}
-              maxLength={300}
-              onChange={(event) =>
-                change((next) => {
-                  next.title.text = event.target.value;
-                })
-              }
-            />
-            <Select
-              label={text.preset}
-              value={document.title.preset}
-              onChange={(value) =>
-                change((next) => {
-                  next.title.preset = value;
-                })
-              }
-            >
-              <option value="bold">{text.bold}</option>
-              <option value="plain">{text.plain}</option>
-              <option value="boxed">{text.boxed}</option>
-            </Select>
-            <Select
-              label={text.font}
-              value={document.title.font}
-              onChange={(value) =>
-                change((next) => {
-                  next.title.font = value;
-                })
-              }
-            >
-              {fonts.map((font) => (
-                <option key={font}>{font}</option>
-              ))}
-            </Select>
-            <div className={styles.twoColumns}>
-              <Field
-                label={text.size}
-                type="number"
-                min={12}
-                max={220}
-                value={document.title.size}
-                onChange={(event) =>
-                  change((next) => {
-                    next.title.size = Number(event.target.value);
-                  })
-                }
-              />
-              <Field
-                label={text.color}
-                type="color"
-                value={document.title.color}
-                onChange={(event) =>
-                  change((next) => {
-                    next.title.color = event.target.value;
-                  })
-                }
-              />
-            </div>
-            <Field
-              label={text.position + ' (%)'}
-              type="range"
-              min={5}
-              max={95}
-              value={document.title.position_y * 100}
-              onChange={(event) =>
-                change((next) => {
-                  next.title.position_y = Number(event.target.value) / 100;
-                })
-              }
-            />
-            <Field
-              label={text.titleDuration + ' (s)'}
-              type="number"
-              min={0}
-              max={outputDuration(document) / 1000}
-              step={0.1}
-              value={document.title.duration_ms / 1000}
-              onChange={(event) =>
-                change((next) => {
-                  next.title.duration_ms = Math.round(Number(event.target.value) * 1000);
-                })
-              }
-            />
-          </>
+          <HookEditor
+            canGenerate={
+              !isAndroidHost() &&
+              !pending &&
+              !editing &&
+              !dirty &&
+              !saving &&
+              largeReady &&
+              document.words.some((word) => word.text.trim())
+            }
+            generating={editing}
+            onGenerate={() => void action(() => api.clipAction(draft!.id, 'title'))}
+          />
         )}
+        {tab === 'style' && document && <VideoStyleEditor />}
         {tab === 'branding' && document && (
           <>
             <h2>{text.branding}</h2>

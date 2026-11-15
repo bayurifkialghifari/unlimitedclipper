@@ -103,6 +103,7 @@ pub struct UpdateClipRequest {
 
 #[derive(Serialize, ToSchema)]
 pub struct Health {
+    pub editor_features: Vec<String>,
     pub edit_document_versions: Vec<u32>,
     pub version: String,
     pub platform: String,
@@ -179,6 +180,7 @@ pub struct Health {
         SourceSegment,
         VisualLayer,
         AudioLayer,
+        VideoAdjustments,
         AudioAsset,
         CropRect,
         Keyframe,
@@ -429,6 +431,7 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Health>> {
         tools.insert(name.into(), crate::tools::available(&state, family, name));
     }
     Ok(Json(Health {
+        editor_features: vec!["video_adjustments".into(), "timed_hooks".into()],
         edit_document_versions: vec![1, 2, 3],
         version: env!("CARGO_PKG_VERSION").into(),
         platform: std::env::consts::ARCH.into(),
@@ -768,7 +771,7 @@ async fn generate(
         || request.duration_ms > 3_600_000
         || request.minimum_score > 100
         || request.focus.chars().count() > 400
-        || !["podcast", "gaming"].contains(&profile.as_str())
+        || !CONTENT_PROFILES.contains(&profile.as_str())
     {
         return Err(ApiError::bad_request(
             "Choose a valid clip count and duration.",
@@ -1242,7 +1245,7 @@ async fn put_settings(
     if !["id", "en"].contains(&settings.language.as_str())
         || !["whisper-small", "whisper-medium"].contains(&settings.speech_model.as_str())
         || !["economy", "standard"].contains(&settings.ai_mode.as_str())
-        || !["podcast", "gaming"].contains(&settings.content_profile.as_str())
+        || !CONTENT_PROFILES.contains(&settings.content_profile.as_str())
         || ![720, 1080, 1440, 2160].contains(&settings.resolution)
         || settings.clip_count == 0
         || settings.clip_count > 1000

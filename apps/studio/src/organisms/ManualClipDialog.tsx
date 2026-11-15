@@ -5,13 +5,19 @@ import { api } from '../lib/api';
 import { flushEditor } from '../lib/save';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
+import { outputToSource } from '../lib/timeline';
+import { time } from '../lib/format';
 import type { Project } from '../types';
 import styles from '../styles/Studio.module.css';
 
 export function ManualClipDialog({ project, onClose }: { project: Project; onClose: () => void }) {
   const text = useText();
   const dialog = useRef<HTMLDialogElement>(null);
-  const playhead = useEditor.getState().playhead / 1000;
+  const editor = useEditor.getState();
+  const playhead =
+    (editor.draft
+      ? (outputToSource(editor.draft.document, editor.playhead) ?? 0)
+      : editor.playhead) / 1000;
   const [start, setStart] = useState(
     Math.min(playhead, Math.max(0, project.duration_ms / 1000 - 1)),
   );
@@ -20,6 +26,12 @@ export function ManualClipDialog({ project, onClose }: { project: Project; onClo
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const client = useQueryClient();
+  const valid =
+    Number.isFinite(start) &&
+    Number.isFinite(end) &&
+    start >= 0 &&
+    end > start &&
+    end <= project.duration_ms / 1000;
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -28,13 +40,23 @@ export function ManualClipDialog({ project, onClose }: { project: Project; onClo
     <dialog
       ref={dialog}
       className={styles.dialog}
-      onCancel={onClose}
+      onCancel={(event) => {
+        if (pending) {
+          event.preventDefault();
+        } else {
+          onClose();
+        }
+      }}
       onClose={onClose}
       aria-labelledby="manual-title"
     >
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          if (!valid || pending) {
+            return;
+          }
+          setError(null);
           setPending(true);
           void flushEditor()
             .then(() =>
@@ -60,7 +82,7 @@ export function ManualClipDialog({ project, onClose }: { project: Project; onClo
           />
           <div className={styles.twoColumns}>
             <Field
-              label={text.start + ' (s)'}
+              label={text.sourceStartSeconds}
               type="number"
               min={0}
               max={end - 0.001}
@@ -70,7 +92,7 @@ export function ManualClipDialog({ project, onClose }: { project: Project; onClo
               onChange={(event) => setStart(Number(event.target.value))}
             />
             <Field
-              label={text.end + ' (s)'}
+              label={text.sourceEndSeconds}
               type="number"
               min={start + 0.001}
               max={project.duration_ms / 1000}
@@ -80,6 +102,13 @@ export function ManualClipDialog({ project, onClose }: { project: Project; onClo
               onChange={(event) => setEnd(Number(event.target.value))}
             />
           </div>
+          <p className={styles.hint}>{text.manualClipHint}</p>
+          {valid && (
+            <p role="status">
+              {time(Math.round(start * 1000))} – {time(Math.round(end * 1000))}
+              {' · ' + text.duration + ': ' + (end - start).toFixed(3) + ' s'}
+            </p>
+          )}
           {error && (
             <p className={styles.error} role="alert">
               {error}
@@ -90,8 +119,8 @@ export function ManualClipDialog({ project, onClose }: { project: Project; onClo
           <Button disabled={pending} onClick={onClose}>
             {text.cancel}
           </Button>
-          <Button variant="primary" type="submit" disabled={pending}>
-            {text.manualClip}
+          <Button variant="primary" type="submit" disabled={pending || !valid}>
+            {pending ? text.running : text.manualClip}
           </Button>
         </div>
       </form>

@@ -1,0 +1,11 @@
+The WAV files in this directory are distributed under CC0 1.0 Universal.
+https://creativecommons.org/publicdomain/zero/1.0/
+
+swish-*.wav: artisticdude, Swishes Sound Pack
+https://opengameart.org/content/swishes-sound-pack
+
+click*.wav and switch*.wav: Kenney, UI Sound Effects
+https://opengameart.org/content/51-ui-sound-effects-buttons-switches-and-clicks
+
+The selected audio bytes are unmodified. Source archives and file SHA-256 hashes
+are recorded in resources/sfx.json. These credits do not imply endorsement.

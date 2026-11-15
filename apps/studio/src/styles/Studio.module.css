@@ -1254,3 +1254,60 @@
 .captionRefinement p {
   margin: 0;
 }
+.previewLoading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  background: var(--surface);
+  pointer-events: none;
+}
+.styleRecipes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.hookLabel {
+  display: block;
+  margin: 12px 0 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.hookInput {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+  background: var(--surface-inset);
+  color: var(--text);
+  font: inherit;
+}
+.sfxList {
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.sfxRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.sfxRow + .sfxRow {
+  border-top: 1px solid var(--border);
+}
+
+.sfxRow small {
+  display: block;
+  color: var(--muted);
+}

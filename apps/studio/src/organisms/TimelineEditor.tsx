@@ -101,318 +101,345 @@ export function TimelineEditor() {
 
   return (
     <section aria-label={text.timelineSegments}>
-      <h3>{text.timelineSegments}</h3>
-      {segments.map((segment, index) => (
-        <SegmentFields
-          key={segment.id + ':' + segment.start_ms + ':' + segment.end_ms}
-          segment={segment}
-          busy={pending || !supported}
-          removable={segments.length > 1}
-          onApply={(updated) =>
-            void remap(
-              segments.map((segment, position) =>
-                position === index ? { ...updated, id: segment.id } : segment,
-              ),
-            )
-          }
-          onRemove={() => void remap(segments.filter((_, position) => position !== index))}
-        />
-      ))}
-      <div className={styles.twoColumns}>
-        <Field
-          label={text.start + ' (s)'}
-          type="number"
-          value={start}
-          onChange={(event) => setStart(event.target.value)}
-        />
-        <Field
-          label={text.end + ' (s)'}
-          type="number"
-          value={end}
-          onChange={(event) => setEnd(event.target.value)}
-        />
-      </div>
-      <Button
-        disabled={
-          pending || !supported || segments.length >= 32 || !start || Number(end) <= Number(start)
-        }
-        onClick={() =>
-          void remap([
-            ...segments,
-            {
-              id: crypto.randomUUID(),
-              start_ms: Math.round(Number(start) * 1000),
-              end_ms: Math.round(Number(end) * 1000),
-            },
-          ])
-        }
-      >
-        {text.addSegment}
-      </Button>
-      <h3>{text.visualLayers}</h3>
-      {['note', 'punch_in', 'split', 'camera_frame', 'broll'].map((kind) => (
-        <Button
-          key={kind}
-          onClick={() => addVisual(kind)}
-          disabled={
-            pending ||
-            (document.visual_layers?.length ?? 0) >= 64 ||
-            (kind === 'broll' && !sources.data?.length)
-          }
-        >
-          {names[kind]}
-        </Button>
-      ))}
-      {(document.visual_layers ?? [])
-        .filter((layer) => selection?.kind !== 'visual' || selection.id === layer.id)
-        .map((layer) => (
-          <fieldset key={layer.id} className={styles.disabledGroup}>
-            <legend>{names[layer.kind] ?? text.visualLayers}</legend>
-            <Toggle
-              label={text.visible}
-              checked={layer.enabled}
-              onChange={(enabled) =>
-                editLayer(layer.id, (layer) => {
-                  layer.enabled = enabled;
-                })
-              }
+      {(!selection || selection.kind === 'scene') && (
+        <>
+          <h3>{text.timelineSegments}</h3>
+          {segments
+            .map((segment, index) => ({ segment, index }))
+            .filter(({ segment }) => !selection || selection.id === segment.id)
+            .map(({ segment, index }) => (
+              <SegmentFields
+                key={segment.id + ':' + segment.start_ms + ':' + segment.end_ms}
+                segment={segment}
+                busy={pending || !supported}
+                removable={segments.length > 1}
+                onApply={(updated) =>
+                  void remap(
+                    segments.map((segment, position) =>
+                      position === index ? { ...updated, id: segment.id } : segment,
+                    ),
+                  )
+                }
+                onRemove={() => void remap(segments.filter((_, position) => position !== index))}
+              />
+            ))}
+          <div className={styles.twoColumns}>
+            <Field
+              label={text.start + ' (s)'}
+              type="number"
+              value={start}
+              onChange={(event) => setStart(event.target.value)}
             />
-            {layer.kind === 'broll' && (
-              <Select
-                label={text.sourceAsset}
-                value={layer.asset_id ?? ''}
-                onChange={(value) =>
-                  editLayer(layer.id, (layer) => {
-                    layer.asset_id = value;
-                    layer.source_start_ms = 0;
-                    layer.end_ms = Math.min(
-                      layer.end_ms,
-                      layer.start_ms +
-                        (sources.data?.find((source) => source.asset_id === value)?.duration_ms ??
-                          1),
-                    );
-                  })
-                }
-              >
-                {sources.data?.map((source) => (
-                  <option key={source.id} value={source.asset_id}>
-                    {source.name}
-                  </option>
-                ))}
-              </Select>
-            )}
-            {layer.crop && (
-              <LayerCropFields
-                crop={layer.crop}
-                onChange={(crop) =>
-                  editLayer(layer.id, (layer) => {
-                    layer.crop = crop;
-                  })
-                }
-              />
-            )}
-            {layer.secondary_crop && (
-              <LayerCropFields
-                crop={layer.secondary_crop}
-                onChange={(crop) =>
-                  editLayer(layer.id, (layer) => {
-                    layer.secondary_crop = crop;
-                  })
-                }
-              />
-            )}
-            <LayerTimingFields
-              layer={layer}
-              duration={duration}
-              sourceDuration={
-                layer.kind === 'broll'
-                  ? sources.data?.find((source) => source.asset_id === layer.asset_id)?.duration_ms
-                  : undefined
-              }
-              onChange={(timing) => editLayer(layer.id, (layer) => Object.assign(layer, timing))}
+            <Field
+              label={text.end + ' (s)'}
+              type="number"
+              value={end}
+              onChange={(event) => setEnd(event.target.value)}
             />
-            {['text', 'note'].includes(layer.kind) && (
-              <Field
-                label={text.text}
-                value={layer.text}
-                maxLength={200}
-                onChange={(event) =>
-                  editLayer(layer.id, (layer) => {
-                    layer.text = event.target.value;
-                  })
-                }
-              />
-            )}
-            {['note', 'text'].includes(layer.kind) && (
-              <div className={styles.twoColumns}>
-                {(['x', 'y'] as const).map((axis) => (
-                  <Field
-                    key={axis}
-                    label={axis === 'x' ? text.horizontalPosition : text.position}
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={layer[axis] * 100}
-                    onChange={(event) =>
-                      editLayer(layer.id, (layer) => {
-                        layer[axis] = Number(event.target.value) / 100;
-                      })
-                    }
-                  />
-                ))}
-                <Field
-                  label={text.size}
-                  type="range"
-                  min={12}
-                  max={220}
-                  value={layer.size}
-                  onChange={(event) =>
+          </div>
+          <Button
+            disabled={
+              pending ||
+              !supported ||
+              segments.length >= 32 ||
+              !start ||
+              Number(end) <= Number(start)
+            }
+            onClick={() =>
+              void remap([
+                ...segments,
+                {
+                  id: crypto.randomUUID(),
+                  start_ms: Math.round(Number(start) * 1000),
+                  end_ms: Math.round(Number(end) * 1000),
+                },
+              ])
+            }
+          >
+            {text.addSegment}
+          </Button>
+        </>
+      )}
+      {(!selection || selection.kind === 'visual') && (
+        <>
+          <h3>{text.visualLayers}</h3>
+          {['note', 'punch_in', 'split', 'camera_frame', 'broll'].map((kind) => (
+            <Button
+              key={kind}
+              onClick={() => addVisual(kind)}
+              disabled={
+                pending ||
+                (document.visual_layers?.length ?? 0) >= 64 ||
+                (kind === 'broll' && !sources.data?.length)
+              }
+            >
+              {names[kind]}
+            </Button>
+          ))}
+          {(document.visual_layers ?? [])
+            .filter((layer) => selection?.kind !== 'visual' || selection.id === layer.id)
+            .map((layer) => (
+              <fieldset key={layer.id} className={styles.disabledGroup}>
+                <legend>{names[layer.kind] ?? text.visualLayers}</legend>
+                <Toggle
+                  label={text.visible}
+                  checked={layer.enabled}
+                  onChange={(enabled) =>
                     editLayer(layer.id, (layer) => {
-                      layer.size = Number(event.target.value);
+                      layer.enabled = enabled;
                     })
                   }
                 />
-              </div>
-            )}
-            {['note', 'text', 'camera_frame'].includes(layer.kind) && (
-              <Field
-                label={text.color}
-                type="color"
-                value={layer.color}
-                onChange={(event) =>
-                  editLayer(layer.id, (layer) => {
-                    layer.color = event.target.value;
-                  })
-                }
-              />
-            )}
-            <Button
-              onClick={() =>
-                change((document) => {
-                  document.visual_layers = document.visual_layers?.filter(
-                    (item) => item.id !== layer.id,
-                  );
-                })
-              }
-            >
-              {text.delete}
-            </Button>
-          </fieldset>
-        ))}
-      <h3>{text.audioLayers}</h3>
-      <AudioLibrary
-        disabled={Boolean(
-          jobs.data?.some((job) => ['queued', 'running', 'cancelling'].includes(job.status)),
-        )}
-      />
-      {(audio.error || sources.error) && (
-        <p role="alert" className={styles.error}>
-          {(audio.error ?? sources.error)?.message}
-        </p>
+                {layer.kind === 'broll' && (
+                  <Select
+                    label={text.sourceAsset}
+                    value={layer.asset_id ?? ''}
+                    onChange={(value) =>
+                      editLayer(layer.id, (layer) => {
+                        layer.asset_id = value;
+                        layer.source_start_ms = 0;
+                        layer.end_ms = Math.min(
+                          layer.end_ms,
+                          layer.start_ms +
+                            (sources.data?.find((source) => source.asset_id === value)
+                              ?.duration_ms ?? 1),
+                        );
+                      })
+                    }
+                  >
+                    {sources.data?.map((source) => (
+                      <option key={source.id} value={source.asset_id}>
+                        {source.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+                {layer.crop && (
+                  <LayerCropFields
+                    crop={layer.crop}
+                    onChange={(crop) =>
+                      editLayer(layer.id, (layer) => {
+                        layer.crop = crop;
+                      })
+                    }
+                  />
+                )}
+                {layer.secondary_crop && (
+                  <LayerCropFields
+                    crop={layer.secondary_crop}
+                    onChange={(crop) =>
+                      editLayer(layer.id, (layer) => {
+                        layer.secondary_crop = crop;
+                      })
+                    }
+                  />
+                )}
+                <LayerTimingFields
+                  layer={layer}
+                  duration={duration}
+                  sourceDuration={
+                    layer.kind === 'broll'
+                      ? sources.data?.find((source) => source.asset_id === layer.asset_id)
+                          ?.duration_ms
+                      : undefined
+                  }
+                  onChange={(timing) =>
+                    editLayer(layer.id, (layer) => Object.assign(layer, timing))
+                  }
+                />
+                {['text', 'note'].includes(layer.kind) && (
+                  <Field
+                    label={text.text}
+                    value={layer.text}
+                    maxLength={200}
+                    onChange={(event) =>
+                      editLayer(layer.id, (layer) => {
+                        layer.text = event.target.value;
+                      })
+                    }
+                  />
+                )}
+                {['note', 'text'].includes(layer.kind) && (
+                  <div className={styles.twoColumns}>
+                    {(['x', 'y'] as const).map((axis) => (
+                      <Field
+                        key={axis}
+                        label={axis === 'x' ? text.horizontalPosition : text.position}
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={layer[axis] * 100}
+                        onChange={(event) =>
+                          editLayer(layer.id, (layer) => {
+                            layer[axis] = Number(event.target.value) / 100;
+                          })
+                        }
+                      />
+                    ))}
+                    <Field
+                      label={text.size}
+                      type="range"
+                      min={12}
+                      max={220}
+                      value={layer.size}
+                      onChange={(event) =>
+                        editLayer(layer.id, (layer) => {
+                          layer.size = Number(event.target.value);
+                        })
+                      }
+                    />
+                  </div>
+                )}
+                {['note', 'text', 'camera_frame'].includes(layer.kind) && (
+                  <Field
+                    label={text.color}
+                    type="color"
+                    value={layer.color}
+                    onChange={(event) =>
+                      editLayer(layer.id, (layer) => {
+                        layer.color = event.target.value;
+                      })
+                    }
+                  />
+                )}
+                <Button
+                  onClick={() =>
+                    change((document) => {
+                      document.visual_layers = document.visual_layers?.filter(
+                        (item) => item.id !== layer.id,
+                      );
+                    })
+                  }
+                >
+                  {text.delete}
+                </Button>
+              </fieldset>
+            ))}
+        </>
       )}
-      <Button
-        disabled={(document.audio_layers?.length ?? 0) >= 16}
-        onClick={() =>
-          change((document) => {
-            document.version = Math.max(2, document.version);
-            document.segments = sourceSegments(document);
-            const start = Math.max(0, Math.min(Math.round(playhead), duration - 100));
-            document.audio_layers = [
-              ...(document.audio_layers ?? []),
-              {
-                id: crypto.randomUUID(),
-                enabled: false,
-                start_ms: start,
-                end_ms: Math.min(duration, start + 180),
-                asset_id: null,
-                source_start_ms: 0,
-                gain: 0.12,
-              },
-            ];
-          })
-        }
-      >
-        {text.addTap}
-      </Button>
-      {(document.audio_layers ?? [])
-        .filter((layer) => selection?.kind !== 'audio' || selection.id === layer.id)
-        .map((layer) => (
-          <fieldset key={layer.id} className={styles.disabledGroup}>
-            <Toggle
-              label={text.visible}
-              checked={layer.enabled}
-              onChange={(enabled) =>
-                change((document) => {
-                  document.audio_layers!.find((item) => item.id === layer.id)!.enabled = enabled;
-                })
-              }
+      {(!selection || selection.kind === 'audio') && (
+        <>
+          <h3>{text.audioLayers}</h3>
+          {!selection && (
+            <AudioLibrary
+              disabled={Boolean(
+                jobs.data?.some((job) => ['queued', 'running', 'cancelling'].includes(job.status)),
+              )}
             />
-            <Select
-              label={text.sourceAsset}
-              value={layer.asset_id ?? ''}
-              onChange={(value) =>
-                editAudio(layer.id, (layer) => {
-                  layer.asset_id = value || null;
-                  layer.source_start_ms = 0;
-                  const length = value
-                    ? (audio.data?.find((asset) => asset.asset_id === value)?.duration_ms ??
-                      sources.data?.find((source) => source.asset_id === value)?.duration_ms ??
-                      1)
-                    : 500;
-                  layer.end_ms = Math.min(layer.end_ms, layer.start_ms + length);
-                })
-              }
-            >
-              <option value="">{text.addTap}</option>
-              {sources.data
-                ?.filter((source) => source.has_audio)
-                .map((source) => (
-                  <option key={source.id} value={source.asset_id}>
-                    {source.name}
-                  </option>
-                ))}
-              {audio.data?.map((asset) => (
-                <option key={asset.asset_id} value={asset.asset_id}>
-                  {asset.name}
-                </option>
-              ))}
-            </Select>
-            <LayerTimingFields
-              layer={layer}
-              duration={duration}
-              sourceDuration={
-                audio.data?.find((asset) => asset.asset_id === layer.asset_id)?.duration_ms ??
-                sources.data?.find((source) => source.asset_id === layer.asset_id)?.duration_ms
-              }
-              maximumLength={layer.asset_id ? undefined : 500}
-              onChange={(timing) => editAudio(layer.id, (layer) => Object.assign(layer, timing))}
-            />
-            <Field
-              label={text.audioGain + ' (%)'}
-              type="range"
-              min={0}
-              max={100}
-              value={layer.gain * 100}
-              onChange={(event) =>
-                change((document) => {
-                  document.audio_layers!.find((item) => item.id === layer.id)!.gain =
-                    Number(event.target.value) / 100;
-                })
-              }
-            />
-            <Button
-              onClick={() =>
-                change((document) => {
-                  document.audio_layers = document.audio_layers?.filter(
-                    (item) => item.id !== layer.id,
-                  );
-                })
-              }
-            >
-              {text.delete}
-            </Button>
-          </fieldset>
-        ))}
+          )}
+          {(audio.error || sources.error) && (
+            <p role="alert" className={styles.error}>
+              {(audio.error ?? sources.error)?.message}
+            </p>
+          )}
+          <Button
+            disabled={(document.audio_layers?.length ?? 0) >= 16}
+            onClick={() =>
+              change((document) => {
+                document.version = Math.max(2, document.version);
+                document.segments = sourceSegments(document);
+                const start = Math.max(0, Math.min(Math.round(playhead), duration - 100));
+                document.audio_layers = [
+                  ...(document.audio_layers ?? []),
+                  {
+                    id: crypto.randomUUID(),
+                    enabled: false,
+                    start_ms: start,
+                    end_ms: Math.min(duration, start + 180),
+                    asset_id: null,
+                    source_start_ms: 0,
+                    gain: 0.12,
+                  },
+                ];
+              })
+            }
+          >
+            {text.addTap}
+          </Button>
+          {(document.audio_layers ?? [])
+            .filter((layer) => selection?.kind !== 'audio' || selection.id === layer.id)
+            .map((layer) => (
+              <fieldset key={layer.id} className={styles.disabledGroup}>
+                <Toggle
+                  label={text.visible}
+                  checked={layer.enabled}
+                  onChange={(enabled) =>
+                    change((document) => {
+                      document.audio_layers!.find((item) => item.id === layer.id)!.enabled =
+                        enabled;
+                    })
+                  }
+                />
+                <Select
+                  label={text.sourceAsset}
+                  value={layer.asset_id ?? ''}
+                  onChange={(value) =>
+                    editAudio(layer.id, (layer) => {
+                      layer.asset_id = value || null;
+                      layer.source_start_ms = 0;
+                      const length = value
+                        ? (audio.data?.find((asset) => asset.asset_id === value)?.duration_ms ??
+                          sources.data?.find((source) => source.asset_id === value)?.duration_ms ??
+                          1)
+                        : 500;
+                      layer.end_ms = Math.min(layer.end_ms, layer.start_ms + length);
+                    })
+                  }
+                >
+                  <option value="">{text.addTap}</option>
+                  {sources.data
+                    ?.filter((source) => source.has_audio)
+                    .map((source) => (
+                      <option key={source.id} value={source.asset_id}>
+                        {source.name}
+                      </option>
+                    ))}
+                  {audio.data?.map((asset) => (
+                    <option key={asset.asset_id} value={asset.asset_id}>
+                      {asset.name}
+                    </option>
+                  ))}
+                </Select>
+                <LayerTimingFields
+                  layer={layer}
+                  duration={duration}
+                  sourceDuration={
+                    audio.data?.find((asset) => asset.asset_id === layer.asset_id)?.duration_ms ??
+                    sources.data?.find((source) => source.asset_id === layer.asset_id)?.duration_ms
+                  }
+                  maximumLength={layer.asset_id ? undefined : 500}
+                  onChange={(timing) =>
+                    editAudio(layer.id, (layer) => Object.assign(layer, timing))
+                  }
+                />
+                <Field
+                  label={text.audioGain + ' (%)'}
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={layer.gain * 100}
+                  onChange={(event) =>
+                    change((document) => {
+                      document.audio_layers!.find((item) => item.id === layer.id)!.gain =
+                        Number(event.target.value) / 100;
+                    })
+                  }
+                />
+                <Button
+                  onClick={() =>
+                    change((document) => {
+                      document.audio_layers = document.audio_layers?.filter(
+                        (item) => item.id !== layer.id,
+                      );
+                    })
+                  }
+                >
+                  {text.delete}
+                </Button>
+              </fieldset>
+            ))}
+        </>
+      )}
     </section>
   );
 }

@@ -338,17 +338,26 @@ pub fn ass(document: &EditDocument) -> String {
         }
     }
     let duration = document.duration_ms();
-    if !title.text.is_empty() && title.duration_ms > 0 {
+    if !title.text.is_empty() && title.duration_ms > 0 && title.start_ms < duration {
+        let visible_duration = title.duration_ms.min(duration - title.start_ms);
+        let animation = match title.animation.as_str() {
+            "fade" => format!("\\fad({0},{0})", 140.min(visible_duration / 2)),
+            "pop" => format!(
+                "\\fscx85\\fscy85\\t(0,{},\\fscx100\\fscy100)",
+                160.min(visible_duration)
+            ),
+            _ => String::new(),
+        };
         let title_tags = format!(
-            "\\an5\\pos({},{})\\b{}",
+            "\\an5\\pos({},{})\\b{}{animation}",
             width / 2,
             (height as f64 * title.position_y).round(),
             if title.preset == "plain" { 0 } else { 1 }
         );
         result.push_str(&dialogue(
             2,
-            0,
-            title.duration_ms.min(duration),
+            title.start_ms,
+            title.start_ms + visible_duration,
             "Title",
             &format!("{{{title_tags}}}{}", escape_ass(&title.text)),
         ));

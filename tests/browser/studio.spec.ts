@@ -28,8 +28,14 @@ test('imports, edits, saves, reopens, renders captions and exports real media', 
   });
   await page.getByRole('button', { name: 'Buat klip', exact: true }).click();
   await page.getByLabel('Nama klip').fill('Browser caption fixture');
-  await page.getByLabel('Mulai (s)', { exact: true }).fill('1');
-  await page.getByLabel('Selesai (s)', { exact: true }).fill('5');
+  await page
+    .getByRole('dialog')
+    .getByLabel('Mulai di video sumber (detik)', { exact: true })
+    .fill('1');
+  await page
+    .getByRole('dialog')
+    .getByLabel('Selesai di video sumber (detik)', { exact: true })
+    .fill('5');
   await page.getByRole('dialog').getByRole('button', { name: 'Buat klip' }).click();
   await expect(page.getByRole('button', { name: /Browser caption fixture/ })).toBeVisible();
   await page.getByRole('tab', { name: 'Caption', exact: true }).click();
@@ -117,8 +123,8 @@ test('edits source segments and local layers, then plays a composed preview', as
   await expect(page.getByRole('heading', { name: 'speech-face.mp4' })).toBeVisible();
   await page.getByRole('button', { name: 'Create a clip', exact: true }).click();
   await page.getByLabel('Clip name').fill('Timeline browser fixture');
-  await page.getByLabel('Start (s)', { exact: true }).fill('1');
-  await page.getByLabel('End (s)', { exact: true }).fill('3');
+  await page.getByRole('dialog').getByLabel('Source start (seconds)', { exact: true }).fill('1');
+  await page.getByRole('dialog').getByLabel('Source end (seconds)', { exact: true }).fill('3');
   await page.getByRole('dialog').getByRole('button', { name: 'Create a clip' }).click();
   await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
   const timeline = page.getByRole('region', { name: 'Source segments', exact: true });

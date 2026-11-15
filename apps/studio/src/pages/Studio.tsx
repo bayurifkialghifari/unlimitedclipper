@@ -6,6 +6,7 @@ import {
   ArrowCounterClockwiseIcon,
   ArrowClockwiseIcon,
   TrashIcon,
+  ScissorsIcon,
 } from '@phosphor-icons/react';
 import { api, assetUrl } from '../lib/api';
 import { flushEditor } from '../lib/save';
@@ -130,6 +131,13 @@ export function Studio() {
           </Button>
         </div>
         <div className={styles.actions}>
+          <Button
+            icon={<ScissorsIcon />}
+            disabled={!source || busy}
+            onClick={() => setManual(true)}
+          >
+            {text.manualClip}
+          </Button>
           {editor.draft && (
             <>
               <span className={styles.hint} role="status">
@@ -256,7 +264,7 @@ export function Studio() {
           )}
         </div>
         <div className={styles.rightPanel} data-visible={activePanel === 'settings'}>
-          <Inspector project={source} onManualClip={() => setManual(true)} />
+          <Inspector project={source} />
         </div>
       </div>
       {editor.draft && (

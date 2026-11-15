@@ -254,6 +254,10 @@ pub struct TitleStyle {
     pub color: String,
     pub position_y: f64,
     pub duration_ms: i64,
+    #[serde(default)]
+    pub start_ms: i64,
+    #[serde(default = "default_title_animation")]
+    pub animation: String,
 }
 
 impl Default for TitleStyle {
@@ -266,7 +270,34 @@ impl Default for TitleStyle {
             color: "#FFFFFF".into(),
             position_y: 0.12,
             duration_ms: 3000,
+            start_ms: 0,
+            animation: default_title_animation(),
         }
+    }
+}
+
+fn default_title_animation() -> String {
+    "none".into()
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+#[serde(default)]
+pub struct VideoAdjustments {
+    pub brightness: i32,
+    pub contrast: i32,
+    pub saturation: i32,
+    pub warmth: i32,
+}
+
+impl VideoAdjustments {
+    pub fn validate(&self) -> Result<(), String> {
+        if [self.brightness, self.contrast, self.saturation, self.warmth]
+            .iter()
+            .any(|value| !(-100..=100).contains(value))
+        {
+            return Err("Video adjustments must be between -100 and 100.".into());
+        }
+        Ok(())
     }
 }
 
@@ -306,6 +337,8 @@ pub struct EditDocument {
     pub visual_layers: Vec<VisualLayer>,
     #[serde(default)]
     pub audio_layers: Vec<AudioLayer>,
+    #[serde(default)]
+    pub video_adjustments: VideoAdjustments,
     pub start_ms: i64,
     pub end_ms: i64,
     pub layout: Layout,
@@ -331,6 +364,7 @@ impl EditDocument {
             segments: vec![SourceSegment::new(start_ms, end_ms)],
             visual_layers: Vec::new(),
             audio_layers: Vec::new(),
+            video_adjustments: VideoAdjustments::default(),
             start_ms,
             end_ms,
             layout: Layout::Portrait,
@@ -456,6 +490,8 @@ impl EditDocument {
             || !["bold", "plain", "boxed"].contains(&self.title.preset.as_str())
             || self.title.text.chars().count() > 300
             || self.title.duration_ms < 0
+            || self.title.start_ms < 0
+            || !["none", "fade", "pop"].contains(&self.title.animation.as_str())
             || !["none", "text", "image"].contains(&self.watermark.mode.as_str())
             || self.watermark.text.chars().count() > 150
         {
@@ -479,6 +515,7 @@ impl EditDocument {
         {
             return Err("Invalid split ratio or watermark scale.".into());
         }
+        self.video_adjustments.validate()?;
         Ok(())
     }
 }
@@ -576,6 +613,8 @@ pub fn default_ai_mode() -> String {
 pub fn default_content_profile() -> String {
     "podcast".into()
 }
+
+pub const CONTENT_PROFILES: &[&str] = &["podcast", "gaming", "motivation", "education", "general"];
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ModelSpec {

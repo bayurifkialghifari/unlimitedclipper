@@ -1,3 +1,4 @@
+import { ContentProfileSelect } from '../molecules/ContentProfileSelect';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoke, isTauri } from '@tauri-apps/api/core';
@@ -62,15 +63,10 @@ function Preferences({ initial }: { initial: Settings }) {
         <option value="standard">{text.aiStandard}</option>
       </Select>
       <p className={styles.hint}>{text.aiEconomyHint}</p>
-      <Select
-        label={text.contentProfile}
+      <ContentProfileSelect
         value={settings.content_profile ?? 'podcast'}
-        disabled={isAndroidHost()}
         onChange={(value) => change('content_profile', value)}
-      >
-        <option value="podcast">{text.profilePodcast}</option>
-        <option value="gaming">{text.profileGaming}</option>
-      </Select>
+      />
       <Select
         label={text.uiLanguage}
         value={settings.language}

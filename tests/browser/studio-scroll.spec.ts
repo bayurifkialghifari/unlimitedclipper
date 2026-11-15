@@ -15,7 +15,7 @@ test('keeps one inspector scrollbar after clip creation at desktop and narrow si
   await expect(page.getByRole('heading', { name: 'speech-face.mp4' })).toBeVisible();
   await page.getByRole('button', { name: 'Create a clip', exact: true }).click();
   await page.getByLabel('Clip name').fill('Scrollbar interaction fixture');
-  await page.getByLabel('End (s)', { exact: true }).fill('4');
+  await page.getByRole('dialog').getByLabel('Source end (seconds)', { exact: true }).fill('4');
   await page.getByRole('dialog').getByRole('button', { name: 'Create a clip' }).click();
   for (const viewport of [
     { width: 1920, height: 1009 },

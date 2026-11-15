@@ -1,0 +1,234 @@
+{
+  "packs": [
+    {
+      "id": "swishes",
+      "author": "artisticdude",
+      "source": "https://opengameart.org/content/swishes-sound-pack",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "archive_url": "https://opengameart.org/sites/default/files/swishes.zip",
+      "archive_sha256": "7980215241b739a787dcf26f660ce510bb237900968789395a86911619795693"
+    },
+    {
+      "id": "interface",
+      "author": "Kenney",
+      "source": "https://opengameart.org/content/51-ui-sound-effects-buttons-switches-and-clicks",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "archive_url": "https://opengameart.org/sites/default/files/UI_SFX_Set.zip",
+      "archive_sha256": "66026b9e39859b85964dbb3ee7a2d1fc46a6a406bb3e97c8b0defee0e25fb369"
+    }
+  ],
+  "sounds": [
+    {
+      "id": "click1",
+      "filename": "click1.wav",
+      "group": "click",
+      "number": 1,
+      "duration_ms": 93,
+      "size": 16596,
+      "sha256": "359c8c98ecd48368f45b84d3a9b9d7e68cf3ac2fefcdbf32367b8482da76c9c7",
+      "pack": "interface"
+    },
+    {
+      "id": "click2",
+      "filename": "click2.wav",
+      "group": "click",
+      "number": 2,
+      "duration_ms": 55,
+      "size": 9876,
+      "sha256": "366a86202b215395eb9bb7376da4200453a0fb6751884e338a9e720f036fce0a",
+      "pack": "interface"
+    },
+    {
+      "id": "click3",
+      "filename": "click3.wav",
+      "group": "click",
+      "number": 3,
+      "duration_ms": 86,
+      "size": 15240,
+      "sha256": "9649d0ed86f2129e39568922eda43da25c287ca0d2905328ecddbd70d11fbb34",
+      "pack": "interface"
+    },
+    {
+      "id": "click4",
+      "filename": "click4.wav",
+      "group": "click",
+      "number": 4,
+      "duration_ms": 36,
+      "size": 6488,
+      "sha256": "f8b9acd3bc8cd01f2f3328b8705265ed035d76b008c791d5f4b51d412ce0def4",
+      "pack": "interface"
+    },
+    {
+      "id": "click5",
+      "filename": "click5.wav",
+      "group": "click",
+      "number": 5,
+      "duration_ms": 32,
+      "size": 5692,
+      "sha256": "65f261088ac9902c0c1aa125a26fc6115eb77f015475d7df97cb089e5811fef5",
+      "pack": "interface"
+    },
+    {
+      "id": "swish-1",
+      "filename": "swish-1.wav",
+      "group": "whoosh",
+      "number": 1,
+      "duration_ms": 126,
+      "size": 34138,
+      "sha256": "9a15c881345c1ce1c39cc31f52f081c8c4dc81fa41111e0079400f39d3ba0e45",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-10",
+      "filename": "swish-10.wav",
+      "group": "whoosh",
+      "number": 10,
+      "duration_ms": 124,
+      "size": 33862,
+      "sha256": "4f7381a76f280d3f36f962ac3f44f16f77eec44797f30715d063c81ea3859024",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-11",
+      "filename": "swish-11.wav",
+      "group": "whoosh",
+      "number": 11,
+      "duration_ms": 104,
+      "size": 28346,
+      "sha256": "9e81d548d8215fbb36f7a41b5771d4b52c2fd02fbb9b5ff9a4c65118fd88ee4d",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-12",
+      "filename": "swish-12.wav",
+      "group": "whoosh",
+      "number": 12,
+      "duration_ms": 76,
+      "size": 20892,
+      "sha256": "0513a86d428d9ed8601e93b8554580a5932c6c1a82d39d81a8f48883f1807a67",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-13",
+      "filename": "swish-13.wav",
+      "group": "whoosh",
+      "number": 13,
+      "duration_ms": 70,
+      "size": 19516,
+      "sha256": "698230ba3fe05a68c18d68cd6b3a07fb98e6c1198bb1a4238592ee9912c02c77",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-2",
+      "filename": "swish-2.wav",
+      "group": "whoosh",
+      "number": 2,
+      "duration_ms": 95,
+      "size": 26136,
+      "sha256": "1ce7752cce3d43f16fc222ad7f7ffb69d9a5fc01e64b93d205765fc37b8e9b0d",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-3",
+      "filename": "swish-3.wav",
+      "group": "whoosh",
+      "number": 3,
+      "duration_ms": 145,
+      "size": 39390,
+      "sha256": "55b100e2c67fa43dad8510e31e85bbd51a68d5ce84a6e0259e21e19030083e24",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-4",
+      "filename": "swish-4.wav",
+      "group": "whoosh",
+      "number": 4,
+      "duration_ms": 145,
+      "size": 39384,
+      "sha256": "0060f4a7040edce4cc50d1daa10a9cb76764128a942e4688339e69cd1d5d784c",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-5",
+      "filename": "swish-5.wav",
+      "group": "whoosh",
+      "number": 5,
+      "duration_ms": 127,
+      "size": 34414,
+      "sha256": "4db41f2d2f97caf94627be05ff2870217fecc86534cf30f2aab413b847a0d50a",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-6",
+      "filename": "swish-6.wav",
+      "group": "whoosh",
+      "number": 6,
+      "duration_ms": 138,
+      "size": 37310,
+      "sha256": "edcaacf008da7ae692566f4fe0d6023ea68d0a014149889e95209be7ee0b746d",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-7",
+      "filename": "swish-7.wav",
+      "group": "whoosh",
+      "number": 7,
+      "duration_ms": 187,
+      "size": 50420,
+      "sha256": "e6de737a34de16afed094d6170d7679149022f149e0a8356d2f029b0e8f4a4d7",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-8",
+      "filename": "swish-8.wav",
+      "group": "whoosh",
+      "number": 8,
+      "duration_ms": 153,
+      "size": 41456,
+      "sha256": "113a3709ad889ad2fcf38eaceaf4eb9d67ffe1e96713fed93a6f0aed08769980",
+      "pack": "swishes"
+    },
+    {
+      "id": "swish-9",
+      "filename": "swish-9.wav",
+      "group": "whoosh",
+      "number": 9,
+      "duration_ms": 196,
+      "size": 52906,
+      "sha256": "123883f006ce55feecbff11eea5f87c4493df4399989983037144570a23723c1",
+      "pack": "swishes"
+    },
+    {
+      "id": "switch12",
+      "filename": "switch12.wav",
+      "group": "switch",
+      "number": 12,
+      "duration_ms": 53,
+      "size": 9492,
+      "sha256": "d54f8c728ac296c9b3bddc512bbe0c8dd16ab8121bc4b1b4a96d181389a62ccf",
+      "pack": "interface"
+    },
+    {
+      "id": "switch13",
+      "filename": "switch13.wav",
+      "group": "switch",
+      "number": 13,
+      "duration_ms": 27,
+      "size": 4916,
+      "sha256": "5c66a2e13e4fd9a05c8b80a4d3148eee2eedeade39ff9a986e16a627e1cdf87c",
+      "pack": "interface"
+    },
+    {
+      "id": "switch14",
+      "filename": "switch14.wav",
+      "group": "switch",
+      "number": 14,
+      "duration_ms": 33,
+      "size": 5884,
+      "sha256": "962bd6f49716687106b5d4deff86f0c090b5ac7c1bc58e83feb0d0270aaabe07",
+      "pack": "interface"
+    }
+  ]
+}

@@ -414,10 +414,22 @@ async fn propose_windows(
                 }
             }}, "required": ["clips"], "additionalProperties": false
         });
-        let profile_instruction = if profile == "gaming" {
-            "Prefer a surprising reaction, funny exchange, or tense outcome. Loud audio alone is not evidence of an interesting moment."
-        } else {
-            "Prefer a useful insight, complete short story, surprising statement, or funny exchange."
+        let profile_instruction = match profile.as_str() {
+            "gaming" => {
+                "Prefer a surprising reaction, funny exchange, or tense outcome. Loud audio alone is not evidence of an interesting moment."
+            }
+            "motivation" => {
+                "Prefer a concrete obstacle, personal turning point, or practical lesson with a complete conclusion. Skip generic slogans and do not invent achievements or advice."
+            }
+            "education" => {
+                "Prefer a complete explanation with a question, example, and usable answer. Keep necessary qualifications and do not cut away a caveat."
+            }
+            "general" => {
+                "Prefer a self-contained story, useful explanation, surprising outcome, or complete funny exchange. Determine context from the transcript rather than assuming a podcast."
+            }
+            _ => {
+                "Prefer a useful insight, complete short story, surprising statement, or funny exchange."
+            }
         };
         let excluded = job.payload["discovery_accepted"]
             .as_array()
@@ -479,7 +491,7 @@ async fn propose_windows(
                 continue;
             }
             if let Some(candidate) = pipeline::fit_suggestion(candidate, project) {
-                if profile == "podcast" && candidate.end_ms - candidate.start_ms < 8000 {
+                if profile != "gaming" && candidate.end_ms - candidate.start_ms < 8000 {
                     increment(job, "duration");
                 } else {
                     candidates.push(candidate);

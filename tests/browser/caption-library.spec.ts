@@ -77,8 +77,8 @@ test('edits and reuses caption styles, then reviews rating states without losing
   await expect(page.getByRole('heading', { name: 'speech-face.mp4' })).toBeVisible();
   await page.getByRole('button', { name: 'Create a clip', exact: true }).click();
   await page.getByLabel('Clip name').fill('Caption library browser fixture');
-  await page.getByLabel('Start (s)', { exact: true }).fill('0');
-  await page.getByLabel('End (s)', { exact: true }).fill('4');
+  await page.getByRole('dialog').getByLabel('Source start (seconds)', { exact: true }).fill('0');
+  await page.getByRole('dialog').getByLabel('Source end (seconds)', { exact: true }).fill('4');
   await page.getByRole('dialog').getByRole('button', { name: 'Create a clip' }).click();
   await page.getByRole('tab', { name: 'Captions', exact: true }).click();
   await page.getByRole('button', { name: 'Add caption word', exact: true }).click();

@@ -1,6 +1,52 @@
 import { create } from 'zustand';
 
 const en = {
+  soundEffects: 'Sound effects',
+  sfxWhoosh: 'Whoosh',
+  sfxClick: 'Click',
+  sfxSwitch: 'Tap',
+  sfxHint:
+    '21 CC0 sounds included offline. Listen, then add at the playhead. Adjust timing and gain on the audio track.',
+  sfxAdd: 'Add at playhead',
+  sfxCredits: 'Sound credits',
+  sfxPlaybackError:
+    'The sound could not play. Try again or reinstall the application if its file is missing.',
+  sfxMissing: 'The included sound is missing. Reinstall the application to restore it.',
+  sfxChecksumError:
+    'The sound failed its integrity check. Reinstall the application to restore it.',
+  sfxClipChanged: 'The clip changed. The sound is in your library; add it to the current clip.',
+  sfxPlacementError: 'Move the playhead before the end and keep fewer than 16 audio layers.',
+  profileMotivation: 'Motivation and personal stories',
+  profileEducation: 'Education and tutorials',
+  profileGeneral: 'Other content',
+  videoFilters: 'Video filters',
+  videoFiltersHint:
+    'Filters affect footage and B-roll. Render Edited preview to see the saved look; captions and titles keep their colors.',
+  editorUpgrade: 'Restart with the latest application to enable these controls.',
+  filterNatural: 'Natural',
+  filterCrisp: 'Crisp',
+  filterWarm: 'Warm',
+  filterCool: 'Cool',
+  filterMono: 'Monochrome',
+  brightness: 'Brightness',
+  contrast: 'Contrast',
+  saturation: 'Saturation',
+  warmth: 'Warmth',
+  resetFilters: 'Reset filters',
+  hookEditor: 'Hook editor',
+  hookStyles: 'Hook styles',
+  hookClean: 'Clean',
+  hookImpact: 'Impact',
+  hookBoxed: 'Boxed',
+  hookPreviewHint:
+    'Review your opening in Source; render Edited after changing it. Empty text hides the hook.',
+  hookStart: 'Show from',
+  hookAtPlayhead: 'Start at playhead',
+  sourceStartSeconds: 'Source start (seconds)',
+  sourceEndSeconds: 'Source end (seconds)',
+  manualClipHint:
+    'Enter positions in the original video. For example, 90 to 120 creates a 30-second clip. No AI model is required.',
+  previewLoadingVideo: 'Loading preview video…',
   aiMode: 'Local AI mode',
   aiEconomy: 'Automatic economy',
   aiStandard: 'Qwen 4B',
@@ -360,6 +406,53 @@ const en = {
 };
 
 const id: typeof en = {
+  soundEffects: 'Efek suara',
+  sfxWhoosh: 'Whoosh',
+  sfxClick: 'Klik',
+  sfxSwitch: 'Tap',
+  sfxHint:
+    '21 suara CC0 tersedia offline. Dengarkan, lalu tambah di playhead. Atur timing dan volume di track audio.',
+  sfxAdd: 'Tambah di playhead',
+  sfxCredits: 'Kredit suara',
+  sfxPlaybackError:
+    'Suara belum bisa diputar. Coba lagi atau pasang ulang aplikasi jika filenya hilang.',
+  sfxMissing: 'File suara bawaan hilang. Pasang ulang aplikasi untuk memulihkannya.',
+  sfxChecksumError:
+    'File suara tidak lolos pemeriksaan. Pasang ulang aplikasi untuk memulihkannya.',
+  sfxClipChanged:
+    'Klip sudah berubah. Suara tersimpan di library; tambahkan ke klip yang sekarang.',
+  sfxPlacementError: 'Geser playhead sebelum akhir klip dan gunakan kurang dari 16 layer audio.',
+  profileMotivation: 'Motivasi dan cerita pribadi',
+  profileEducation: 'Edukasi dan tutorial',
+  profileGeneral: 'Konten lainnya',
+  videoFilters: 'Filter video',
+  videoFiltersHint:
+    'Filter diterapkan ke video dan B-roll. Render Hasil edit untuk melihat hasilnya; warna caption dan judul tetap sesuai pilihan.',
+  editorUpgrade: 'Buka ulang aplikasi versi terbaru untuk mengaktifkan kontrol ini.',
+  filterNatural: 'Natural',
+  filterCrisp: 'Tajam',
+  filterWarm: 'Hangat',
+  filterCool: 'Dingin',
+  filterMono: 'Monokrom',
+  brightness: 'Kecerahan',
+  contrast: 'Kontras',
+  saturation: 'Saturasi',
+  warmth: 'Suhu warna',
+  resetFilters: 'Reset filter',
+  hookEditor: 'Editor hook',
+  hookStyles: 'Gaya hook',
+  hookClean: 'Clean',
+  hookImpact: 'Impact',
+  hookBoxed: 'Boxed',
+  hookPreviewHint:
+    'Cek pembuka di Sumber; render Hasil edit setelah mengubahnya. Kosongkan teks untuk menyembunyikan hook.',
+  hookStart: 'Tampilkan mulai',
+  hookAtPlayhead: 'Mulai di playhead',
+  sourceStartSeconds: 'Mulai di video sumber (detik)',
+  sourceEndSeconds: 'Selesai di video sumber (detik)',
+  manualClipHint:
+    'Isi posisi di video asli. Contoh: 90 sampai 120 menghasilkan klip 30 detik. Tidak perlu model AI.',
+  previewLoadingVideo: 'Memuat video preview…',
   aiMode: 'Mode AI lokal',
   aiEconomy: 'Hemat otomatis',
   aiStandard: 'Qwen 4B',

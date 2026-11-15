@@ -4,6 +4,7 @@ import { Field } from '@unlimitedclipper/ui';
 import { uploadFile } from '../lib/api';
 import { useText } from '../lib/i18n';
 import type { AudioAsset } from '../types';
+import { SoundEffectsLibrary } from './SoundEffectsLibrary';
 import styles from '../styles/Studio.module.css';
 
 export function AudioLibrary({ disabled }: { disabled: boolean }) {
@@ -25,6 +26,7 @@ export function AudioLibrary({ disabled }: { disabled: boolean }) {
   }
   return (
     <div>
+      <SoundEffectsLibrary disabled={disabled || progress !== null} />
       <Field
         label={text.importAudio}
         type="file"

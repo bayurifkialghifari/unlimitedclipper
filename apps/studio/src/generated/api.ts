@@ -873,6 +873,7 @@ export interface components {
       title: components['schemas']['TitleStyle'];
       /** Format: int32 */
       version: number;
+      video_adjustments?: components['schemas']['VideoAdjustments'];
       visual_layers?: components['schemas']['VisualLayer'][];
       watermark: components['schemas']['Watermark'];
       words: components['schemas']['Word'][];
@@ -902,6 +903,7 @@ export interface components {
     };
     Health: {
       edit_document_versions: number[];
+      editor_features: string[];
       models: components['schemas']['ModelStatus'][];
       native: boolean;
       platform: string;
@@ -1039,6 +1041,7 @@ export interface components {
       segments: components['schemas']['SourceSegment'][];
     };
     TitleStyle: {
+      animation?: string;
       color: string;
       /** Format: int64 */
       duration_ms: number;
@@ -1048,6 +1051,8 @@ export interface components {
       preset: string;
       /** Format: int32 */
       size: number;
+      /** Format: int64 */
+      start_ms?: number;
       text: string;
     };
     TrackRequest: {
@@ -1068,6 +1073,28 @@ export interface components {
       ready: boolean;
       restart_required?: boolean;
       version: string;
+    };
+    VideoAdjustments: {
+      /**
+       * Format: int32
+       * @default 0
+       */
+      brightness: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      contrast: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      saturation: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      warmth: number;
     };
     VisualLayer: {
       asset_id?: string | null;
