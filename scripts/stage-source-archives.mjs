@@ -25,6 +25,12 @@ const sources = [
     url: 'https://codeload.github.com/jellyfin/jellyfin-ffmpeg/tar.gz/7250de8375a4959ac1c25c139ce9789fdac199fb',
     sha256: '7367430190d99cd756470e24d9cb5f64e1f60977d226c3cbcf41c79151e20ab9',
   },
+  {
+    filename: 'android-media-9f04bf1-source.tar.gz',
+    revision: '9f04bf1e3c97def70b98e198cb80a57b43ef5b45',
+    url: 'https://codeload.github.com/arthenica/ffmpeg-kit-next/tar.gz/9f04bf1e3c97def70b98e198cb80a57b43ef5b45',
+    sha256: 'cac8fd7edad24da9c10ce5c8ae5143b1e16a3216debee992de9d0f390ea6447c',
+  },
 ];
 
 async function sha256(filename) {
@@ -69,6 +75,4 @@ await writeFile(
   path.join(output, 'source-archives.json'),
   JSON.stringify({ sources }, null, 2) + String.fromCharCode(10),
 );
-process.stdout.write(
-  'Verified FFmpeg source archives: ' + sources.length + String.fromCharCode(10),
-);
+process.stdout.write('Verified media source archives: ' + sources.length + String.fromCharCode(10));

@@ -28,6 +28,15 @@ APK assembly on this revision, publication, and installation/runtime checks are 
 CI evidence. The Android APK remains media-only and debug-signed. The Windows update manifest
 does not advertise Unix bundles. No unrun platform or package check is marked PASS.
 
+The preview.9 release staging candidate passed local workspace Rustfmt, 61 engine Rust tests,
+engine and desktop Clippy with warnings denied, Studio ESLint, Prettier, TypeScript, six frontend
+tests, the production build, and checksum verification for four pinned media source archives.
+The initial hosted Unix run
+[43744478888](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43744478888)
+passed package jobs for Linux x64/ARM64 and macOS ARM64; macOS Intel was still building its
+source-pinned ONNX Runtime when this candidate was prepared. That run predates the notice archive
+and Android release attachment changes, so it does not validate the final release staging.
+
 | Anti-slop During gate | Status  | Evidence and remaining scope                                                                                                                                      |
 | --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Direction and content | Pass    | Existing graphite/amber design, real clip/export records, and transcript-grounded Hook evidence.                                                                  |

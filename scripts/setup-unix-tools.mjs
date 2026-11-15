@@ -251,6 +251,15 @@ function run(command, arguments_, cwd = root) {
   return result.stdout;
 }
 
+function runLogged(command, arguments_, cwd = root) {
+  const result = spawnSync(command, arguments_, { cwd, stdio: 'inherit' });
+  if (result.status !== 0) {
+    throw new Error(
+      command + ' failed: ' + (result.error?.message || result.signal || result.status),
+    );
+  }
+}
+
 async function sha256(filename) {
   const hash = createHash('sha256');
   for await (const chunk of createReadStream(filename)) {
@@ -425,7 +434,10 @@ await writeFile(
 );
 
 if (platform.startsWith('macos')) {
-  run('node', [path.join(root, 'scripts/build-macos-tools.mjs'), '--platform=' + platform]);
+  runLogged(process.execPath, [
+    path.join(root, 'scripts/build-macos-tools.mjs'),
+    '--platform=' + platform,
+  ]);
 }
 
 run('node', [path.join(root, 'scripts/setup-assets.mjs'), '--platform=' + platform]);

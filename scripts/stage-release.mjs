@@ -75,6 +75,41 @@ if (process.argv.includes('--publish')) {
     path.join(androidDirectory, 'ANDROID-UNTESTED.md'),
     path.join(directory, 'ANDROID-UNTESTED.md'),
   );
+  const nativeDirectory = path.join(root, '.cache/android-native-tools');
+  const nativeConfiguration = JSON.parse(
+    await readFile(path.join(root, 'resources/android.json'), 'utf8'),
+  );
+  const nativeEvidence = JSON.parse(
+    await readFile(path.join(nativeDirectory, 'build-evidence.json'), 'utf8'),
+  );
+  const nativeVersion = nativeConfiguration.media.version;
+  const nativeArchive = path.join(
+    nativeDirectory,
+    'maven/com/arthenica/ffmpeg-kit-next',
+    nativeVersion,
+    'ffmpeg-kit-next-' + nativeVersion + '.aar',
+  );
+  if (
+    nativeEvidence.repository !== nativeConfiguration.media.repository ||
+    nativeEvidence.commit !== nativeConfiguration.media.commit ||
+    nativeEvidence.version !== nativeVersion ||
+    JSON.stringify(nativeEvidence.abis) !== JSON.stringify(nativeConfiguration.abis) ||
+    nativeEvidence.runtime_tested !== false ||
+    nativeEvidence.sha256 !== (await sha256(nativeArchive))
+  ) {
+    throw new Error('The Android native media archive did not pass release checks.');
+  }
+  await copyFile(
+    nativeArchive,
+    path.join(directory, 'UnlimitedClipper-' + version + '-android-arm64-media.aar'),
+  );
+  for (const [source, destination] of [
+    ['build-evidence.json', 'android-media-build-evidence.json'],
+    ['LICENSE', 'android-media-LICENSE.txt'],
+    ['README.md', 'android-media-README.md'],
+  ]) {
+    await copyFile(path.join(nativeDirectory, source), path.join(directory, destination));
+  }
   await copyFile(
     path.join(root, 'docs/third-party-notices.md'),
     path.join(directory, 'THIRD-PARTY-NOTICES.md'),

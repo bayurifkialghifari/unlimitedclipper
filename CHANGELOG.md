@@ -11,9 +11,11 @@
   Android ARM64 APK job. Unix toolchains are pinned and checked before bundling. Publication
   still depends on successful hosted builds and platform-specific validation evidence.
 - Unix package staging now retains upstream license texts, FFmpeg build configuration, and a
-  native-source provenance map. Release staging also verifies notice archives and three pinned
-  FFmpeg source/build-script snapshots before uploading checksums. Tagged CI creates a draft for
+  native-source provenance map. Release staging also verifies notice archives and four pinned
+  media source/build-script snapshots before uploading checksums. Tagged CI creates a draft for
   artifact inspection before public availability.
+- The Android preview release bundle now retains its inspected native AAR, build evidence,
+  license, and source snapshot beside the debug APK.
 - Face tracking and card narration now resolve the packaged ONNX Runtime filename on each
   desktop OS; Unix runtime interaction still needs package-level evidence.
 - The Studio timeline now shows source-derived scene frames, persistent track names, adaptive

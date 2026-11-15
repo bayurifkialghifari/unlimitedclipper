@@ -31,7 +31,7 @@ The macOS pair comes from the
 and [source revision 7250de8](https://github.com/jellyfin/jellyfin-ffmpeg/tree/7250de8375a4959ac1c25c139ce9789fdac199fb).
 The tagged workflow attaches checksum-verified archives of those FFmpeg source trees and the
 Linux build scripts alongside the packages. Linked dependency sources are referenced by the
-build scripts; they are not included in these three archives.
+build scripts; they are not included in those three desktop source archives.
 The final distributable must provide corresponding source for the exact binaries and linked
 libraries. Audit the complete source set and availability before publication; source pointers
 alone do not establish that obligation.
@@ -40,6 +40,8 @@ The Android preview uses [FFmpegKit Next v9.0.2](https://github.com/arthenica/ff
 under LGPL-3.0-or-later, built from commit 9f04bf1e3c97def70b98e198cb80a57b43ef5b45. Its configuration
 enables libass and Android media codecs without GPL/x264 linkage. Retain the native media archive,
 build evidence, LGPL text, dependency notices, and exact corresponding source with distributions.
+The tagged release also attaches the pinned FFmpegKit Next source/build-script snapshot.
+It also attaches the inspected native AAR, build evidence, and LGPL text used by the APK.
 The project's Android build sources allow rebuilding the APK with replacement native libraries;
 production signing and distribution still require a complete corresponding-source/notice bundle.
 Caption fonts keep their OFL files in the embedded studio resources. The checked-in Android shell

@@ -113,6 +113,10 @@ jobs:
         with:
           name: UnlimitedClipper-android-arm64-preview-UNTESTED
           path: .cache/android-package
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: android-native-media-arm64
+          path: .cache/android-native-tools
       - run: node scripts/stage-release.mjs --publish
         env:
           UC_RELEASE_DRAFT: '1'

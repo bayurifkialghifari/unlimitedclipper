@@ -78,7 +78,8 @@ behavior. The current Windows ARM64 development machine is not supported by the 
 Emulator; a supported host is required when runtime testing resumes.
 
 The tagged preview workflow can rebuild the pinned native media dependency and attach the
-inspected debug APK to the same release as desktop packages. APK signing remains debug-only and
+inspected debug APK, native AAR, build evidence, license, and pinned source/build-script snapshot
+to the same release as desktop packages. APK signing remains debug-only and
 may change between CI runs. The APK is labeled experimental; on-device import and export are
 still unverified.
 
