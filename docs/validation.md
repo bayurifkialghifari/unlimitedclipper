@@ -1,5 +1,21 @@
 # Validation evidence
 
+## Preview.10 tagged version preparation, 2026-11-16
+
+The preview.9 tagged run reproduced an Android APK failure before packaging: its version script
+expanded compact JSON fields in the Tauri configuration and Prettier rejected the result. The
+script now changes only the top-level version entry in each JSON file. In an isolated worktree,
+the exact preview.9 transformation reproduced the formatting failure; the preview.10
+transformation passed Prettier for the script and all five changed JSON files. The tagged
+preview.10 worktree also passed npm run check: ESLint, Prettier, TypeScript, six frontend tests,
+and the production Studio build. Hosted package and release evidence remains pending.
+
+The initial local Rust test attempt in this isolated worktree could not link because it lacked
+the main workspace's ARM64 compiler. After connecting that compiler, all engine Rust tests,
+workspace Rustfmt, and engine/desktop Clippy with warnings denied passed for the transformed
+preview.10 version. The linked-library corresponding-source audit remains open; no draft binary
+should be published publicly before it is complete.
+
 ## Per-clip styling, Hook review, and release preparation, 2026-11-16
 
 The updated source passed npm run check: ESLint, Prettier, TypeScript, six frontend tests, and

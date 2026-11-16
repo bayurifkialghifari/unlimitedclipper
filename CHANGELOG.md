@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Tagged version preparation now preserves JSON formatting, allowing the Android release job
+  to run its source checks after the preview version is applied.
 - Project clip cards and export history now open the selected clip's caption style controls.
   Style changes autosave per clip and completed exports retain their original files and revision.
 - Hook ideas now use a numbered choice list with one visible quote and explanation. A saved set

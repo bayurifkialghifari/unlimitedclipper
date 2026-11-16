@@ -25,6 +25,8 @@ installers. The application update manifest still lists only Windows installers.
 are manual preview downloads until their updater artifact and installation behavior are tested.
 The tagged workflow creates a draft after validating artifacts, source snapshots, and checksums.
 Publish the draft only after inspecting the packages and their notices.
+Tagged version preparation changes version values in place so the Android source checks see
+Prettier-formatted configuration files.
 
 ## Interface
 

@@ -33,8 +33,16 @@ for (const filename of [
   'apps/desktop/src-tauri/tauri.conf.json',
 ]) {
   const location = path.join(root, filename);
-  const data = JSON.parse(await readFile(location, 'utf8'));
-  data.version = version;
-  await writeFile(location, JSON.stringify(data, null, 2) + '\n');
+  const contents = await readFile(location, 'utf8');
+  const versionEntry = /^ {2}"version": "[^"\r\n]+"/gm;
+  const matches = contents.match(versionEntry);
+  if (matches?.length !== 1) {
+    throw new Error('Expected one top-level version in ' + filename);
+  }
+  const updated = contents.replace(versionEntry, '  "version": ' + JSON.stringify(version));
+  if (JSON.parse(updated).version !== version) {
+    throw new Error('Could not update the top-level version in ' + filename);
+  }
+  await writeFile(location, updated);
 }
 process.stdout.write('Prepared release version ' + version + '\n');
