@@ -86,7 +86,7 @@ Dragging an imported sound to an audio track places it at the drop time; Add at 
 available for keyboard and touch use. These waveforms show input energy, not the final mixed
 gain or ducking. A failed waveform never blocks editing or export.
 
-The Visual inspector has a project B-roll library with local upload, managed preview, thumbnail,
+The separate B-roll Studio tab has a project library with local upload, managed preview, thumbnail,
 and a CC0-only Wikimedia Commons search. A selected video can be added at the playhead or dragged
 to the B-roll track. Imports create a browser-compatible proxy for review; export keeps the
 original registered video. Search results display source and license links. Downloads require
@@ -94,6 +94,17 @@ network access and are capped at 250 MiB; local imports are capped at 2 GiB and 
 Removing a library video is blocked while any clip still references it. Existing clips that
 refer to another registered project video remain readable. The editor does not redistribute
 stock files as built-in assets.
+
+Find B-roll uses the installed local Qwen 4B model on saved transcript words in the first two
+minutes of a clip. It skips occupied five-second windows, validates an exact source quote, and
+tries up to three concrete English stock queries. The engine imports one video whose title
+matches a query term and whose Commons metadata passes the CC0, MIME, host, and size checks.
+The result retains its source link and license. The editor previews the imported video and
+places it at the suggested output time only after the user chooses Place in timeline. The
+suggestion is tied to the saved revision; a changed edit cannot apply it. Placement uses normal
+Undo/Redo and autosave. Run Find B-roll again for another suggestion. No match leaves the clip
+unchanged and offers manual search or local import. Internet access is required to search and
+download; the model and media tools run locally. Android does not offer automatic B-roll.
 
 Camera, text, and B-roll motion controls now show a row of selectable diamond keyframes and one
 value panel for the selected key. Timeline diamonds still seek to their exact time. Easing and

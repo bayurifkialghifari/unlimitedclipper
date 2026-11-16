@@ -1,5 +1,48 @@
 # Validation evidence
 
+## Native B-roll suggestion and Studio layout, 2026-11-16
+
+The current Windows ARM64 Tauri/WebView2 development build passed
+scripts/validate-auto-broll-native.mjs in an isolated library. The script imported the real
+8.70-second docs/media/dinosaur.mp4 gameplay clip, applied its matching dinosaur.srt phrases,
+and confirmed Captions styling precedes Transcript. It loaded the already verified local Qwen 4B
+model through a hard link, requested automatic B-roll from the native UI, and waited for a CC0
+Wikimedia Commons video to download, probe, and gain a browser-compatible preview. The saved
+clip contains that registered B-roll asset at 5,000 ms. The selected stock page is
+[Commons file 196040547](https://commons.wikimedia.org/wiki/File:Terminator_T-800_y_la_colecci%C3%B3n_de_dinosaurios_animatronicos,_Robotics_Creators_Bolivia.webm).
+The native bridge was present and no page errors occurred. Keyboard arrow navigation switched
+between the B-roll and Captions tabs. The place button was visible without scrolling, the stock
+preview decoded metadata, and its source link matched the recorded Commons page. An exact edited
+preview then rendered successfully; FFmpeg decoded the full output, and the frame at 5.5 seconds
+showed the imported stock footage beneath the saved caption. Evidence:
+.cache/auto-broll-native-validation.json and the refreshed docs/media/studio.png,
+docs/media/broll-library.png, docs/media/broll.png, and .cache/auto-broll-rendered-frame.jpg. The source waveform and scene frames
+were ready before the captures. The B-roll tab showed its own progress; the duplicate global
+activity panel stayed hidden there.
+
+The first native attempt exposed a real failure: the model searched for “Dino-Dino” and the
+title filter found no relevant footage. A later attempt exposed a missing downloader User-Agent
+and an ambiguous person-name result. Query normalization for that repeated gaming term and a
+download User-Agent resolved both failures. The final native run imported a video whose title
+mentions dinosaurs and displayed its source and CC0 license before placement. Automatic B-roll
+currently imports one reviewable asset per request from the first two minutes; it does not
+claim reliable visual understanding or guaranteed stock coverage. The source media was not
+automatically transcribed, and this run rendered an edited preview rather than a final export.
+
+npm run check passed ESLint, Prettier, TypeScript, nine frontend tests, and the Studio build.
+The engine Rust tests, workspace Rustfmt check, and engine Clippy with warnings denied passed.
+Browser controls retain the existing separate interaction suite; this native run exercised
+the generated B-roll button, playable asset preview, source link, placement, saved revision,
+and exact edited preview.
+Installed packages on other operating systems and release publication remain pending.
+
+| Anti-slop During gate    | Status                  | Evidence and remaining scope                                                                                                            |
+| ------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Direction and content    | Pass                    | Real gameplay footage, matching subtitle sidecar, measured waveform, and CC0 asset with source link.                                    |
+| Visual layout            | Pass for tested desktop | Native 1600 by 1000 captures show compact header, separate B-roll tab, and usable preview.                                              |
+| Interactions             | Partial                 | Native model search, import, preview, placement, and B-roll tab keyboard navigation passed; a full every-control audit remains pending. |
+| States and accessibility | Partial                 | No-match, failed, stale, loading, and cancel paths have controls; failure injection and assistive-technology review remain pending.     |
+
 ## Studio spacing, source audio, and desktop screenshots, 2026-11-16
 
 The current development Studio build was tested in an isolated Windows ARM64 Tauri/WebView2

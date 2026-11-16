@@ -1,5 +1,6 @@
 pub mod alignment;
 pub mod api;
+pub mod auto_broll;
 pub mod broll;
 pub mod caption_metrics;
 pub mod caption_presets;

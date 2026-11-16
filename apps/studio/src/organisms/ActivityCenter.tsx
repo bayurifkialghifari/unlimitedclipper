@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useActivity } from '../lib/activity-store';
 import { useText } from '../lib/i18n';
@@ -12,6 +13,7 @@ const activeStates = ['queued', 'running', 'cancelling'];
 
 export function ActivityCenter() {
   const text = useText();
+  const location = useLocation();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ['jobs'], queryFn: api.jobs, refetchInterval: 1000 });
   const models = useQuery({ queryKey: ['models'], queryFn: api.models });
@@ -21,6 +23,9 @@ export function ActivityCenter() {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const brollPanelOpen =
+    location.pathname.startsWith('/studio/') &&
+    new URLSearchParams(location.search).get('panel') === 'broll';
   const completedKey = JSON.stringify(
     (query.data ?? [])
       .filter((job) => job.status === 'completed' && job.updated_at >= openedAt)
@@ -45,6 +50,7 @@ export function ActivityCenter() {
       (job) =>
         job.kind !== 'storyboard' &&
         job.kind !== 'waveform' &&
+        !(brollPanelOpen && ['auto_broll', 'broll_import'].includes(job.kind)) &&
         (activeStates.includes(job.status) ||
           (job.updated_at >= openedAt && !dismissed.includes(job.id + ':' + job.status))),
     )

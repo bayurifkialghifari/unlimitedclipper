@@ -5,20 +5,22 @@ works from a fresh checkout without relying on ignored cache or application-data
 
 ## Screenshots
 
-Eight README screenshots and one additional B-roll capture were taken on 16 November 2026 from an isolated
-Windows ARM64 desktop development build through its native WebView2 window at 1600 × 1000. The
-Tauri bridge was present. The source was the reviewed podcast export in docs/media/editor-demo.mp4,
-imported into a separate desktop library. Its matching editor-demo.srt phrases were added to the
-manual cut, then that cut was divided into two source scenes. This is a layout and interaction
-fixture, not a new automatic-selection or transcription result. The owner's existing library and
-the desktop instance on port 43179 were unchanged.
+Eight README screenshots and one additional B-roll capture were taken on 16 November 2026 from
+isolated Windows ARM64 desktop development builds through native WebView2 windows at 1600 by 1000.
+The Tauri bridge was present. Most captures use the reviewed podcast export in
+docs/media/editor-demo.mp4 and its matching editor-demo.srt phrases. That manual cut was divided
+into two source scenes. The Studio and B-roll captures were refreshed with the real
+docs/media/dinosaur.mp4 source and its matching dinosaur.srt phrases. The local Qwen 4B model
+selected a transcript moment, Commons supplied a CC0 video, and the saved edit placed that
+registered video at five seconds. These are layout and interaction fixtures; they do not prove
+automatic clip selection or transcription accuracy. The owner's existing library was unchanged.
 
-- studio.png: compact top tools, two actual-source scene strips, and a waveform measured from the
-  source audio beneath them.
+- studio.png: compact top tools, one gameplay source scene, and a waveform measured from its
+  source audio beneath it.
 - clips.png: the project clip list with one Edit clip action per card.
 - captions.png: caption looks populated by the matching subtitle sidecar.
-- broll-library.png: a decoded local B-roll preview with source details in the Studio inspector.
-- broll.png: a placed B-roll layer and its motion controls.
+- broll-library.png: a decoded CC0 stock preview with source details in the separate B-roll tab.
+- broll.png: the suggested video placed as a saved B-roll layer with its timing and motion controls.
 - filters.png: video filter previews from the same source frame.
 - projects.png: the imported podcast MP4 and its actual source thumbnail.
 - settings.png: a fresh library with optional AI models missing and local media tools ready.
@@ -30,6 +32,11 @@ Evidence:
 scripts/validate-native-layout.mjs and .cache/native-layout-validation.json. Installer execution
 and runtime behavior on other operating systems are separate validation tasks. The old rating.png
 is retained as historical browser evidence and is not referenced in the current README.
+
+The refreshed captures and automatic B-roll interaction were checked by
+scripts/validate-auto-broll-native.mjs. Its evidence is
+.cache/auto-broll-native-validation.json. The test used a hard link to the already verified local
+model to avoid another multi-gigabyte copy; the linked model remained read-only during inference.
 
 ## Video examples
 

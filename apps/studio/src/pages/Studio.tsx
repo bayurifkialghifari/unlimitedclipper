@@ -129,7 +129,12 @@ export function Studio() {
       ? 'audio'
       : editor.timelineSelection.kind === 'filter'
         ? 'style'
-        : 'timeline'
+        : editor.timelineSelection.kind === 'visual' &&
+            editor.draft?.document.visual_layers?.some(
+              (layer) => layer.id === editor.timelineSelection?.id && layer.kind === 'broll',
+            )
+          ? 'broll'
+          : 'timeline'
     : isStudioTool(requestedTool)
       ? requestedTool
       : 'captions';
@@ -166,37 +171,39 @@ export function Studio() {
       {ready && (
         <>
           <div className={styles.editorToolbar}>
-            <span className={styles.hint} role="status">
-              {editor.saving ? text.saving : editor.dirty ? text.unsaved : text.saved}
-            </span>
-            <div className={styles.editorLayoutSelect}>
-              <Select
-                label={text.format}
-                value={editor.draft!.document.layout}
-                onChange={(value) =>
-                  editor.change((document) => {
-                    applyLayout(document, value as Layout, source);
-                  })
-                }
-              >
-                {(['portrait', 'square', 'landscape', 'contain', 'blur', 'gaming'] as const).map(
-                  (layout) => (
-                    <option
-                      key={layout}
-                      value={layout}
-                      disabled={
-                        Boolean(editor.draft!.document.camera_motion?.length) &&
-                        !['portrait', 'square', 'landscape'].includes(layout)
-                      }
-                    >
-                      {text[layout]}
-                    </option>
-                  ),
+            <div className={styles.editorSetup}>
+              <div className={styles.editorLayoutSelect}>
+                <Select
+                  label={text.format}
+                  value={editor.draft!.document.layout}
+                  onChange={(value) =>
+                    editor.change((document) => {
+                      applyLayout(document, value as Layout, source);
+                    })
+                  }
+                >
+                  {(['portrait', 'square', 'landscape', 'contain', 'blur', 'gaming'] as const).map(
+                    (layout) => (
+                      <option
+                        key={layout}
+                        value={layout}
+                        disabled={
+                          Boolean(editor.draft!.document.camera_motion?.length) &&
+                          !['portrait', 'square', 'landscape'].includes(layout)
+                        }
+                      >
+                        {text[layout]}
+                      </option>
+                    ),
+                  )}
+                </Select>
+                {Boolean(editor.draft!.document.camera_motion?.length) && (
+                  <small>{text.cameraMotionLayoutLimit}</small>
                 )}
-              </Select>
-              {Boolean(editor.draft!.document.camera_motion?.length) && (
-                <small>{text.cameraMotionLayoutLimit}</small>
-              )}
+              </div>
+              <span className={styles.hint} role="status">
+                {editor.saving ? text.saving : editor.dirty ? text.unsaved : text.saved}
+              </span>
             </div>
             <div className={styles.actions}>
               <Button

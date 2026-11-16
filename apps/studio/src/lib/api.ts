@@ -121,6 +121,12 @@ export const api = {
     }),
   brollAssets: (projectId: string) =>
     request<BrollAsset[]>('/projects/' + projectId + '/broll-assets'),
+  autoBrollProposal: (clipId: string) => request<Job | null>('/clips/' + clipId + '/auto-broll'),
+  autoBroll: (clipId: string, revision: number) =>
+    request<Job>('/clips/' + clipId + '/auto-broll', {
+      method: 'POST',
+      body: JSON.stringify({ revision }),
+    }),
   brollStock: (projectId: string, query: string) =>
     request<StockVideo[]>('/projects/' + projectId + '/broll-stock?q=' + encodeURIComponent(query)),
   importBrollStock: (projectId: string, pageId: number) =>

@@ -165,6 +165,21 @@ pub async fn latest_auto_edit_job(
     row.map(|(data,)| decode(data)).transpose()
 }
 
+pub async fn latest_auto_broll_job(
+    pool: &SqlitePool,
+    project_id: &str,
+    clip_id: &str,
+) -> Result<Option<Job>> {
+    let row: Option<(String,)> = sqlx::query_as(
+        "SELECT data FROM jobs WHERE project_id = ? AND json_extract(data, '$.clip_id') = ? AND json_extract(data, '$.kind') = 'auto_broll' ORDER BY created_at DESC LIMIT 1",
+    )
+    .bind(project_id)
+    .bind(clip_id)
+    .fetch_optional(pool)
+    .await?;
+    row.map(|(data,)| decode(data)).transpose()
+}
+
 pub async fn latest_card_narration_job(
     pool: &SqlitePool,
     project_id: &str,

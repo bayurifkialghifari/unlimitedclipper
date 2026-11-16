@@ -1838,6 +1838,52 @@
   overflow-y: auto;
 }
 
+.autoBrollPanel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-inset);
+  font-size: 12px;
+}
+
+.autoBrollPanel > p,
+.autoBrollPanel > h4 {
+  margin: 0;
+}
+
+.autoBrollPanel > h4 {
+  font-size: 13px;
+}
+
+.autoBrollPanel > progress {
+  width: 100%;
+}
+
+.autoBrollActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.autoBrollResult {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.autoBrollResult > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.autoBrollResult video {
+  width: 100%;
+  max-height: 145px;
+  background: #080a0c;
+}
+
 .brollAsset {
   display: flex;
   align-items: center;

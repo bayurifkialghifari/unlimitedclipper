@@ -175,6 +175,45 @@
         "responses": { "200": { "description": "" } }
       }
     },
+    "/api/v1/clips/{id}/auto-broll": {
+      "get": {
+        "tags": [],
+        "operationId": "get_auto_broll",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/Job" }] }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "operationId": "auto_broll_job",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RevisionRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          },
+          "409": { "description": "" }
+        }
+      }
+    },
     "/api/v1/clips/{id}/auto-edit": {
       "get": {
         "tags": [],

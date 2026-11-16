@@ -17,7 +17,7 @@ A local video clipping studio built with Rust, React, SQLite, and Tauri.
 **Made for fun, still experimental.** This is a side project for tinkering with local video tools,
 mostly for fun and learning, at a relaxed pace. Expect rough edges and changing features.
 
-<img src="docs/media/studio.png" alt="Current Windows ARM64 desktop Studio with source scenes, podcast footage, compact tools, and measured audio waveform" width="1600" height="1000" />
+<img src="docs/media/studio.png" alt="Current Windows ARM64 desktop Studio with Dino Dino gameplay, caption looks, compact tools, and measured source audio" width="1600" height="1000" />
 
 This Studio capture comes from the current development desktop build. The downloadable preview.8
 installers below are an earlier release.
@@ -133,12 +133,13 @@ export and its matching subtitle sidecar in an isolated desktop library.
 
 ### Clip library and B-roll
 
-Each clip card has one Edit clip action. In the editor, the project B-roll library previews
-registered local video, shows its source, and places it at the playhead or on the timeline.
+Each clip card has one Edit clip action. The separate B-roll tab can use the installed local model
+to choose a transcript moment, search for a relevant CC0 video, import it, and preview it before
+placement. Manual search, local import, and drag placement remain available.
 
 <img src="docs/media/clips.png" alt="Current native project clip list with one Edit clip action on each card" width="1600" height="1000" />
 
-<img src="docs/media/broll-library.png" alt="Current native Studio with a decoded local B-roll preview and source details" width="1600" height="1000" />
+<img src="docs/media/broll-library.png" alt="Current native Studio B-roll tab showing a locally suggested CC0 video, its source, and playable preview" width="1600" height="1000" />
 
 ### Export results
 

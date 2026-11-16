@@ -103,7 +103,7 @@ async fn commons_page(
             query.append_pair("pageids", &page_id.to_string());
         } else if let Some(search) = search {
             query.append_pair("generator", "search");
-            query.append_pair("gsrsearch", &format!("filetype:video {search}"));
+            query.append_pair("gsrsearch", &format!("filetype:video CC0 {search}"));
             query.append_pair("gsrnamespace", "6");
             query.append_pair("gsrlimit", "25");
         }
@@ -123,6 +123,14 @@ pub async fn search(state: &AppState, query: &str) -> ApiResult<Vec<StockVideo>>
             "Search with 2 to 80 characters.",
         ));
     }
+    Ok(commons_page(state, None, Some(query))
+        .await?
+        .into_iter()
+        .map(|entry| entry.video)
+        .collect())
+}
+
+pub(crate) async fn search_candidates(state: &AppState, query: &str) -> Result<Vec<StockVideo>> {
     Ok(commons_page(state, None, Some(query))
         .await?
         .into_iter()
@@ -199,6 +207,7 @@ async fn download_stock(
             }
         });
         let client = reqwest::Client::builder()
+            .user_agent("UnlimitedClipper/0.1.0 (local CC0 video import)")
             .redirect(policy)
             .connect_timeout(std::time::Duration::from_secs(15))
             .read_timeout(std::time::Duration::from_secs(30))

@@ -6,6 +6,9 @@ Requirement: CAP-01. Status: implemented; validation coverage is recorded in ../
 
 Edit timed words and selected groups, apply presets, customize typography, colors, outline, box/word highlighting, position, and animation. Undo/redo modifies the draft; autosave commits revisions.
 
+The focused Studio inspector shows caption styling first, followed by the transcript and
+selected-word controls. Transcript words still seek the video and support range selection.
+
 New edits use bold DM Sans, amber word emphasis, and short phrases. The engine supplies 18
 original recipes. Category filters and sample previews use the current clip's words; an empty
 clip uses a labeled styling sample. Bold and uppercase never rewrite stored speech. Applying a

@@ -102,6 +102,13 @@ the saved set, checks the current revision and clean draft before applying a cho
 uses the existing undo/autosave transaction. The save API remains the final optimistic conflict
 guard if another editor changes the clip between fetch and save.
 
+Automatic B-roll jobs also freeze the saved clip revision. Qwen selects numbered transcript
+windows and exact quotes; the engine validates them, searches CC0 Commons video metadata, and
+registers one managed source, proxy, and thumbnail with provenance. Accepted queries and the
+chosen Commons page are job checkpoints for retry. No job writes an edit document. The Studio
+applies the saved asset at its proposed content time through the revision-aware undo/autosave
+transaction, and a changed clip cannot accept the old suggestion.
+
 Automatic editing can optionally add a camera-motion proposal to the same frozen document.
 Existing crop anchors take precedence; otherwise only single-face samples contribute bounded
 pan targets. Up to four transcript-selected emphasis words add small zoom pulses. Multi-face

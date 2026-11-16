@@ -19,7 +19,7 @@ import { retimeLayerMotion } from '../lib/layer-motion';
 import type { AudioLayer, VisualLayer } from '../types';
 import styles from '../styles/Studio.module.css';
 
-export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'audio' }) {
+export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'audio' | 'broll' }) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
   const playhead = useEditor((state) => state.playhead);
@@ -125,7 +125,7 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
 
   return (
     <section className={styles.timelineEditor} aria-label={text.timelineSegments}>
-      {mode !== 'audio' && (!selection || selection.kind === 'scene') && (
+      {mode !== 'audio' && mode !== 'broll' && (!selection || selection.kind === 'scene') && (
         <>
           <h3>{text.timelineSegments}</h3>
           {segments
@@ -189,26 +189,29 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
       )}
       {mode !== 'audio' && (!selection || selection.kind === 'visual') && (
         <>
-          <h3>{text.visualLayers}</h3>
-          <div className={styles.visualAddActions}>
-            {['note', 'punch_in', 'split', 'camera_frame'].map((kind) => (
-              <Button
-                key={kind}
-                onClick={() => addVisual(kind)}
-                disabled={pending || (document.visual_layers?.length ?? 0) >= 64}
-              >
-                {names[kind]}
-              </Button>
-            ))}
-          </div>
-          {!selection && (
+          <h3>{mode === 'broll' ? text.brollLayers : text.visualLayers}</h3>
+          {mode !== 'broll' && (
+            <div className={styles.visualAddActions}>
+              {['note', 'punch_in', 'split', 'camera_frame'].map((kind) => (
+                <Button
+                  key={kind}
+                  onClick={() => addVisual(kind)}
+                  disabled={pending || (document.visual_layers?.length ?? 0) >= 64}
+                >
+                  {names[kind]}
+                </Button>
+              ))}
+            </div>
+          )}
+          {mode === 'broll' && !selection && (
             <BrollLibrary
               projectId={draft.project_id}
               disabled={pending || (document.visual_layers?.length ?? 0) >= 64}
             />
           )}
-          {broll.isError && <p role="alert">{broll.error.message}</p>}
+          {mode === 'broll' && broll.isError && <p role="alert">{broll.error.message}</p>}
           {(document.visual_layers ?? [])
+            .filter((layer) => (mode === 'broll' ? layer.kind === 'broll' : layer.kind !== 'broll'))
             .filter((layer) => selection?.kind !== 'visual' || selection.id === layer.id)
             .map((layer) => (
               <fieldset key={layer.id} className={styles.disabledGroup}>
@@ -359,7 +362,7 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
             ))}
         </>
       )}
-      {mode !== 'visual' && (!selection || selection.kind === 'audio') && (
+      {mode !== 'visual' && mode !== 'broll' && (!selection || selection.kind === 'audio') && (
         <>
           <h3>{text.audioLayers}</h3>
           {!selection && (

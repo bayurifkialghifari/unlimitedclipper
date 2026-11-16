@@ -1,6 +1,7 @@
 import {
   BezierCurveIcon,
   CropIcon,
+  FilmSlateIcon,
   FilmStripIcon,
   SlidersHorizontalIcon,
   StampIcon,
@@ -13,6 +14,7 @@ import styles from '../styles/Editor.module.css';
 
 const toolIds = [
   'timeline',
+  'broll',
   'captions',
   'crop',
   'title',
@@ -38,6 +40,7 @@ export function StudioToolMenu({
   const text = useText();
   const tools = [
     { id: 'timeline', label: text.sourceTools, shortLabel: text.scenes, icon: FilmStripIcon },
+    { id: 'broll', label: text.brollTool, shortLabel: text.brollTool, icon: FilmSlateIcon },
     { id: 'captions', label: text.captions, shortLabel: text.captions, icon: SubtitlesIcon },
     { id: 'crop', label: text.crop, shortLabel: text.crop, icon: CropIcon },
     { id: 'title', label: text.title, shortLabel: text.title, icon: TextTIcon },

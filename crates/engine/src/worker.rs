@@ -58,6 +58,7 @@ pub async fn run(state: AppState) -> Result<()> {
                 crate::waveform::generate_asset(&state, &mut job, &cancellation).await
             }
             "broll_import" => crate::broll::import(&state, &mut job, &cancellation).await,
+            "auto_broll" => crate::auto_broll::generate(&state, &mut job, &cancellation).await,
             "auto_edit" => crate::editorial::auto_edit(&state, &mut job, &cancellation).await,
             _ => Err(anyhow::anyhow!("Unknown job type.")),
         };

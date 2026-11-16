@@ -43,20 +43,34 @@ export function Inspector({
   const linkedTab =
     focused &&
     requestedTab &&
-    ['captions', 'crop', 'title', 'style', 'branding', 'timeline', 'motion', 'audio'].includes(
-      requestedTab,
-    )
+    [
+      'captions',
+      'crop',
+      'title',
+      'style',
+      'branding',
+      'timeline',
+      'broll',
+      'motion',
+      'audio',
+    ].includes(requestedTab)
       ? requestedTab
       : null;
   const [chosenTab, setChosenTab] = useState(focused ? 'captions' : 'options');
   const selection = useEditor((state) => state.timelineSelection);
+  const draft = useEditor((state) => state.draft);
   const inspectorBody = useRef<HTMLDivElement>(null);
   const tab = selection
     ? selection.kind === 'audio'
       ? 'audio'
       : selection.kind === 'filter'
         ? 'style'
-        : 'timeline'
+        : selection.kind === 'visual' &&
+            draft?.document.visual_layers?.some(
+              (layer) => layer.id === selection.id && layer.kind === 'broll',
+            )
+          ? 'broll'
+          : 'timeline'
     : (linkedTab ?? chosenTab);
   useEffect(() => {
     if (inspectorBody.current) {
@@ -87,7 +101,6 @@ export function Inspector({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const imageInput = useRef<HTMLInputElement>(null);
-  const draft = useEditor((state) => state.draft);
   const dirty = useEditor((state) => state.dirty);
   const saving = useEditor((state) => state.saving);
   const selected = useEditor((state) => state.selectedWords);
@@ -150,6 +163,7 @@ export function Inspector({
     ['style', text.videoFilters],
     ['branding', text.branding],
     ['timeline', focused ? text.sourceTools : text.timelineSegments],
+    ['broll', text.brollTool],
   ].filter(([value]) => (document ? !focused || value !== 'options' : value === 'options'));
 
   async function action(operation: () => Promise<unknown>) {
@@ -474,10 +488,6 @@ export function Inspector({
         {tab === 'captions' && document && (
           <>
             {!focused && <p className={styles.hint}>{text.perClipStyleHint}</p>}
-            <section>
-              <h3>{text.transcript}</h3>
-              <TranscriptPanel key={draft?.id} showTextEditor={false} />
-            </section>
             <h2>{text.captions}</h2>
             <CaptionPresetLibrary
               current={document.captions}
@@ -637,6 +647,7 @@ export function Inspector({
               <option value="pop">{text.pop}</option>
             </Select>
             <hr className={styles.separator} />
+            <TranscriptPanel key={draft?.id} showTextEditor={false} />
             <CaptionRefinement
               models={models.data ?? []}
               language={language}
@@ -989,6 +1000,7 @@ export function Inspector({
           </>
         )}
         {tab === 'audio' && document && <TimelineEditor key={draft!.id} mode="audio" />}
+        {tab === 'broll' && document && <TimelineEditor key={draft!.id} mode="broll" />}
         {tab === 'branding' && document && (
           <>
             <h2>{text.branding}</h2>

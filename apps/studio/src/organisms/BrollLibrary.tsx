@@ -4,6 +4,7 @@ import { Button, Field } from '@unlimitedclipper/ui';
 import { PlayIcon, PlusIcon, TrashIcon, UploadSimpleIcon } from '@phosphor-icons/react';
 import { api, assetUrl, uploadFile } from '../lib/api';
 import { brollDragType, placeBroll } from '../lib/broll-placement';
+import { AutoBrollPanel } from './AutoBrollPanel';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import type { BrollAsset, Job } from '../types';
@@ -132,6 +133,7 @@ export function BrollLibrary({ projectId, disabled }: { projectId: string; disab
   return (
     <section className={styles.brollLibrary} aria-label={text.brollLibrary}>
       <h3>{text.brollLibrary}</h3>
+      {draft && <AutoBrollPanel clipId={draft.id} assets={assets.data ?? []} disabled={disabled} />}
       <p className={styles.hint}>{text.brollDragHint}</p>
       {assets.isPending && <p role="status">{text.loading}</p>}
       {assets.isError && (

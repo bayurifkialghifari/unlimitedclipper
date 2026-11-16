@@ -59,6 +59,12 @@ used for review; the original registered file is used for export. The B-roll sou
 output range remain editable. Stock search and import require internet access. Maximum: 64 visual
 layers.
 
+The B-roll tab owns stock search and registered B-roll layer controls. Local Qwen can propose a
+transcript moment and search/import one title-matched CC0 video at a time. Its job freezes the
+clip revision and checkpoints accepted queries and the chosen Commons page for retry. The
+proposal does not edit the clip until it is reviewed and placed through the editor transaction.
+No matching result is a completed empty suggestion, not invented footage.
+
 Audio layers select registered video audio, imported WAV/MP3/M4A/AAC/OGG/FLAC/Opus, or a synthesized
 short tap. The library stores filenames, IDs, and durations in SQLite, with media kept separately.
 Timing, source offset, gain, fades, optional normalization, and source-audio ducking are editable.
@@ -121,6 +127,7 @@ immutable saved revision.
 - GET and POST /api/v1/projects/{id}/broll-assets
 - GET /api/v1/projects/{id}/broll-stock
 - POST /api/v1/projects/{id}/broll-stock/import
+- GET and POST /api/v1/clips/{id}/auto-broll
 - DELETE /api/v1/projects/{id}/broll-assets/{asset_id}
 - GET and POST /api/v1/assets/audio
 - GET /api/v1/clips/{id}/subtitles?format=vtt&timeline=output

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Captions styling now appears before the transcript. The Studio header groups composition and
+  save status, while B-roll has its own tool tab and layer controls instead of sharing Scenes.
+- Automatic B-roll now uses the installed local Qwen model to choose a transcript-grounded moment,
+  searches Wikimedia Commons for a relevant CC0 video, and imports it with source and license
+  provenance. A revision-bound suggestion can be previewed and placed through Undo/Redo.
+- CC0 stock searches now include the license term, improving relevant results while keeping the
+  final license, video type, host, and download-size checks.
 - Project clip cards now use one Edit clip action with an icon; the redundant Change style action
   was removed from that list. Export cards still open the clip's caption controls.
 - The single project Clip options panel no longer repeats a tab above its heading. Closing cards

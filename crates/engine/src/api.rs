@@ -164,6 +164,8 @@ pub struct Health {
         upload_broll,
         search_broll_stock,
         import_broll_stock,
+        get_auto_broll,
+        auto_broll_job,
         delete_broll_asset,
         upload_source,
         youtube_source,
@@ -407,6 +409,10 @@ pub fn router(state: AppState) -> Router {
             "/clips/{id}/hook-proposals",
             get(get_hook_proposals).post(hook_proposals_job),
         )
+        .route(
+            "/clips/{id}/auto-broll",
+            get(get_auto_broll).post(auto_broll_job),
+        )
         .route("/clips/{id}/track", post(track_job))
         .route("/clips/{id}/captions", post(caption_job))
         .route(
@@ -547,6 +553,11 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Health>> {
         "hook_proposals".into(),
     ];
     if state.native_tools.is_none() && crate::tools::available(&state, "ffmpeg", "ffmpeg") {
+        if crate::tools::available(&state, "ffmpeg", "ffprobe")
+            && crate::tools::available(&state, "llama", "llama-completion")
+        {
+            editor_features.push("auto_broll".into());
+        }
         editor_features.push("storyboard_frames".into());
         editor_features.push("source_waveform".into());
         editor_features.push("asset_waveform".into());
@@ -734,6 +745,55 @@ async fn import_broll_stock(
                 Some(id),
                 None,
                 json!({"page_id": request.page_id}),
+            )
+            .await?,
+    ))
+}
+
+#[utoipa::path(get, path = "/api/v1/clips/{id}/auto-broll",
+    responses((status = 200, body = Option<Job>)))]
+async fn get_auto_broll(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Option<Job>>> {
+    let clip = db::clip(&state.db, &id).await?;
+    Ok(Json(
+        db::latest_auto_broll_job(&state.db, &clip.project_id, &id).await?,
+    ))
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/auto-broll",
+    request_body = RevisionRequest, responses((status = 200, body = Job), (status = 409)))]
+async fn auto_broll_job(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<RevisionRequest>,
+) -> ApiResult<Json<Job>> {
+    tools::require_native_job(&state, "auto_broll")?;
+    let _gate = state.operation_gate.lock().await;
+    let clip = db::clip(&state.db, &id).await?;
+    if clip.revision != request.revision {
+        return Err(ApiError::conflict());
+    }
+    if !crate::auto_broll::has_transcript_window(&clip.document) {
+        return Err(ApiError::bad_request(
+            "Transcribe this clip before requesting automatic B-roll.",
+        ));
+    }
+    if clip.document.visual_layers.len() >= 64 {
+        return Err(ApiError::bad_request(
+            "This clip already has 64 visual layers.",
+        ));
+    }
+    ensure_no_clip_edit_job(&state, &id).await?;
+    model_manager::model_path(&state, "qwen3-4b").await?;
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "auto_broll",
+                Some(clip.project_id.clone()),
+                Some(id),
+                json!({"snapshot": clip, "revision": request.revision}),
             )
             .await?,
     ))
@@ -1351,6 +1411,7 @@ async fn ensure_no_clip_edit_job(state: &AppState, clip_id: &str) -> ApiResult<(
                 "track",
                 "captions",
                 "auto_edit",
+                "auto_broll",
                 "card_narration",
             ]
             .contains(&job.kind.as_str())
@@ -1487,6 +1548,7 @@ async fn retry_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
         "track",
         "captions",
         "hook_proposals",
+        "auto_broll",
         "card_narration",
     ]
     .contains(&job.kind.as_str())
@@ -1494,11 +1556,13 @@ async fn retry_job(State(state): State<AppState>, Path(id): Path<String>) -> Api
         let clip_id = job.clip_id.as_deref().ok_or_else(ApiError::not_found)?;
         ensure_no_clip_edit_job(&state, clip_id).await?;
         let clip = db::clip(&state.db, clip_id).await?;
-        if ["hook_proposals", "card_narration"].contains(&job.kind.as_str()) {
+        if ["hook_proposals", "card_narration", "auto_broll"].contains(&job.kind.as_str()) {
             if clip.revision != job.payload["revision"].as_i64().unwrap_or(-1) {
-                return Err(ApiError::bad_request(
-                    "This clip changed. Request new hook proposals for the current edit.",
-                ));
+                return Err(ApiError::bad_request(if job.kind == "auto_broll" {
+                    "This clip changed. Find B-roll again for the current edit."
+                } else {
+                    "This clip changed. Request new hook proposals for the current edit."
+                }));
             }
         } else if job.kind == "track" && job.payload["frozen_clip"].is_object() {
             if clip.revision != job.payload["revision"].as_i64().unwrap_or(-1)
