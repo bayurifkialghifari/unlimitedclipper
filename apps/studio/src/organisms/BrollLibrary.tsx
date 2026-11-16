@@ -10,6 +10,31 @@ import { useText } from '../lib/i18n';
 import type { BrollAsset, Job } from '../types';
 import styles from '../styles/Studio.module.css';
 
+function StockThumbnail({ url, fallbackLabel }: { url: string | null; fallbackLabel: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!url || failed) {
+    return (
+      <span className={styles.brollMissingFrame} role="img" aria-label={fallbackLabel}>
+        <PlayIcon aria-hidden="true" />
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      crossOrigin="anonymous"
+      referrerPolicy="no-referrer"
+      width={96}
+      height={54}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export function BrollLibrary({ projectId, disabled }: { projectId: string; disabled: boolean }) {
   const text = useText();
   const client = useQueryClient();
@@ -274,9 +299,11 @@ export function BrollLibrary({ projectId, disabled }: { projectId: string; disab
       {stock.isSuccess && stock.data.length === 0 && <p role="status">{text.brollStockEmpty}</p>}
       {stock.data?.map((video) => (
         <div key={video.page_id} className={styles.brollAsset}>
-          {video.thumbnail_url && (
-            <img src={video.thumbnail_url} width={96} height={54} alt="" loading="lazy" />
-          )}
+          <StockThumbnail
+            key={video.thumbnail_url}
+            url={video.thumbnail_url ?? null}
+            fallbackLabel={text.brollThumbnailUnavailable}
+          />
           <span className={styles.brollAssetLabel}>
             <strong>{video.title}</strong>
             <small>CC0 · {(video.size_bytes / 1048576).toFixed(1)} MB</small>

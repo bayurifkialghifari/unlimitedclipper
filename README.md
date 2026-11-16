@@ -142,6 +142,8 @@ and preview it before placement. Manual search, local import, and drag placement
 
 <img src="docs/media/broll-library.png" alt="Current native Studio B-roll tab showing a locally suggested CC0 video, its source, and playable preview" width="1600" height="1000" />
 
+<img src="docs/media/broll-stock.png" alt="Native B-roll search with decoded CC0 video thumbnails and source links" width="1440" height="940" />
+
 ### Export results
 
 Completed videos appear immediately with playback controls and their MP4, SRT, and ASS downloads.

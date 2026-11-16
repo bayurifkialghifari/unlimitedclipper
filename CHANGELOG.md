@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- CC0 B-roll search thumbnails now load in the desktop WebView with anonymous CORS. Failed
+  thumbnail requests show a video placeholder instead of a broken-image icon.
 - Project clip cards now show their own source frames and open a playable edited preview directly
   from the gallery. The preview renders on demand from the latest saved revision, reports progress
   and failure, and renews its temporary media lease while open. The native clip-list screenshot

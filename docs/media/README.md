@@ -7,6 +7,7 @@ works from a fresh checkout without relying on ignored cache or application-data
 
 Eight README screenshots and one additional B-roll capture were taken on 16 November 2026 from
 isolated Windows ARM64 desktop development builds through native WebView2 windows at 1600 by 1000.
+The ninth README screenshot shows the same native app at 1440 by 940 during a stock search.
 The Tauri bridge was present. Most captures use the reviewed podcast export in
 docs/media/editor-demo.mp4 and its matching editor-demo.srt phrases. That manual cut was divided
 into two source scenes. The Studio and B-roll captures were refreshed with the real
@@ -21,6 +22,8 @@ automatic clip selection or transcription accuracy. The owner's existing library
   Edit clip action per card. The reviewed MP4 was played in WebView2 after an on-demand render.
 - captions.png: caption looks populated by the matching subtitle sidecar.
 - broll-library.png: a decoded CC0 stock preview with source details in the separate B-roll tab.
+- broll-stock.png: the stock search with visible decoded Commons thumbnails. The source and
+  import controls remain next to each result.
 - broll.png: the suggested video placed as a saved B-roll layer with its timing and motion controls.
 - filters.png: video filter previews from the same source frame.
 - projects.png: the imported podcast MP4 and its actual source thumbnail.
@@ -43,6 +46,10 @@ The refreshed captures and automatic B-roll interaction were checked by
 scripts/validate-auto-broll-native.mjs. Its evidence is
 .cache/auto-broll-native-validation.json. The test used a hard link to the already verified local
 model to avoid another multi-gigabyte copy; the linked model remained read-only during inference.
+
+The stock search capture came from the visible native development window after an actual Commons
+search for computer. Three visible result thumbnails decoded at 330 pixels wide. Evidence is in
+.cache/stock-thumbnails-native-visible.json and .cache/stock-thumbnails-native.png.
 
 ## Video examples
 

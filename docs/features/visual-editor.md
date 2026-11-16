@@ -91,6 +91,8 @@ and a CC0-only Wikimedia Commons search. A selected video can be added at the pl
 to the B-roll track. Imports create a browser-compatible proxy for review; export keeps the
 original registered video. Search results display source and license links. Downloads require
 network access and are capped at 250 MiB; local imports are capped at 2 GiB and ten minutes.
+Commons thumbnails use anonymous CORS in the desktop WebView. A failed thumbnail request shows
+a labeled video placeholder while its source link and import action remain available.
 Removing a library video is blocked while any clip still references it. Existing clips that
 refer to another registered project video remain readable. The editor does not redistribute
 stock files as built-in assets.

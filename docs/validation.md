@@ -1,5 +1,33 @@
 # Validation evidence
 
+## B-roll stock thumbnails, 2026-11-16
+
+The Commons API returned HTTPS thumbnails from thumb.wikimedia.org. A HEAD request returned
+HTTP 200 and image/jpeg, but an image without CORS failed in the native WebView2 page with
+NotSameOriginAfterDefaultedToSameOriginByCoep. An anonymous CORS image loaded the same URL at
+330 pixels wide. The Studio now uses that mode and allows the exact thumbnail host in its desktop
+image policy.
+
+The native development window searched for computer with the updated Studio bundle. Its first
+three visible thumbnails decoded at 330 pixels wide; docs/media/broll-stock.png records the
+result. Intercepting thumbnail requests and failing them showed 15 labeled video placeholders
+instead of broken-image icons. The Tauri bridge was present and the successful search produced
+no console errors. Evidence: .cache/stock-thumbnails-native.json,
+.cache/stock-thumbnails-native-visible.json, and .cache/stock-thumbnails-native.png. The updated
+desktop binary compiled, but this check did not execute a packaged installer.
+The updated source passed npm run check, Rust engine tests, cargo fmt check, and engine/desktop
+Clippy with warnings denied.
+
+A separate headless Chromium session without the Tauri bridge searched the same real Commons
+results. Its first three visible thumbnails also decoded at 330 pixels wide with no page errors.
+Evidence: .cache/stock-thumbnails-browser.json and .cache/stock-thumbnails-browser.png.
+
+| Anti-slop During gate      | Status  | Evidence and remaining scope                                                        |
+| -------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| Direction and real content | Pass    | Native stock frames use the existing graphite workspace and actual Commons results. |
+| Interaction                | Pass    | Search, image loading, and the failed-image placeholder were exercised in WebView2. |
+| States and access          | Partial | Fallback has an accessible label; assistive technology review remains pending.      |
+
 ## Clip gallery review, 2026-11-16
 
 The browser check in scripts/validate-clip-gallery.mjs imported the real 12-second speech-face
