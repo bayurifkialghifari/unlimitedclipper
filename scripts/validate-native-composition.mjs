@@ -198,7 +198,7 @@ try {
       return total;
     });
   const beforeMotion = await nativeFrameHash();
-  await page.getByRole('tab', { name: 'Crop', exact: true }).click();
+  await page.getByRole('tab', { name: 'Gerak', exact: true }).click();
   const motion = page.getByRole('region', { name: 'Gerak kamera', exact: true });
   await motion.getByRole('button', { name: 'Tambah keyframe kamera di playhead' }).click();
   await motion.getByLabel('Zoom (%)', { exact: true }).fill('200');
@@ -208,8 +208,10 @@ try {
     .toBeGreaterThan(500);
   await page.getByText('Tersimpan lokal', { exact: true }).waitFor();
   const beforeBroll = await nativeFrameHash();
-  await page.getByRole('tab', { name: 'Segmen sumber', exact: true }).click();
-  await page.getByRole('button', { name: 'Tambah B-roll lokal', exact: true }).click();
+  await page.getByRole('tab', { name: 'B-roll', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Tambah di playhead ' + projects.body[0].name, exact: true })
+    .click();
   await expect
     .poll(async () => Math.abs((await nativeFrameHash()) - beforeBroll))
     .toBeGreaterThan(500);
@@ -222,8 +224,9 @@ try {
     .poll(async () => Math.abs((await nativeFrameHash()) - staticBroll))
     .toBeGreaterThan(500);
   await page.getByText('Tersimpan lokal', { exact: true }).waitFor();
-  await page.getByRole('tab', { name: 'Filter video', exact: true }).click();
+  await page.getByRole('tab', { name: 'Efek', exact: true }).click();
   await page.getByRole('button', { name: 'Monokrom', exact: true }).click();
+  await page.getByRole('button', { name: 'Terapkan ke seluruh klip', exact: true }).click();
   await page.getByText('Tersimpan lokal', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Render preview hasil edit', exact: true }).click();
   await page.getByRole('button', { name: 'Hasil edit', exact: true }).waitFor({ timeout: 120_000 });
@@ -235,9 +238,9 @@ try {
     fullPage: true,
   });
   await page.getByRole('tab', { name: 'Hook', exact: true }).click();
+  await page.getByRole('button', { name: 'Pakai sebagai kartu pembuka', exact: true }).click();
   const opening = page.getByRole('region', { name: 'Kartu pembuka', exact: true });
   const closing = page.getByRole('region', { name: 'Kartu penutup', exact: true });
-  await opening.getByRole('button', { name: 'Tambah kartu', exact: true }).click();
   await opening.getByLabel('Durasi tampil (s)', { exact: true }).fill('1');
   await opening.getByLabel('Latar belakang', { exact: true }).fill('#d02020');
   await closing.getByRole('button', { name: 'Tambah kartu', exact: true }).click();

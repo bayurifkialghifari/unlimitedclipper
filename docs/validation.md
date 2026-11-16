@@ -36,6 +36,16 @@ the generated B-roll button, playable asset preview, source link, placement, sav
 and exact edited preview.
 Installed packages on other operating systems and release publication remain pending.
 
+The current browser composition fixture passed scripts/validate-composed-preview.mjs after its
+filter test selected Monochrome and explicitly applied it to the whole clip. It observed changed
+live canvas pixels, exact preview playback, gallery reopening, and no page errors. The native
+composition fixture passed scripts/validate-native-composition.mjs with the committed dinosaur
+source. It exercised camera keyframes, project-source B-roll, B-roll motion, applied video filter,
+edited preview playback, and independent opening/closing cards in WebView2. Optional card
+narration was not installed for this run. Evidence: .cache/composed-preview-validation.json and
+.cache/native-composition-validation.json. These fixtures validate browser and native behavior
+separately; they do not certify packaged installers.
+
 | Anti-slop During gate    | Status                  | Evidence and remaining scope                                                                                                            |
 | ------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Direction and content    | Pass                    | Real gameplay footage, matching subtitle sidecar, measured waveform, and CC0 asset with source link.                                    |

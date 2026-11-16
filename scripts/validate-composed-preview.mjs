@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { testEngine } from './test-engine.mjs';
@@ -98,24 +98,31 @@ try {
     fullPage: true,
   });
   assert.equal(await page.locator('canvas').count(), 1, 'Only one painted composition is visible.');
-  const pixels = await page
-    .locator('canvas')
-    .evaluate((canvas) =>
-      Array.from(canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data),
-    );
-  await page.getByRole('tab', { name: 'Filter video', exact: true }).click();
+  async function frameSignature() {
+    return page.locator('canvas').evaluate((canvas) => {
+      const context = canvas.getContext('2d');
+      let total = 0;
+      for (let y = 0; y < 12; y += 1) {
+        for (let x = 0; x < 12; x += 1) {
+          const pixel = context.getImageData(
+            Math.floor((canvas.width * (x + 0.5)) / 12),
+            Math.floor((canvas.height * (y + 0.5)) / 12),
+            1,
+            1,
+          ).data;
+          total += pixel[0] * 3 + pixel[1] * 5 + pixel[2] * 7;
+        }
+      }
+      return total;
+    });
+  }
+  const beforeFilter = await frameSignature();
+  await page.getByRole('tab', { name: 'Efek', exact: true }).click();
   await page.getByRole('button', { name: 'Monokrom', exact: true }).click();
-  await page.waitForTimeout(400);
-  const filtered = await page
-    .locator('canvas')
-    .evaluate((canvas) =>
-      Array.from(canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data),
-    );
-  assert.notDeepEqual(
-    filtered,
-    pixels,
-    'A filter must change the visible live composition without rendering.',
-  );
+  await page.getByRole('button', { name: 'Terapkan ke seluruh klip', exact: true }).click();
+  await expect
+    .poll(async () => Math.abs((await frameSignature()) - beforeFilter))
+    .toBeGreaterThan(500);
   await page.screenshot({
     path: path.join(root, '.cache/composed-preview-filter.png'),
     fullPage: true,
@@ -132,7 +139,7 @@ try {
   await page.getByRole('button', { name: 'Jeda', exact: true }).click();
   await page.getByRole('button', { name: 'Klip', exact: true }).click();
   await page.getByRole('button', { name: 'Edit klip', exact: true }).click();
-  await page.getByRole('tab', { name: 'Filter video', exact: true }).click();
+  await page.getByRole('tab', { name: 'Efek', exact: true }).click();
   await page.getByRole('button', { name: 'Monokrom', exact: true }).waitFor();
   assert.deepEqual(errors, [], 'No browser/worker errors are permitted.');
   const evidence = {
