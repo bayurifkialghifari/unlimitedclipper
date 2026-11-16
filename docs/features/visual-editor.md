@@ -32,8 +32,8 @@ and keeps the timeline horizontally scrollable for precise scene selection.
 
 The desktop inspector starts at 360 pixels so the player has more room. Smaller screens stack
 the player and settings. Transcript range selection is directly visible inside Captions.
-Project, processing, export, and settings pages use the full content width. A gallery currently
-uses the source thumbnail for each clip.
+Project, processing, export, and settings pages use the full content width. The clip gallery
+shows a separate source frame for each visible clip and opens an on-demand edited MP4 preview.
 
 Selecting a scene, visual layer, or audio layer opens its matching controls and hides unrelated
 media groups. Inspector tabs and selected layers reset their scroll position to the top. The

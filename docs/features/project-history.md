@@ -25,12 +25,20 @@ Projects open a gallery of saved clips with their actual names and source/output
 Edit clip opens its persistent /studio/:clipId route. Create a clip opens a separate source-range
 page with seconds and playhead setters. Direct studio links restore the matching revision.
 New imports refresh the project list without selecting a different clip in an active editor.
-Gallery thumbnails currently reuse each project's source thumbnail.
+Each visible clip card requests a source frame from the beginning of that clip's edited scene
+order. These frames are cached per project and load in bounded batches. The card's play control
+opens an exact 720p preview of the latest saved clip revision without entering Studio. The
+registered MP4 includes edited captions, layers, color, and audio. Preview rendering starts only
+when requested, shares the one-heavy-job queue, and can be cancelled by closing its dialog while
+processing. The dialog reports queue progress, failed media, and retry actions. An open preview
+renews its temporary asset lease; closing it releases that renewal. Source frames are navigation
+images and can differ from the final crop until the edited preview is rendered.
 
-Each saved clip card has one Edit clip action. Captions and video effects are available from the
-editor tools. Change style on an export card opens the current clip while preserving the export's
-original revision and files. The editor saves style changes per clip with revision checks. A new
-MP4 requires another export; the earlier MP4 is never changed in place.
+Each saved clip card has one Edit clip action plus a separate play control. Captions and video
+effects are available from the editor tools. Change style on an export card opens the current
+clip while preserving the export's original revision and files. The editor saves style changes
+per clip with revision checks. A new MP4 requires another export; the earlier MP4 is never changed
+in place.
 
 GET /api/v1/projects; GET /api/v1/projects/{id}; GET /api/v1/exports
 

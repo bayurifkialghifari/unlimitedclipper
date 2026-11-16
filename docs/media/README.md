@@ -17,7 +17,8 @@ automatic clip selection or transcription accuracy. The owner's existing library
 
 - studio.png: compact top tools, one gameplay source scene, and a waveform measured from its
   source audio beneath it.
-- clips.png: the project clip list with one Edit clip action per card.
+- clips.png: a fresh native clip gallery with separate source frames, play controls, and one
+  Edit clip action per card. The reviewed MP4 was played in WebView2 after an on-demand render.
 - captions.png: caption looks populated by the matching subtitle sidecar.
 - broll-library.png: a decoded CC0 stock preview with source details in the separate B-roll tab.
 - broll.png: the suggested video placed as a saved B-roll layer with its timing and motion controls.
@@ -32,6 +33,11 @@ Evidence:
 scripts/validate-native-layout.mjs and .cache/native-layout-validation.json. Installer execution
 and runtime behavior on other operating systems are separate validation tasks. The old rating.png
 is retained as historical browser evidence and is not referenced in the current README.
+
+The refreshed clip gallery was captured by scripts/validate-native-clip-gallery.mjs with the
+same real podcast source. The independent browser check is scripts/validate-clip-gallery.mjs.
+Their evidence is in .cache/native-clip-gallery-validation.json and
+.cache/clip-gallery-validation.json.
 
 The refreshed captures and automatic B-roll interaction were checked by
 scripts/validate-auto-broll-native.mjs. Its evidence is

@@ -133,11 +133,12 @@ export and its matching subtitle sidecar in an isolated desktop library.
 
 ### Clip library and B-roll
 
-Each clip card has one Edit clip action. The separate B-roll tab can use the installed local model
-to choose a transcript moment, search for a relevant CC0 video, import it, and preview it before
-placement. Manual search, local import, and drag placement remain available.
+Each clip card shows its own source frame. Select its play control to render and review the saved
+edit without opening Studio; Edit clip opens the timeline. The separate B-roll tab can use the
+installed local model to choose a transcript moment, search for a relevant CC0 video, import it,
+and preview it before placement. Manual search, local import, and drag placement remain available.
 
-<img src="docs/media/clips.png" alt="Current native project clip list with one Edit clip action on each card" width="1600" height="1000" />
+<img src="docs/media/clips.png" alt="Native clip gallery with separate source frames, play controls, and Edit clip actions" width="1600" height="1000" />
 
 <img src="docs/media/broll-library.png" alt="Current native Studio B-roll tab showing a locally suggested CC0 video, its source, and playable preview" width="1600" height="1000" />
 

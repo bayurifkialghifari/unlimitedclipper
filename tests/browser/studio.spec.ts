@@ -108,6 +108,7 @@ test('changes one clip style from its project card without changing a sibling cl
   await page.getByLabel('Source start (seconds)', { exact: true }).fill('4');
   await page.getByLabel('Source end (seconds)', { exact: true }).fill('7');
   await page.getByRole('button', { name: 'Edit clip', exact: true }).click();
+  await expect(page).toHaveURL(/\/studio\/[a-f0-9-]+(?:\?|$)/);
   const secondId = new URL(page.url()).pathname.split('/').at(-1)!;
   const siblingBefore = await (await request.get('/api/v1/clips/' + secondId)).json();
   await page.getByRole('button', { name: 'Clips', exact: true }).click();
@@ -201,12 +202,14 @@ test('edits source segments and local layers, then plays a composed preview', as
       await layer.getByLabel('Width (%)', { exact: true }).first().fill('40');
     }
   }
-  await timeline
+  await page.getByRole('tab', { name: 'B-roll', exact: true }).click();
+  const brollPanel = page.getByRole('tabpanel', { name: 'B-roll', exact: true });
+  await brollPanel
     .getByRole('region', { name: 'B-roll library' })
     .getByRole('button', { name: /^Add at playhead/ })
     .first()
     .click();
-  const broll = timeline.getByRole('group', { name: 'Add local B-roll', exact: true });
+  const broll = brollPanel.getByRole('group', { name: 'Add B-roll', exact: true });
   await broll.getByLabel('Source offset (s)').fill('0.5');
   await page.getByRole('tab', { name: 'Audio layers', exact: true }).click();
   const audioPanel = page.getByRole('tabpanel', { name: 'Audio layers', exact: true });

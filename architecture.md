@@ -14,7 +14,8 @@ The storyboard service accepts bounded source-time samples for a registered proj
 One queued FFmpeg job extracts small JPEGs without interrupting the live player. A project/time
 cache table holds only managed asset IDs; images remain in managed files, survive scene reorder,
 and are evicted or deleted with their project. Completed frames remain usable if a job fails or
-is cancelled. The browser requests only the active timeline and visible clip-rail cards.
+is cancelled. The browser requests only the active timeline, visible clip-rail cards, and visible
+project-gallery cards. Gallery playback requests a revision-checked render only after selection.
 
 Discovery persists source-word offsets, transcript-grounded candidate quotes, review candidates, batch offsets, and accepted suggestions before creating an insertion plan. Count and duration are editorial constraints, with complete phrases taking priority over padding. Per-clip caption jobs preserve raw recognition by source range and save an applied-document checkpoint before the optimistic edit transaction. Recovery recognizes that exact committed document instead of creating an extra revision. Preview seek commands are separate from passive playback updates so reviewing a word changes the actual media position.
 

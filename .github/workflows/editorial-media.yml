@@ -12,6 +12,8 @@ on:
       - 'scripts/validate-browser.mjs'
       - 'scripts/validate-editor-tools.mjs'
       - 'scripts/validate-composed-preview.mjs'
+      - 'scripts/validate-clip-gallery.mjs'
+      - 'scripts/generate-fixtures.mjs'
       - 'scripts/validate-cards.mjs'
       - 'resources/sfx.json'
       - 'scripts/setup-tools.mjs'
@@ -44,6 +46,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: node scripts/setup-tools.mjs --arch=arm64 --family=ffmpeg
+      - run: node scripts/setup-tools.mjs --arch=arm64 --family=onnxruntime
       - run: node scripts/setup-assets.mjs --arch=arm64
       - run: node scripts/generate-fixtures.mjs
       - run: cargo build --locked -p unlimitedclipper-engine
@@ -54,6 +57,7 @@ jobs:
       - run: node scripts/validate-caption-library.mjs
       - run: npx playwright install chromium
       - run: node scripts/validate-composed-preview.mjs
+      - run: node scripts/validate-clip-gallery.mjs
       - run: node scripts/validate-browser.mjs
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         if: always()
@@ -70,5 +74,8 @@ jobs:
             .cache/composed-preview-live.png
             .cache/composed-preview-filter.png
             .cache/composed-preview-exact.png
+            .cache/clip-gallery-validation.json
+            .cache/clip-gallery-browser.png
+            .cache/clip-review-browser.png
             test-results/
           if-no-files-found: warn

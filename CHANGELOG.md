@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Project clip cards now show their own source frames and open a playable edited preview directly
+  from the gallery. The preview renders on demand from the latest saved revision, reports progress
+  and failure, and renews its temporary media lease while open. The native clip-list screenshot
+  now shows the new play action.
+- Native media CI now prepares its moving-face fixture and face runtime before browser tests.
+  Editor interaction tests follow the current B-roll tab and wait for clip navigation to finish.
 - Captions styling now appears before the transcript. The Studio header groups composition and
   save status, while B-roll has its own tool tab and layer controls instead of sharing Scenes.
 - Automatic B-roll now uses the installed local Qwen model to choose a transcript-grounded moment,

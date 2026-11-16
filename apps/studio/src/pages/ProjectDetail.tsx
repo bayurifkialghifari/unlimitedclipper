@@ -2,20 +2,15 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@unlimitedclipper/ui';
-import {
-  ArrowLeftIcon,
-  ScissorsIcon,
-  DownloadSimpleIcon,
-  PencilSimpleIcon,
-} from '@phosphor-icons/react';
-import { api, assetUrl } from '../lib/api';
+import { ArrowLeftIcon, ScissorsIcon, DownloadSimpleIcon } from '@phosphor-icons/react';
+import { api } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
 import { flushEditor } from '../lib/save';
 import { useText } from '../lib/i18n';
 import { time } from '../lib/format';
-import { finalDuration } from '../lib/timeline';
 import { PageHeader } from '../molecules/PageHeader';
 import { QueryState } from '../molecules/QueryState';
+import { ClipGallery } from '../organisms/ClipGallery';
 import { Inspector } from '../organisms/Inspector';
 import styles from '../styles/Studio.module.css';
 
@@ -104,36 +99,7 @@ export function ProjectDetail() {
             {Boolean(query.data?.clips.length) && (
               <p className={styles.hint}>{text.perClipStyleHint}</p>
             )}
-            <div className={styles.gallery}>
-              {query.data?.clips.map((clip) => (
-                <article key={clip.id} className={styles.projectCard}>
-                  {project.thumbnail_id && (
-                    <img
-                      className={styles.projectImage}
-                      src={assetUrl(project.thumbnail_id)}
-                      alt=""
-                    />
-                  )}
-                  <div className={styles.projectInfo}>
-                    <h2>{clip.name}</h2>
-                    <p>
-                      {time(finalDuration(clip.document))} · {time(clip.document.start_ms)} –{' '}
-                      {time(clip.document.end_ms)}
-                    </p>
-                    <div className={styles.clipCardActions}>
-                      <Button
-                        icon={<PencilSimpleIcon aria-hidden="true" />}
-                        variant="primary"
-                        disabled={Boolean(error)}
-                        onClick={() => navigate('/studio/' + clip.id)}
-                      >
-                        {text.editClip}
-                      </Button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+            {query.data && <ClipGallery detail={query.data} disabled={Boolean(error)} />}
           </section>
           {!error && <Inspector key={project.id} project={project} />}
         </div>

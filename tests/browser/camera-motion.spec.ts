@@ -107,12 +107,14 @@ test('camera keyframes update the live frame and persist through reopen', async 
     page.getByRole('region', { name: 'Text motion' }).getByLabel('Scale (%)'),
   ).toHaveValue('150');
   const beforeBroll = await sample();
-  await page
+  await page.getByRole('tab', { name: 'B-roll', exact: true }).click();
+  const brollPanel = page.getByRole('tabpanel', { name: 'B-roll', exact: true });
+  await brollPanel
     .getByRole('region', { name: 'B-roll library' })
     .getByRole('button', { name: /^Add at playhead/ })
     .first()
     .click();
-  const broll = page.getByRole('group', { name: 'Add local B-roll', exact: true });
+  const broll = brollPanel.getByRole('group', { name: 'Add B-roll', exact: true });
   await expect.poll(async () => Math.abs((await sample()) - beforeBroll)).toBeGreaterThan(1000);
   const mediaMotion = broll.getByRole('region', { name: 'B-roll motion', exact: true });
   const staticBroll = await sample();
@@ -129,7 +131,7 @@ test('camera keyframes update the live frame and persist through reopen', async 
     })
     .toBe(1.6);
   await page.reload();
-  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
+  await page.getByRole('tab', { name: 'B-roll', exact: true }).click();
   await expect(
     page.getByRole('region', { name: 'B-roll motion' }).getByLabel('Opacity (%)'),
   ).toHaveValue('45');

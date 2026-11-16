@@ -82,6 +82,8 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
   const blue = timeline.getByRole('button', { name: /^Move layer · Scene 3/ });
   const red = timeline.getByRole('button', { name: /^Move layer · Scene 1/ });
   await blue.scrollIntoViewIfNeeded();
+  await expect(blue).toBeEnabled();
+  await expect(red).toBeEnabled();
   const from = await blue.boundingBox();
   const to = await red.boundingBox();
   await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);

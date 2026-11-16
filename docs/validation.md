@@ -1,5 +1,48 @@
 # Validation evidence
 
+## Clip gallery review, 2026-11-16
+
+The browser check in scripts/validate-clip-gallery.mjs imported the real 12-second speech-face
+fixture, created two different source ranges, and saved a title on one clip. Both cards decoded
+separate storyboard assets. Selecting a card rendered its saved revision, loaded the completed
+MP4 in a native video element, and advanced playback. The dialog closed back to the gallery;
+at 390 pixels the page had no horizontal overflow. A second clip received an injected HTTP 503;
+the dialog showed the server error, Retry rendered it successfully, Enter opened it from the
+gallery, and Escape closed it. The 390-pixel preview dialog also stayed inside the viewport.
+Evidence:
+.cache/clip-gallery-validation.json, .cache/clip-gallery-browser.png, and
+.cache/clip-review-browser.png. No browser page errors were recorded.
+
+The separate Windows ARM64 Tauri/WebView2 check in
+scripts/validate-native-clip-gallery.mjs imported docs/media/editor-demo.mp4 into an isolated
+library. The native bridge was present, both clip cards decoded distinct source frames, and an
+on-demand edited preview advanced playback before the dialog closed. The updated README capture
+is docs/media/clips.png. Evidence: .cache/native-clip-gallery-validation.json and
+.cache/native-clip-review.png. The existing desktop preview process was left running. These are
+development app checks, not installer or other-platform runtime certification.
+
+| Anti-slop During gate      | Status  | Evidence and remaining scope                                                                                              |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Direction and real content | Pass    | Source-derived frames and actual rendered footage use the existing graphite/amber direction.                              |
+| Interaction                | Partial | Browser and native play/close, injected render failure, and retry worked; in-flight cancellation needs a dedicated check. |
+| States and access          | Partial | Keyboard Enter/Escape and narrow layout passed; assistive technology and contrast review remain pending.                  |
+
+The previous native-media CI run 43871994089 failed five browser scenarios before this change.
+The runner generated only one video fixture and omitted ONNX Runtime, while three tests still
+looked for B-roll in its former inspector location and one read a route before navigation
+finished. The workflow now prepares those dependencies and the tests target the separate B-roll
+tab. A new hosted run is pending; these local fixes are not recorded as a CI pass yet.
+
+The isolated browser suite used the matching engine binary from .cache/target-preview11 after
+the Studio build. Nineteen scenarios passed; the Auto Motion and Hook proposal scenarios were
+skipped because their optional media fixture IDs were not configured. One full-suite scene drag
+failed before the test waited for its handle to become enabled; that scenario passed on its
+focused retry and in the final 19-pass run. The older default target engine lacked recent
+teaser/B-roll endpoints, so its initial local failures were not used as current-source evidence.
+The focused gallery check also passed the injected 503, retry, Enter/Escape, and Indonesian-label
+paths. The Windows ARM64 native gallery check passed separately. npm run check, Rust tests,
+Rustfmt check, and engine Clippy with warnings denied passed on this source.
+
 ## Native B-roll suggestion and Studio layout, 2026-11-16
 
 The current Windows ARM64 Tauri/WebView2 development build passed

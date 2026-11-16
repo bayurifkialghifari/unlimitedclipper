@@ -64,7 +64,7 @@ test('places filter, B-roll, and imported sound by dragging to their timeline tr
     })
     .toBe(30);
 
-  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
+  await page.getByRole('tab', { name: 'B-roll', exact: true }).click();
   await dropOnTrack(
     page.getByRole('region', { name: 'B-roll library' }).locator('[draggable="true"]').first(),
     timeline.locator('[data-kind="broll"]'),

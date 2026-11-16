@@ -57,5 +57,42 @@ execFileSync(
   ],
   { windowsHide: true, stdio: 'inherit', timeout: 60_000 },
 );
+execFileSync(
+  path.join(toolDirectory, 'ffmpeg', executable),
+  [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-y',
+    '-loop',
+    '1',
+    '-i',
+    path.join(fixtureDirectory, 'astronaut.png'),
+    '-i',
+    path.join(fixtureDirectory, 'jfk.wav'),
+    '-filter_complex',
+    '[0:v]scale=360:360,split=2[a][b];[b]hflip[c];color=c=0x131820:s=1280x720:r=30:d=8[background];[background][a]overlay=x=80+40*t:y=120[first];[first][c]overlay=x=820-20*t:y=120[video]',
+    '-map',
+    '[video]',
+    '-map',
+    '1:a',
+    '-t',
+    '8',
+    '-r',
+    '30',
+    '-c:v',
+    'libx264',
+    '-preset',
+    'fast',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
+    path.join(fixtureDirectory, 'two-moving-faces.mp4'),
+  ],
+  { windowsHide: true, stdio: 'inherit', timeout: 60_000 },
+);
 await writeFile(path.join(fixtureDirectory, 'manifest.json'), JSON.stringify(manifest, null, 2));
-process.stdout.write('Generated speech-face.mp4 in ' + fixtureDirectory + '\n');
+process.stdout.write(
+  'Generated speech-face.mp4 and two-moving-faces.mp4 in ' + fixtureDirectory + '\n',
+);
