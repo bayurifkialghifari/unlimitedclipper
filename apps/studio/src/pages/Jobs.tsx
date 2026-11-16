@@ -85,10 +85,10 @@ export function Jobs() {
               )}
             </div>
             {job.error && (
-              <details className={styles.jobError}>
-                <summary>{text.errorDetails}</summary>
+              <div className={styles.jobError}>
+                <strong>{text.errorDetails}</strong>
                 <p className={styles.error}>{job.error}</p>
-              </details>
+              </div>
             )}
           </article>
         ))}

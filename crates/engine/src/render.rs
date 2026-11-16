@@ -183,6 +183,17 @@ pub fn video_adjustment_filter(settings: &VideoAdjustments) -> String {
     )
 }
 
+fn timed_video_adjustment_filter(settings: &VideoAdjustments, condition: &str) -> String {
+    let brightness = f64::from(settings.brightness) * 0.003;
+    let contrast = 1.0 + f64::from(settings.contrast) * 0.0075;
+    let saturation = 1.0 + f64::from(settings.saturation) * 0.01;
+    let warmth = f64::from(settings.warmth) * 0.0015;
+    format!(
+        "eq=brightness={brightness:.4}:contrast={contrast:.4}:saturation={saturation:.4}:enable='{condition}',colorbalance=rs={warmth:.4}:bs={:.4}:pl=1:enable='{condition}'",
+        -warmth
+    )
+}
+
 fn composition_dimensions(
     document: &EditDocument,
     source_width: u32,
@@ -506,12 +517,53 @@ pub async fn render_media(
         video_label = format!("cutaway{index}");
         next_input += 1;
     }
-    if document.video_adjustments != VideoAdjustments::default() {
+    if document.filter_layers.is_empty()
+        && document.video_adjustments != VideoAdjustments::default()
+    {
         filter.push_str(&format!(
             ";[{video_label}]{}[graded]",
             video_adjustment_filter(&document.video_adjustments)
         ));
         video_label = "graded".into();
+    }
+    if !document.filter_layers.is_empty() {
+        let outside = document
+            .filter_layers
+            .iter()
+            .map(|layer| {
+                format!(
+                    "gte(t,{:.3})*lt(t,{:.3})",
+                    layer.start_ms as f64 / 1000.0,
+                    layer.end_ms as f64 / 1000.0
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("+");
+        if document.video_adjustments != VideoAdjustments::default() {
+            filter.push_str(&format!(
+                ";[{video_label}]{}[base-grade]",
+                timed_video_adjustment_filter(
+                    &document.video_adjustments,
+                    &format!("not({outside})")
+                )
+            ));
+            video_label = "base-grade".into();
+        }
+        for (index, layer) in document.filter_layers.iter().enumerate() {
+            if layer.adjustments == VideoAdjustments::default() {
+                continue;
+            }
+            let condition = format!(
+                "gte(t,{:.3})*lt(t,{:.3})",
+                layer.start_ms as f64 / 1000.0,
+                layer.end_ms as f64 / 1000.0
+            );
+            filter.push_str(&format!(
+                ";[{video_label}]{}[filter-{index}]",
+                timed_video_adjustment_filter(&layer.adjustments, &condition)
+            ));
+            video_label = format!("filter-{index}");
+        }
     }
     if document.watermark.mode == "image" {
         let asset_id = document
@@ -651,11 +703,53 @@ pub async fn render_media(
         &video_label,
         &card_audio_inputs,
     ));
+    let captioned_label = if document.scene_transitions.is_empty() {
+        "out"
+    } else {
+        "captioned"
+    };
     filter.push_str(&format!(
-        ";[finalvideo]subtitles=filename='{}':fontsdir='{}',setsar=1[out]",
+        ";[finalvideo]subtitles=filename='{}':fontsdir='{}',setsar=1[{captioned_label}]",
         escape_filter_path(&ass_file),
         escape_filter_path(&state.tools_root().join("fonts"))
     ));
+    if !document.scene_transitions.is_empty() {
+        let (width, height) = document.layout.dimensions(document.resolution);
+        let mut elapsed = document
+            .intro_card
+            .as_ref()
+            .map_or(0, |card| card.duration_ms);
+        let scenes = document.source_segments();
+        let mut current_label = String::from("captioned");
+        for (index, scene) in scenes.iter().enumerate() {
+            if index > 0
+                && let Some(transition) = document.scene_transitions.iter().find(|transition| {
+                    scene.id.as_deref() == Some(transition.incoming_scene_id.as_str())
+                })
+            {
+                let half = transition.duration_ms as f64 / 2000.0;
+                let cut = elapsed as f64 / 1000.0;
+                let start = cut - half;
+                filter.push_str(&format!(
+                        ";color=c=black:s={width}x{height}:r=30:d={:.3},format=rgba,fade=t=in:st={start:.3}:d={half:.3}:alpha=1,fade=t=out:st={cut:.3}:d={half:.3}:alpha=1[dip-{index}]",
+                        duration as f64 / 1000.0
+                    ));
+                let output = if index == scenes.len() - 1 {
+                    "out".into()
+                } else {
+                    format!("dip-output-{index}")
+                };
+                filter.push_str(&format!(
+                    ";[{current_label}][dip-{index}]overlay=eof_action=pass:format=auto[{output}]"
+                ));
+                current_label = output;
+            }
+            elapsed += scene.end_ms - scene.start_ms;
+        }
+        if current_label != "out" {
+            filter.push_str(&format!(";[{current_label}]null[out]"));
+        }
+    }
     let filter_argument = if state.native_tools.is_some() {
         vec!["-filter_complex".into(), filter]
     } else {

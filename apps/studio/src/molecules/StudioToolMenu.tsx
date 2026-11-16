@@ -37,15 +37,20 @@ export function StudioToolMenu({
 }) {
   const text = useText();
   const tools = [
-    { id: 'timeline', label: text.sourceTools, icon: FilmStripIcon },
-    { id: 'captions', label: text.captions, icon: SubtitlesIcon },
-    { id: 'crop', label: text.crop, icon: CropIcon },
-    { id: 'title', label: text.title, icon: TextTIcon },
-    { id: 'motion', label: text.motionTools, icon: BezierCurveIcon },
-    { id: 'audio', label: text.audioLayers, icon: WaveformIcon },
-    { id: 'style', label: text.videoFilters, icon: SlidersHorizontalIcon },
-    { id: 'branding', label: text.branding, icon: StampIcon },
-  ] satisfies { id: StudioTool; label: string; icon: typeof FilmStripIcon }[];
+    { id: 'timeline', label: text.sourceTools, shortLabel: text.scenes, icon: FilmStripIcon },
+    { id: 'captions', label: text.captions, shortLabel: text.captions, icon: SubtitlesIcon },
+    { id: 'crop', label: text.crop, shortLabel: text.crop, icon: CropIcon },
+    { id: 'title', label: text.title, shortLabel: text.title, icon: TextTIcon },
+    { id: 'motion', label: text.motionTools, shortLabel: text.motionTools, icon: BezierCurveIcon },
+    { id: 'audio', label: text.audioLayers, shortLabel: text.toolAudio, icon: WaveformIcon },
+    {
+      id: 'style',
+      label: text.effects,
+      shortLabel: text.effects,
+      icon: SlidersHorizontalIcon,
+    },
+    { id: 'branding', label: text.branding, shortLabel: text.branding, icon: StampIcon },
+  ] satisfies { id: StudioTool; label: string; shortLabel: string; icon: typeof FilmStripIcon }[];
 
   return (
     <div className={styles.toolMenuScroll}>
@@ -80,7 +85,7 @@ export function StudioToolMenu({
             }}
           >
             <tool.icon aria-hidden="true" />
-            <span className={styles.toolLabel}>{tool.label}</span>
+            <span className={styles.toolLabel}>{tool.shortLabel}</span>
           </button>
         ))}
       </div>

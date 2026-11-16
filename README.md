@@ -17,7 +17,10 @@ A local video clipping studio built with Rust, React, SQLite, and Tauri.
 **Made for fun, still experimental.** This is a side project for tinkering with local video tools,
 mostly for fun and learning, at a relaxed pace. Expect rough edges and changing features.
 
-<img src="docs/media/studio.png" alt="Published preview.8 Windows ARM64 studio playing a real podcast edit with its opening hook, captions, transcript, and timeline" width="1920" height="1009" />
+<img src="docs/media/studio.png" alt="Current Windows ARM64 desktop Studio with source scenes, podcast footage, compact tools, and measured audio waveform" width="1600" height="1000" />
+
+This Studio capture comes from the current development desktop build. The downloadable preview.8
+installers below are an earlier release.
 
 Import a long recording, find or choose a cut, review its words, and export a captioned video.
 Speech recognition and clip selection run locally after the models are installed. No cloud AI
@@ -77,23 +80,23 @@ copies of the original 1080 × 1920 exports, with audio preserved.
 
 ## What you can do
 
-| In the studio          | What it does                                                                                                               |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                              |
-| Find a moment          | Choose Podcast, Gaming, Motivation, Education, or Other; set a focus and review the actual accepted/target count.          |
-| Choose your own cut    | Enter exact start/end seconds in the original recording. No AI model is required.                                          |
-| Make captions readable | Choose from 18 looks, including Reveal and Underline. Edit words and timing, customize styling, and save your own presets. |
-| Review clip potential  | Get a local 0–100 editorial score with quoted evidence and editing suggestions. It does not predict views or virality.     |
-| Edit on the timeline   | Select transcript ranges, reorder/split/trim scenes, and move or trim layers with snapping, keyboard controls, and undo.   |
-| Build an editorial cut | Add text notes, punch-ins, split framing, local B-roll, and optional audio layers.                                         |
-| Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.                    |
-| Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.                       |
-| Frame the clip         | Follow faces across edited scenes, add two-face split layers, or constrain a gaming facecam. Review crops and keyframes.   |
-| Shape the opening      | Edit a multiline hook with three looks, start time, duration, and Fade/Pop animation.                                      |
-| Grade the footage      | Choose five color recipes or adjust brightness, contrast, saturation, and warmth.                                          |
-| Add sound              | Audition 21 offline CC0 whooshes/clicks/taps, place them at the playhead, and edit timing/gain.                            |
-| Finish the edit        | Add an image/text watermark, with revisioned autosave and undo/redo.                                                       |
-| Export the result      | Render a single cut or a batch to MP4 with SRT and ASS sidecars. Retries keep completed exports.                           |
+| In the studio          | What it does                                                                                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bring your own footage | Import a local file or download a YouTube source with yt-dlp.                                                                                  |
+| Find a moment          | Choose Podcast, Gaming, Motivation, Education, or Other; set a focus and review the actual accepted/target count.                              |
+| Choose your own cut    | Enter exact start/end seconds in the original recording. No AI model is required.                                                              |
+| Make captions readable | Choose from 18 looks, including Reveal and Underline. Edit words and timing, customize styling, and save your own presets.                     |
+| Review clip potential  | Get a local 0–100 editorial score with quoted evidence and editing suggestions. It does not predict views or virality.                         |
+| Edit on the timeline   | Select transcript ranges, reorder/split/trim scenes, and review the measured source audio waveform with snapping, keyboard controls, and undo. |
+| Build an editorial cut | Add text notes, punch-ins, split framing, local B-roll, and optional audio layers.                                                             |
+| Review the composition | Render an edited preview from the export pipeline, then review cuts and live captions before exporting.                                        |
+| Check uncertain speech | Refine an individual cut with Whisper small or medium, then seek directly to words that need review.                                           |
+| Frame the clip         | Follow faces across edited scenes, add two-face split layers, or constrain a gaming facecam. Review crops and keyframes.                       |
+| Shape the opening      | Edit a multiline hook with three looks, start time, duration, and Fade/Pop animation.                                                          |
+| Grade the footage      | Choose five color recipes or adjust brightness, contrast, saturation, and warmth.                                                              |
+| Add sound              | Audition 21 offline CC0 whooshes/clicks/taps, place them at the playhead, and edit timing/gain.                                                |
+| Finish the edit        | Add an image/text watermark, with revisioned autosave and undo/redo.                                                                           |
+| Export the result      | Render a single cut or a batch to MP4 with SRT and ASS sidecars. Retries keep completed exports.                                               |
 
 The desktop window and localhost browser use the same Rust engine and saved library. The interface
 supports Indonesian and English. Video files stay in managed folders; SQLite stores project data
@@ -115,36 +118,42 @@ scope of expensive work but does not guarantee speed or accurate clip selection.
 
 Five recipes show the same actual source frame. Capture another frame from the source player,
 then fine-tune brightness, contrast, saturation, and warmth. These lightweight images approximate
-the colors; render the edited preview to review the final composition. This screenshot comes
-from the published preview.8 ARM64 executable, with one themed inspector scrollbar.
+the colors; render the edited preview to review the final composition. This capture uses the current
+Windows ARM64 desktop development build.
 
-<img src="docs/media/filters.png" alt="Published Windows ARM64 studio with real-source Natural, Crisp, Warm, Cool, and Monochrome filter thumbnails" width="1920" height="1009" />
+<img src="docs/media/filters.png" alt="Current native Studio showing real-source video filter previews beside the podcast footage" width="1600" height="1000" />
 
 ### Caption editing
 
-18 looks, the current clip's real words, and a preview of the active word. Styles, timing, and
-manual corrections become part of the saved edit. These browser screenshots show a manual podcast
-review in a separate copy of the real library; the source library is unchanged.
+18 looks, the clip's subtitle text, and a preview of the active phrase. Styles, timing, and
+manual corrections become part of the saved edit. The native capture uses the reviewed podcast
+export and its matching subtitle sidecar in an isolated desktop library.
 
-<img src="docs/media/captions.png" alt="Podcast review with the Word box look selected, an active transcript word, and two timeline scenes" width="1920" height="1080" />
+<img src="docs/media/captions.png" alt="Current native Studio with real subtitle phrases, caption looks, source scenes, and audio waveform" width="1600" height="1000" />
 
-<details>
-<summary>See a local clip potential review</summary>
+### Clip library and B-roll
 
-This manual podcast cut received 74/100 from Qwen, with quoted evidence and suggestions to
-strengthen the ending. The score assesses the transcript; it does not forecast views.
+Each clip card has one Edit clip action. In the editor, the project B-roll library previews
+registered local video, shows its source, and places it at the playhead or on the timeline.
 
-<img src="docs/media/rating.png" alt="Actual local podcast assessment with a 74 out of 100 editorial score" width="1920" height="1080" />
+<img src="docs/media/clips.png" alt="Current native project clip list with one Edit clip action on each card" width="1600" height="1000" />
 
-</details>
+<img src="docs/media/broll-library.png" alt="Current native Studio with a decoded local B-roll preview and source details" width="1600" height="1000" />
+
+### Export results
+
+Completed videos appear immediately with playback controls and their MP4, SRT, and ASS downloads.
+This is a real export played in the current native desktop build.
+
+<img src="docs/media/exports.png" alt="Current Windows ARM64 desktop showing a playable exported MP4 without a reveal toggle" width="1600" height="1000" />
 
 <details>
 <summary>See the project library</summary>
 
-Imported recordings and their edits persist locally. This screenshot shows the actual test
-recording, with no invented projects or usage numbers.
+Imported recordings and their edits persist locally. This isolated desktop capture shows the
+reviewed podcast MP4 used for the editor and export checks.
 
-<img src="docs/media/projects.png" alt="Local project library showing two imports of the actual 48-minute Matan podcast" width="1920" height="1080" />
+<img src="docs/media/projects.png" alt="Current native project library with the reviewed podcast source and its actual thumbnail" width="1600" height="1000" />
 
 </details>
 
@@ -152,10 +161,10 @@ recording, with no invented projects or usage numbers.
 <summary>See model setup and update settings</summary>
 
 Choose a supported model and download it in the app. Manual model import remains optional.
-Import, download, clipping, and export activity appear in a collapsible popup at the top right.
-The preview's update button opens the download page.
+The isolated screenshot shows missing optional models and a ready local media toolchain; it does
+not represent the model state of an installed preview. Processing activity has a collapsible popup.
 
-<img src="docs/media/settings.png" alt="Browser settings with the actual installed Whisper and Qwen models, optional manual import, and simple update controls" width="1920" height="1503" />
+<img src="docs/media/settings.png" alt="Current native settings with local model setup, media tools, and preferences" width="1600" height="1000" />
 
 </details>
 

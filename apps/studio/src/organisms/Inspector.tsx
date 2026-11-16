@@ -18,6 +18,7 @@ import { TimelineEditor } from './TimelineEditor';
 import { HookEditor } from './HookEditor';
 import { CameraMotionEditor } from './CameraMotionEditor';
 import { VideoStyleEditor } from './VideoStyleEditor';
+import { TransitionEditor } from './TransitionEditor';
 import { ContentProfileSelect } from '../molecules/ContentProfileSelect';
 import { LanguageSelect } from '../molecules/LanguageSelect';
 import { TranscriptPanel } from './TranscriptPanel';
@@ -53,7 +54,9 @@ export function Inspector({
   const tab = selection
     ? selection.kind === 'audio'
       ? 'audio'
-      : 'timeline'
+      : selection.kind === 'filter'
+        ? 'style'
+        : 'timeline'
     : (linkedTab ?? chosenTab);
   useEffect(() => {
     if (inspectorBody.current) {
@@ -271,7 +274,7 @@ export function Inspector({
   const selectedWord = document?.words.find((word) => selected.includes(word.id));
   return (
     <aside className={styles.inspector}>
-      {!focused && (
+      {!focused && tabs.length > 1 && (
         <div className={styles.inspectorTabs} role="tablist" aria-label={text.options}>
           {tabs.map(([value, label], index) => (
             <button
@@ -300,9 +303,9 @@ export function Inspector({
       <div
         ref={inspectorBody}
         className={styles.inspectorBody}
-        role="tabpanel"
+        role={tabs.length > 1 ? 'tabpanel' : undefined}
         id={'panel-' + tab}
-        aria-labelledby={'tab-' + tab}
+        aria-labelledby={tabs.length > 1 ? 'tab-' + tab : undefined}
       >
         {error && (
           <div className={styles.error} role="alert">
@@ -470,11 +473,11 @@ export function Inspector({
         {tab !== 'options' && !document && <p className={styles.hint}>{text.noClipsDetail}</p>}
         {tab === 'captions' && document && (
           <>
-            <p className={styles.hint}>{text.perClipStyleHint}</p>
-            <details>
-              <summary>{text.transcript}</summary>
+            {!focused && <p className={styles.hint}>{text.perClipStyleHint}</p>}
+            <section>
+              <h3>{text.transcript}</h3>
               <TranscriptPanel key={draft?.id} showTextEditor={false} />
-            </details>
+            </section>
             <h2>{text.captions}</h2>
             <CaptionPresetLibrary
               current={document.captions}
@@ -974,7 +977,10 @@ export function Inspector({
           />
         )}
         {tab === 'style' && document && (
-          <VideoStyleEditor project={project} sourceVideo={sourceVideo} />
+          <>
+            <VideoStyleEditor project={project} sourceVideo={sourceVideo} />
+            <TransitionEditor />
+          </>
         )}
         {tab === 'motion' && document && (
           <>
@@ -1122,16 +1128,18 @@ export function Inspector({
                   maxLength={150}
                   onChange={(event) => useEditor.getState().rename(event.target.value)}
                 />
-                <ClipRatingPanel
-                  key={'rating-' + draft!.id}
-                  clip={draft!}
-                  modelReady={largeReady}
-                  dirty={dirty}
-                  saving={saving}
-                />
               </>
             )}
             <TimelineEditor key={draft!.id} mode={focused ? 'visual' : 'all'} />
+            {focused && (
+              <ClipRatingPanel
+                key={'rating-' + draft!.id}
+                clip={draft!}
+                modelReady={largeReady}
+                dirty={dirty}
+                saving={saving}
+              />
+            )}
           </>
         )}
       </div>

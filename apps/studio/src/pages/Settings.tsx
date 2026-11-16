@@ -248,12 +248,12 @@ export function SettingsPage() {
           </Button>
         </section>
         {settings.data && <Preferences initial={settings.data} />}
-        <details className={styles.settingsSection}>
-          <summary>
+        <section className={styles.settingsSection}>
+          <h2>
             <SlidersHorizontalIcon aria-hidden="true" size={18} /> {text.advancedSpeech}
-          </summary>
+          </h2>
           <QualityPackSettings />
-        </details>
+        </section>
       </div>
     </div>
   );

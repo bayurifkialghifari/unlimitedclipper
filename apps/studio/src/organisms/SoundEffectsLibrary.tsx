@@ -170,17 +170,6 @@ export function SoundEffectsLibrary({ disabled }: { disabled: boolean }) {
           </div>
         ))}
       </div>
-      <details>
-        <summary>{text.sfxCredits}</summary>
-        {manifest.packs.map((pack) => (
-          <p key={pack.id}>
-            <a href={pack.source} target="_blank" rel="noreferrer">
-              {pack.author}
-            </a>
-            {' · ' + pack.license}
-          </p>
-        ))}
-      </details>
     </section>
   );
 }

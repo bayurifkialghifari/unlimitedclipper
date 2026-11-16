@@ -361,6 +361,41 @@ impl EditDocument {
                     .collect::<Vec<_>>()
             })
             .collect();
+        result.filter_layers = self
+            .filter_layers
+            .iter()
+            .flat_map(|layer| {
+                self.remap_ranges(layer.start_ms, layer.end_ms, &mapping)
+                    .into_iter()
+                    .map(|(start, end, old_start)| FilterLayer {
+                        id: fragment_id(&layer.id, layer.start_ms, old_start),
+                        start_ms: start,
+                        end_ms: end,
+                        adjustments: layer.adjustments.clone(),
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        result.filter_layers.sort_by_key(|layer| layer.start_ms);
+        result.scene_transitions = self
+            .scene_transitions
+            .iter()
+            .filter_map(|transition| {
+                let index = result.source_segments().iter().position(|scene| {
+                    scene.id.as_deref() == Some(transition.incoming_scene_id.as_str())
+                })?;
+                if index == 0 {
+                    return None;
+                }
+                let scenes = result.source_segments();
+                let adjacent = (scenes[index - 1].end_ms - scenes[index - 1].start_ms)
+                    .min(scenes[index].end_ms - scenes[index].start_ms);
+                (adjacent >= 100).then(|| SceneTransition {
+                    duration_ms: transition.duration_ms.min(adjacent),
+                    ..transition.clone()
+                })
+            })
+            .collect();
         result.audio_layers = self
             .audio_layers
             .iter()
@@ -448,7 +483,9 @@ impl EditDocument {
 
     pub fn segment_envelope(&self, segments: Vec<SourceSegment>) -> Self {
         let mut result = self.clone();
-        result.version = if self.version >= 4 {
+        result.version = if self.version >= 5 {
+            5
+        } else if self.version >= 4 {
             4
         } else if self.version == 3 || segments.iter().any(|segment| segment.id.is_some()) {
             3

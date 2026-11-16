@@ -101,7 +101,7 @@ export function HookProposals({
           document.title.duration_ms = Math.min(3000, outputDuration(document));
         } else {
           document.segments = identifiedSegments(document);
-          document.version = 4;
+          document.version = Math.max(4, document.version);
           document.title.text = '';
           document.intro_card = {
             text: proposal.text.slice(0, 300),

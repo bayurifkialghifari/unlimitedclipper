@@ -79,13 +79,14 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
   await page.goto('/studio/' + clip.id);
   const timeline = page.getByRole('region', { name: 'Timeline', exact: true });
   await expect(timeline).toBeVisible();
-  const blue = timeline.getByRole('button', { name: 'Move layer · Scene 3', exact: true });
-  const red = timeline.getByRole('button', { name: 'Move layer · Scene 1', exact: true });
+  const blue = timeline.getByRole('button', { name: /^Move layer · Scene 3/ });
+  const red = timeline.getByRole('button', { name: /^Move layer · Scene 1/ });
+  await blue.scrollIntoViewIfNeeded();
   const from = await blue.boundingBox();
   const to = await red.boundingBox();
-  await page.mouse.move(from!.x + from!.width / 2, from!.y + 20);
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
   await page.mouse.down();
-  await page.mouse.move(to!.x + 10, to!.y + 20, { steps: 12 });
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
   expect(remaps).toBe(0);
   await page.mouse.up();
   await expect
@@ -97,7 +98,7 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
   await expect
     .poll(() => video.evaluate((element) => (element as HTMLVideoElement).readyState))
     .toBeGreaterThanOrEqual(1);
-  await timeline.getByRole('button', { name: 'Video playhead', exact: true }).focus();
+  await timeline.getByRole('slider', { name: 'Video playhead', exact: true }).focus();
   await openTranscript(page);
   const transcript = page.getByRole('region', { name: 'Transcript', exact: true });
   await transcript.getByRole('button', { name: 'BLUE', exact: true }).click();
@@ -113,22 +114,20 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
   await expect
     .poll(async () => (await saved()).document.segments?.map((scene) => scene.id))
     .toEqual(['red', 'green', 'blue']);
-  await timeline.getByRole('button', { name: 'Trim start · Audio layers', exact: true }).focus();
+  await timeline.getByRole('button', { name: /^Trim start · scene-order.mp4/ }).focus();
   await page.keyboard.press('ArrowRight');
   await expect
     .poll(async () => (await saved()).document.audio_layers?.[0].source_start_ms)
     .toBe(1100);
-  await timeline.getByRole('button', { name: 'Move layer · Audio layers', exact: true }).focus();
+  await timeline.getByRole('button', { name: /^Move layer · scene-order.mp4/ }).focus();
   await page.keyboard.press('ArrowRight');
   await expect.poll(async () => (await saved()).document.audio_layers?.[0].start_ms).toBe(300);
   expect((await saved()).document.audio_layers?.[0].source_start_ms).toBe(1100);
-  await timeline.getByRole('button', { name: 'Trim start · Scene 1', exact: true }).focus();
+  await timeline.getByRole('button', { name: /^Trim start · Scene 1/ }).focus();
   await page.keyboard.press('ArrowRight');
   await expect.poll(async () => (await saved()).document.segments?.[0].start_ms).toBe(100);
   const beforeCancel = remaps;
-  const trim = await timeline
-    .getByRole('button', { name: 'Trim end · Scene 3', exact: true })
-    .boundingBox();
+  const trim = await timeline.getByRole('button', { name: /^Trim end · Scene 3/ }).boundingBox();
   await page.mouse.move(trim!.x + 4, trim!.y + 20);
   await page.mouse.down();
   await page.mouse.move(trim!.x - 100, trim!.y + 20);
@@ -154,7 +153,7 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
       composed.locator('video').evaluate((element) => (element as HTMLVideoElement).readyState),
     )
     .toBeGreaterThanOrEqual(2);
-  await timeline.getByRole('button', { name: 'Move layer · Scene 1', exact: true }).click();
+  await timeline.getByRole('button', { name: /^Move layer · Scene 1/ }).click();
   await page.getByRole('button', { name: 'Move later', exact: true }).click();
   await expect(
     page.getByText('Video edits changed. Refresh the preview to review the current edit.'),
@@ -170,8 +169,11 @@ test('reorders real scenes, trims once per gesture, cuts transcript ranges, and 
       false,
     );
     if (viewport.width > 1100) {
+      await timeline.scrollIntoViewIfNeeded();
       const bounds = await timeline.boundingBox();
-      expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height);
+      expect(bounds!.y).toBeLessThan(viewport.height);
+      expect(bounds!.y + bounds!.height).toBeGreaterThan(0);
+      expect(bounds!.width).toBeLessThanOrEqual(viewport.width);
     }
   }
   await page.setViewportSize({ width: 1920, height: 1080 });

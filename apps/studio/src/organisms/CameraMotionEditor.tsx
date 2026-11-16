@@ -7,6 +7,7 @@ import { useText } from '../lib/i18n';
 import { identifiedSegments, outputDuration } from '../lib/timeline';
 import { cameraAt, motionValuesAt } from '../lib/preview-drawing';
 import { MotionEasingFields } from '../molecules/MotionEasingFields';
+import { KeyframeStrip } from '../molecules/KeyframeStrip';
 import type { EditDocument } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -23,6 +24,7 @@ export function CameraMotionEditor() {
   const health = useQuery({ queryKey: ['health'], queryFn: api.health });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<number | null>(null);
   const document = draft?.document;
   if (!document) {
     return null;
@@ -32,6 +34,10 @@ export function CameraMotionEditor() {
   const time = Math.max(0, Math.min(duration - 1, Math.round(playhead)));
   const supported = Boolean(health.data?.editor_features.includes('camera_motion'));
   const supportedLayout = ['portrait', 'square', 'landscape'].includes(document.layout);
+  const playheadIndex = keys.findIndex((key) => key.time_ms === time);
+  const rememberedIndex = keys.findIndex((key) => key.time_ms === selectedTime);
+  const selectedIndex = playheadIndex >= 0 ? playheadIndex : Math.max(0, rememberedIndex);
+  const selectedKey = keys[selectedIndex];
 
   function edit(index: number, recipe: (key: CameraKeyframe) => void) {
     change((next) => {
@@ -73,7 +79,7 @@ export function CameraMotionEditor() {
           easing: { kind: 'linear' as const },
         }));
         next.segments = identifiedSegments(next);
-        next.version = 4;
+        next.version = Math.max(4, next.version);
         next.camera_motion = [
           ...(next.camera_motion ?? []),
           ...legacy.filter((key) => key.time_ms !== time),
@@ -87,6 +93,7 @@ export function CameraMotionEditor() {
         ].sort((first, second) => first.time_ms - second.time_ms);
         next.keyframes = [];
       });
+      setSelectedTime(time);
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -104,9 +111,22 @@ export function CameraMotionEditor() {
       )}
       {!supportedLayout && <p className={styles.hint}>{text.cameraMotionLayoutLimit}</p>}
       {keys.length === 0 && <p className={styles.hint}>{text.cameraMotionHint}</p>}
-      {keys.map((key, index) => (
-        <fieldset key={key.time_ms} className={styles.wordEditor} disabled={!supported || pending}>
-          <legend>{(key.time_ms / 1000).toFixed(2)}s</legend>
+      {keys.length > 0 && (
+        <>
+          <p className={styles.hint}>{text.keyframeEditHint}</p>
+          <KeyframeStrip
+            times={keys.map((key) => key.time_ms)}
+            selectedTime={selectedKey.time_ms}
+            onSelect={(timeMs) => {
+              setSelectedTime(timeMs);
+              useEditor.getState().seekTo(timeMs);
+            }}
+          />
+        </>
+      )}
+      {selectedKey && (
+        <fieldset className={styles.wordEditor} disabled={!supported || pending}>
+          <legend>{(selectedKey.time_ms / 1000).toFixed(2)}s</legend>
           <div className={styles.twoColumns}>
             <Field
               label={text.motionTime + ' (s)'}
@@ -114,7 +134,7 @@ export function CameraMotionEditor() {
               min={0}
               max={duration / 1000}
               step={0.01}
-              value={key.time_ms / 1000}
+              value={selectedKey.time_ms / 1000}
               onChange={(event) => {
                 const milliseconds = Math.round(Number(event.target.value) * 1000);
                 if (
@@ -122,12 +142,14 @@ export function CameraMotionEditor() {
                   milliseconds >= 0 &&
                   milliseconds <= duration &&
                   !keys.some(
-                    (other, position) => position !== index && other.time_ms === milliseconds,
+                    (other, position) =>
+                      position !== selectedIndex && other.time_ms === milliseconds,
                   )
                 ) {
-                  edit(index, (target) => {
+                  edit(selectedIndex, (target) => {
                     target.time_ms = milliseconds;
                   });
+                  setSelectedTime(milliseconds);
                 }
               }}
             />
@@ -137,9 +159,9 @@ export function CameraMotionEditor() {
               min={100}
               max={400}
               step={1}
-              value={Math.round(key.zoom * 100)}
+              value={Math.round(selectedKey.zoom * 100)}
               onChange={(event) =>
-                edit(index, (target) => {
+                edit(selectedIndex, (target) => {
                   target.zoom = Math.max(1, Math.min(4, Number(event.target.value) / 100));
                 })
               }
@@ -150,9 +172,9 @@ export function CameraMotionEditor() {
               min={0}
               max={100}
               step={0.5}
-              value={Number((key.x * 100).toFixed(1))}
+              value={Number((selectedKey.x * 100).toFixed(1))}
               onChange={(event) =>
-                edit(index, (target) => {
+                edit(selectedIndex, (target) => {
                   target.x = normalized(Number(event.target.value) / 100);
                 })
               }
@@ -163,34 +185,35 @@ export function CameraMotionEditor() {
               min={0}
               max={100}
               step={0.5}
-              value={Number((key.y * 100).toFixed(1))}
+              value={Number((selectedKey.y * 100).toFixed(1))}
               onChange={(event) =>
-                edit(index, (target) => {
+                edit(selectedIndex, (target) => {
                   target.y = normalized(Number(event.target.value) / 100);
                 })
               }
             />
           </div>
           <MotionEasingFields
-            easing={key.easing}
+            easing={selectedKey.easing}
             onChange={(easing) =>
-              edit(index, (target) => {
+              edit(selectedIndex, (target) => {
                 target.easing = easing;
               })
             }
           />
           <Button
             variant="ghost"
-            onClick={() =>
+            onClick={() => {
               change((next) => {
-                next.camera_motion?.splice(index, 1);
-              })
-            }
+                next.camera_motion?.splice(selectedIndex, 1);
+              });
+              setSelectedTime(null);
+            }}
           >
             {text.delete}
           </Button>
         </fieldset>
-      ))}
+      )}
       <Button
         disabled={
           !supported ||

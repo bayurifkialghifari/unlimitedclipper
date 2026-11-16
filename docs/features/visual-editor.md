@@ -8,7 +8,8 @@ pending. See ../validation.md for the evidence and scope.
 ## Workspace
 
 The Hook inspector also contains independent opening/closing cards. Add one from existing
-title/transcript text, then edit its styling or remove it. Preview card seeks the composition
+title/transcript text, then edit its styling or remove it. A closing card can reuse the opening
+card text when a manual clip has no transcript. Preview card seeks the composition
 player without changing source scene ranges. The composition player shows the final duration;
 the editable scene timeline and transcript keep content-relative positions. Normal timeline
 seeks skip the opening card and preserve source/word provenance. A card is silent by default;
@@ -26,15 +27,13 @@ The inspector's selected panel follows this route and updates its link when tabs
 and video filter edits belong to the current clip and autosave without running clip discovery.
 
 Studio tools sit above the player as compact icon and text tabs. Arrow keys, Home, and End move
-between tabs. Selecting a tool opens its inspector if it was hidden. Undo, Redo, and inspector
-visibility use labeled icon buttons. The phone layout uses four tool columns and keeps the
-timeline horizontally scrollable for precise scene selection.
+between tabs. Undo and Redo use labeled icon buttons. The phone layout uses four tool columns
+and keeps the timeline horizontally scrollable for precise scene selection.
 
-The desktop inspector starts at 440 pixels and supports pointer or keyboard resizing from
-400 to 560 pixels on wide windows. Smaller screens stack the player and settings. The inspector
-toggle keeps its contents mounted so hiding it does not discard field values. Transcript range
-selection is expandable inside Captions. Project, processing, export, and settings pages use
-the full content width. A gallery currently uses the source thumbnail for each clip.
+The desktop inspector starts at 360 pixels so the player has more room. Smaller screens stack
+the player and settings. Transcript range selection is directly visible inside Captions.
+Project, processing, export, and settings pages use the full content width. A gallery currently
+uses the source thumbnail for each clip.
 
 Selecting a scene, visual layer, or audio layer opens its matching controls and hides unrelated
 media groups. Inspector tabs and selected layers reset their scroll position to the top. The
@@ -70,6 +69,35 @@ Empty tracks name the inspector panel that can fill them. Frame loading or failu
 scene edits, and a failed frame job has an explicit retry action.
 Storyboard frame jobs report their state in the timeline and clip rail without opening the
 global progress panel over the editor.
+
+The Source audio row below scene footage shows measured RMS energy from the registered preview
+video's audio. One managed FFmpeg job samples mono PCM at 200 Hz, groups it into adaptive source-time
+buckets, and caches at most 12,001 byte peaks per project. The display normalizes the visible cut
+for legibility and maps each bar back to its source range when scenes move or trim. It does not
+invent audio where the source is silent. Missing audio, unavailable tools, processing, failure,
+and explicit retry have separate states. Sources beyond 24 hours do not receive a waveform.
+Background waveform jobs obey the single-heavy-job scheduler and do not cover the workspace with
+the global job popup. Android does not advertise this feature.
+
+Each registered audio layer also requests a per-asset waveform. Its visible bars map the
+layer's source offset to its output range, so trimming the layer or changing its source offset
+changes the displayed section. Selecting a layer shows a larger waveform with retry feedback.
+Dragging an imported sound to an audio track places it at the drop time; Add at playhead remains
+available for keyboard and touch use. These waveforms show input energy, not the final mixed
+gain or ducking. A failed waveform never blocks editing or export.
+
+The Visual inspector has a project B-roll library with local upload, managed preview, thumbnail,
+and a CC0-only Wikimedia Commons search. A selected video can be added at the playhead or dragged
+to the B-roll track. Imports create a browser-compatible proxy for review; export keeps the
+original registered video. Search results display source and license links. Downloads require
+network access and are capped at 250 MiB; local imports are capped at 2 GiB and ten minutes.
+Removing a library video is blocked while any clip still references it. Existing clips that
+refer to another registered project video remain readable. The editor does not redistribute
+stock files as built-in assets.
+
+Camera, text, and B-roll motion controls now show a row of selectable diamond keyframes and one
+value panel for the selected key. Timeline diamonds still seek to their exact time. Easing and
+manual numeric edits remain available; choosing a key does not create a new revision by itself.
 
 The clip rail uses actual project clips, current names and durations, and a frame from each
 clip's first edited scene. Selecting another clip flushes the current draft before navigation;

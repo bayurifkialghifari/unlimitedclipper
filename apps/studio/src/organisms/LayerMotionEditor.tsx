@@ -7,6 +7,7 @@ import { useText } from '../lib/i18n';
 import { identifiedSegments } from '../lib/timeline';
 import { motionValuesAt } from '../lib/preview-drawing';
 import { MotionEasingFields } from '../molecules/MotionEasingFields';
+import { KeyframeStrip } from '../molecules/KeyframeStrip';
 import type { VisualLayer } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -24,6 +25,7 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
   const health = useQuery({ queryKey: ['health'], queryFn: api.health });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<number | null>(null);
   const layer = draft?.document.visual_layers?.find((item) => item.id === layerId);
   if (!layer) {
     return null;
@@ -37,6 +39,10 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
   const inLayer = time >= layer.start_ms && time < layer.end_ms;
   const shortEnough = layer.end_ms - layer.start_ms <= 120_000;
   const maximumKeys = media ? 24 : 256;
+  const playheadIndex = keys.findIndex((key) => key.time_ms === time);
+  const rememberedIndex = keys.findIndex((key) => key.time_ms === selectedTime);
+  const selectedIndex = playheadIndex >= 0 ? playheadIndex : Math.max(0, rememberedIndex);
+  const selectedKey = keys[selectedIndex];
 
   function edit(index: number, recipe: (key: LayerKeyframe) => void) {
     change((document) => {
@@ -82,7 +88,7 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
           return;
         }
         document.segments = identifiedSegments(document);
-        document.version = 4;
+        document.version = Math.max(4, document.version);
         target.motion = [
           ...(target.motion ?? []),
           {
@@ -95,6 +101,7 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
           },
         ].sort((first, second) => first.time_ms - second.time_ms);
       });
+      setSelectedTime(time);
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -118,9 +125,22 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
       )}
       {media && !layer.asset_id && <p className={styles.hint}>{text.mediaMotionNeedsSource}</p>}
       {!media && !layer.text.trim() && <p className={styles.hint}>{text.textMotionNeedsText}</p>}
-      {keys.map((key, index) => (
-        <fieldset key={key.time_ms} className={styles.wordEditor} disabled={!supported || pending}>
-          <legend>{(key.time_ms / 1000).toFixed(2)}s</legend>
+      {keys.length > 0 && (
+        <>
+          <p className={styles.hint}>{text.keyframeEditHint}</p>
+          <KeyframeStrip
+            times={keys.map((key) => key.time_ms)}
+            selectedTime={selectedKey.time_ms}
+            onSelect={(timeMs) => {
+              setSelectedTime(timeMs);
+              useEditor.getState().seekTo(timeMs);
+            }}
+          />
+        </>
+      )}
+      {selectedKey && (
+        <fieldset className={styles.wordEditor} disabled={!supported || pending}>
+          <legend>{(selectedKey.time_ms / 1000).toFixed(2)}s</legend>
           <div className={styles.twoColumns}>
             <Field
               label={text.motionTime + ' (s)'}
@@ -128,7 +148,7 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
               min={layer.start_ms / 1000}
               max={layer.end_ms / 1000}
               step={0.01}
-              value={key.time_ms / 1000}
+              value={selectedKey.time_ms / 1000}
               onChange={(event) => {
                 const milliseconds = Math.round(Number(event.target.value) * 1000);
                 if (
@@ -136,12 +156,14 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
                   milliseconds >= layer.start_ms &&
                   milliseconds <= layer.end_ms &&
                   !keys.some(
-                    (other, position) => position !== index && other.time_ms === milliseconds,
+                    (other, position) =>
+                      position !== selectedIndex && other.time_ms === milliseconds,
                   )
                 ) {
-                  edit(index, (target) => {
+                  edit(selectedIndex, (target) => {
                     target.time_ms = milliseconds;
                   });
+                  setSelectedTime(milliseconds);
                 }
               }}
             />
@@ -151,9 +173,9 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
               min={media ? 100 : 10}
               max={400}
               step={1}
-              value={Math.round(key.scale * 100)}
+              value={Math.round(selectedKey.scale * 100)}
               onChange={(event) =>
-                edit(index, (target) => {
+                edit(selectedIndex, (target) => {
                   target.scale = Math.max(
                     media ? 1 : 0.1,
                     Math.min(4, Number(event.target.value) / 100),
@@ -167,9 +189,9 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
               min={0}
               max={100}
               step={0.5}
-              value={Number((key.x * 100).toFixed(1))}
+              value={Number((selectedKey.x * 100).toFixed(1))}
               onChange={(event) =>
-                edit(index, (target) => {
+                edit(selectedIndex, (target) => {
                   target.x = normalized(Number(event.target.value) / 100);
                 })
               }
@@ -180,9 +202,9 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
               min={0}
               max={100}
               step={0.5}
-              value={Number((key.y * 100).toFixed(1))}
+              value={Number((selectedKey.y * 100).toFixed(1))}
               onChange={(event) =>
-                edit(index, (target) => {
+                edit(selectedIndex, (target) => {
                   target.y = normalized(Number(event.target.value) / 100);
                 })
               }
@@ -193,36 +215,37 @@ export function LayerMotionEditor({ layerId }: { layerId: string }) {
               min={0}
               max={100}
               step={1}
-              value={Math.round(key.opacity * 100)}
+              value={Math.round(selectedKey.opacity * 100)}
               onChange={(event) =>
-                edit(index, (target) => {
+                edit(selectedIndex, (target) => {
                   target.opacity = normalized(Number(event.target.value) / 100);
                 })
               }
             />
           </div>
           <MotionEasingFields
-            easing={key.easing}
+            easing={selectedKey.easing}
             onChange={(easing) =>
-              edit(index, (target) => {
+              edit(selectedIndex, (target) => {
                 target.easing = easing;
               })
             }
           />
           <Button
             variant="ghost"
-            onClick={() =>
+            onClick={() => {
               change((document) => {
                 document.visual_layers
                   ?.find((item) => item.id === layerId)
-                  ?.motion?.splice(index, 1);
-              })
-            }
+                  ?.motion?.splice(selectedIndex, 1);
+              });
+              setSelectedTime(null);
+            }}
           >
             {text.delete}
           </Button>
         </fieldset>
-      ))}
+      )}
       <Button
         disabled={
           !supported ||

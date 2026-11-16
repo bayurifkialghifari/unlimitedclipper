@@ -36,6 +36,11 @@ planned for a later change and is not implemented in this preview.
 
 ## Interface
 
+Export history shows each completed MP4 immediately with native video controls and links to its
+MP4, SRT, and ASS files. Subtitle text is fetched when playback starts; a failed subtitle request
+shows a retry control without hiding the video. Changing a clip's style still requires a new
+export for the completed MP4 to change.
+
 Version 2 timelines concatenate video and audio together, normalize sample aspect ratio, and
 share composition with 720p edited previews. Split layers use the selected output geometry.
 Local B-roll keeps the soundtrack; registered audio layers use bounded offsets and limiting.

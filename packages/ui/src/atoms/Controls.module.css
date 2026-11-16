@@ -2,16 +2,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 10px 16px;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--surface-raised);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
   transition:
     background 120ms,
     transform 120ms;
@@ -50,7 +51,7 @@
 
 .icon {
   display: inline-flex;
-  font-size: 19px;
+  font-size: 17px;
 }
 
 .field {
@@ -67,14 +68,14 @@
 
 .input {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 36px;
+  padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-inset);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .input:disabled {
@@ -96,8 +97,8 @@
 .segment {
   flex: 1;
   min-width: 54px;
-  min-height: 44px;
-  padding: 8px;
+  min-height: 36px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-inset);
@@ -116,8 +117,17 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 44px;
+  min-height: 36px;
   font-size: 13px;
+}
+
+@media (pointer: coarse) {
+  .button,
+  .input,
+  .segment,
+  .checkbox {
+    min-height: 44px;
+  }
 }
 
 .checkbox input {

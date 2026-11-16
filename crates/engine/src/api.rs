@@ -1,4 +1,7 @@
-use crate::{db, error::*, model_manager, models::*, state::AppState, storyboard, subtitles};
+use crate::{
+    broll, db, error::*, model_manager, models::*, state::AppState, storyboard, subtitles, tools,
+    waveform,
+};
 use axum::{
     Json, Router,
     body::Body,
@@ -33,6 +36,11 @@ pub struct YoutubeRequest {
 #[derive(Deserialize, ToSchema)]
 pub struct LocalImportRequest {
     pub path: String,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct StockImportRequest {
+    pub page_id: i64,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -150,6 +158,13 @@ pub struct Health {
         list_projects,
         get_project,
         request_storyboard,
+        request_waveform,
+        request_asset_waveform,
+        list_broll_assets,
+        upload_broll,
+        search_broll_stock,
+        import_broll_stock,
+        delete_broll_asset,
         upload_source,
         youtube_source,
         local_source,
@@ -236,6 +251,7 @@ pub struct Health {
         SessionRequest,
         YoutubeRequest,
         LocalImportRequest,
+        StockImportRequest,
         GenerateRequest,
         TrackRequest,
         RefineCaptionsRequest,
@@ -261,6 +277,10 @@ pub struct Health {
         storyboard::StoryboardResponse,
         storyboard::StoryboardFrame,
         storyboard::StoryboardFrameStatus,
+        waveform::WaveformResponse,
+        waveform::WaveformStatus,
+        broll::BrollAsset,
+        broll::StockVideo,
         Health
     ))
 )]
@@ -350,6 +370,21 @@ pub fn router(state: AppState) -> Router {
         .route("/projects", get(list_projects))
         .route("/projects/{id}", get(get_project).delete(delete_project))
         .route("/projects/{id}/storyboard", post(request_storyboard))
+        .route("/projects/{id}/waveform", post(request_waveform))
+        .route("/assets/{id}/waveform", post(request_asset_waveform))
+        .route(
+            "/projects/{id}/broll-assets",
+            get(list_broll_assets).post(upload_broll),
+        )
+        .route("/projects/{id}/broll-stock", get(search_broll_stock))
+        .route(
+            "/projects/{id}/broll-stock/import",
+            post(import_broll_stock),
+        )
+        .route(
+            "/projects/{id}/broll-assets/{asset_id}",
+            axum::routing::delete(delete_broll_asset),
+        )
         .route("/projects/{id}/generate", post(generate))
         .route("/projects/{id}/clips", post(create_clip))
         .route("/projects/{id}/export", post(export_project))
@@ -513,12 +548,14 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Health>> {
     ];
     if state.native_tools.is_none() && crate::tools::available(&state, "ffmpeg", "ffmpeg") {
         editor_features.push("storyboard_frames".into());
+        editor_features.push("source_waveform".into());
+        editor_features.push("asset_waveform".into());
         editor_features.push("audio_mixing".into());
         editor_features.push("teaser_move".into());
     }
     Ok(Json(Health {
         editor_features,
-        edit_document_versions: vec![1, 2, 3, 4],
+        edit_document_versions: vec![1, 2, 3, 4, 5],
         version: env!("CARGO_PKG_VERSION").into(),
         platform: std::env::consts::ARCH.into(),
         native: state.native_tools.is_some(),
@@ -605,6 +642,151 @@ async fn request_storyboard(
     ))
 }
 
+#[utoipa::path(post, path = "/api/v1/projects/{id}/waveform",
+    responses((status = 200, body = waveform::WaveformResponse)))]
+async fn request_waveform(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<waveform::WaveformResponse>> {
+    Ok(Json(waveform::request_peaks(&state, &id).await?))
+}
+
+#[utoipa::path(post, path = "/api/v1/assets/{id}/waveform",
+    responses((status = 200, body = waveform::WaveformResponse)))]
+async fn request_asset_waveform(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<waveform::WaveformResponse>> {
+    Ok(Json(waveform::request_asset_peaks(&state, &id).await?))
+}
+
+#[utoipa::path(get, path = "/api/v1/projects/{id}/broll-assets",
+    responses((status = 200, body = Vec<broll::BrollAsset>)))]
+async fn list_broll_assets(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Vec<broll::BrollAsset>>> {
+    Ok(Json(broll::list(&state, &id).await?))
+}
+
+#[utoipa::path(post, path = "/api/v1/projects/{id}/broll-assets",
+    responses((status = 200, body = Job)))]
+async fn upload_broll(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    mut multipart: Multipart,
+) -> ApiResult<Json<Job>> {
+    tools::require_native_job(&state, "broll_import")?;
+    let _gate = state.operation_gate.lock().await;
+    db::project(&state.db, &id).await?;
+    Uuid::parse_str(&id).map_err(|_| ApiError::bad_request("Invalid project ID."))?;
+    let directory = format!("broll/{id}");
+    tokio::fs::create_dir_all(state.root.join(&directory)).await?;
+    let (relative, name) = receive_file(
+        &state,
+        &mut multipart,
+        &directory,
+        &["mp4", "mov", "mkv", "webm", "avi", "m4v", "ts"],
+    )
+    .await?;
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "broll_import",
+                Some(id),
+                None,
+                json!({"relative_path": relative, "name": name}),
+            )
+            .await?,
+    ))
+}
+
+#[utoipa::path(get, path = "/api/v1/projects/{id}/broll-stock",
+    responses((status = 200, body = Vec<broll::StockVideo>)))]
+async fn search_broll_stock(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Query(query): Query<HashMap<String, String>>,
+) -> ApiResult<Json<Vec<broll::StockVideo>>> {
+    db::project(&state.db, &id).await?;
+    Ok(Json(
+        broll::search(&state, query.get("q").map_or("", String::as_str)).await?,
+    ))
+}
+
+#[utoipa::path(post, path = "/api/v1/projects/{id}/broll-stock/import",
+    request_body = StockImportRequest, responses((status = 200, body = Job)))]
+async fn import_broll_stock(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<StockImportRequest>,
+) -> ApiResult<Json<Job>> {
+    tools::require_native_job(&state, "broll_import")?;
+    let _gate = state.operation_gate.lock().await;
+    db::project(&state.db, &id).await?;
+    if request.page_id <= 0 {
+        return Err(ApiError::bad_request("Choose a stock video."));
+    }
+    Ok(Json(
+        state
+            .enqueue_locked(
+                "broll_import",
+                Some(id),
+                None,
+                json!({"page_id": request.page_id}),
+            )
+            .await?,
+    ))
+}
+
+#[utoipa::path(delete, path = "/api/v1/projects/{id}/broll-assets/{asset_id}",
+    responses((status = 200)))]
+async fn delete_broll_asset(
+    State(state): State<AppState>,
+    Path((id, asset_id)): Path<(String, String)>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let _gate = state.operation_gate.lock().await;
+    db::project(&state.db, &id).await?;
+    if db::active_jobs(&state.db)
+        .await?
+        .iter()
+        .any(|job| job.project_id.as_deref() == Some(&id))
+    {
+        return Err(ApiError::bad_request(
+            "Wait for this project's jobs to finish.",
+        ));
+    }
+    if db::clips(&state.db, &id).await?.iter().any(|clip| {
+        clip.document
+            .visual_layers
+            .iter()
+            .any(|layer| layer.asset_id.as_deref() == Some(&asset_id))
+    }) {
+        return Err(ApiError::bad_request(
+            "Remove this B-roll from every clip first.",
+        ));
+    }
+    let thumbnails: Option<(Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT thumbnail_id, preview_asset_id FROM project_media WHERE project_id = ? AND asset_id = ?",
+    )
+    .bind(&id)
+    .bind(&asset_id)
+    .fetch_optional(&state.db)
+    .await?;
+    let (thumbnail, preview_asset_id) = thumbnails.ok_or_else(ApiError::not_found)?;
+    sqlx::query("DELETE FROM project_media WHERE project_id = ? AND asset_id = ?")
+        .bind(&id)
+        .bind(&asset_id)
+        .execute(&state.db)
+        .await?;
+    let mut candidates = vec![asset_id];
+    candidates.extend(thumbnail);
+    candidates.extend(preview_asset_id);
+    db::remove_unused_assets(&state.db, &state.root, candidates).await?;
+    state.emit("projects", None);
+    Ok(Json(json!({"deleted": true})))
+}
+
 async fn receive_file(
     state: &AppState,
     multipart: &mut Multipart,
@@ -640,6 +822,8 @@ async fn receive_file(
             2_500_000_000
         } else if directory == "watermarks" {
             32 * 1024 * 1024
+        } else if directory.starts_with("broll/") {
+            2 * 1024 * 1024 * 1024
         } else {
             2_000_000_000_000
         };
@@ -1925,6 +2109,17 @@ async fn delete_project(
             .fetch_all(&state.db)
             .await?;
     assets.extend(storyboard_assets.into_iter().map(|(asset_id,)| asset_id));
+    let broll_assets: Vec<(String, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT asset_id, thumbnail_id, preview_asset_id FROM project_media WHERE project_id = ?",
+    )
+    .bind(&id)
+    .fetch_all(&state.db)
+    .await?;
+    for (asset_id, thumbnail_id, preview_asset_id) in broll_assets {
+        assets.push(asset_id);
+        assets.extend(thumbnail_id);
+        assets.extend(preview_asset_id);
+    }
     for clip in db::clips(&state.db, &id).await? {
         assets.extend(clip.document.watermark.asset_id);
         for card in [&clip.document.intro_card, &clip.document.outro_card]

@@ -1,5 +1,6 @@
 pub mod alignment;
 pub mod api;
+pub mod broll;
 pub mod caption_metrics;
 pub mod caption_presets;
 pub mod clip_rating;
@@ -30,6 +31,7 @@ pub mod timeline;
 pub mod tools;
 pub mod tracking;
 pub mod updates;
+pub mod waveform;
 pub mod worker;
 
 pub struct EngineConfig {

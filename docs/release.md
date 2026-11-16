@@ -11,7 +11,13 @@ The current NSIS package installs for the current Windows user. Production relea
 
 ## Update signing
 
-The tag workflow validates the frontend and Rust engine before building Windows ARM64 and x64 NSIS installers. It synchronizes the package version and workspace lockfile to the tag, signs version-bound updater artifacts, merges the architecture entries into application.json, and publishes the files with SHA256SUMS to the matching GitHub release.
+The tag workflow validates the frontend and Rust engine before building Windows ARM64 and x64
+NSIS installers, Linux packages, macOS disk images, and an experimental Android ARM64 APK. It
+synchronizes package versions to the tag, signs version-bound Windows updater artifacts, and
+stages checksums. Public publication is gated by linked media source and notice coverage.
+The workflow starts when a `v*` tag is pushed. It does not create tags from commits. After all
+platform jobs pass, `publish` stages the installers and APK, verifies source coverage, creates
+or updates a draft GitHub Release, uploads assets, and makes it public only after the checks pass.
 
 The v0.1.0-preview.1 workflow was cancelled before publication. The
 [v0.1.0-preview.2 workflow](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43577933322)
@@ -32,7 +38,18 @@ Some Tauri-specific installer messages fall back to English when Indonesian is s
 
 Configure APP_UPDATE_PRIVATE_KEY and APP_UPDATE_PUBLIC_KEY repository secrets before tagging. APP_UPDATE_KEY_PASSWORD is optional for an encrypted key. COMPONENT_UPDATE_PUBLIC_KEY embeds the separate component verifier when configured. Missing publisher keys stop the workflow before an unsigned updater release can be published. Development fixture keys are not publisher keys.
 
-Quality CI also compiles and tests the engine on Ubuntu, macOS Intel, and macOS Apple Silicon. Linux Debian/Arch and macOS desktop packages remain pending; these engine checks do not certify native media distributions or installers for those systems. Private GitHub release URLs require authentication and are not a public customer update feed. Configure the publisher-controlled feed separately.
+Quality CI also compiles and tests the engine on Ubuntu, macOS Intel, and macOS Apple Silicon.
+The preview.10 tagged workflow built draft Linux, macOS, Windows, and Android packages, but the
+source coverage audit remains pending and those packages are not a public release. The CI builds
+do not certify installed runtime behavior on Linux, macOS, Windows x64, or Android. Private
+GitHub release URLs require authentication and are not a public customer update feed. Configure
+the publisher-controlled feed separately.
+The current source-coverage report for preview.10 has 335 missing platform/component entries
+across seven targets, representing 78 distinct component names. The four staged source archives
+contain FFmpeg, two desktop build-script snapshots, and the FFmpegKit Next wrapper. They do not
+contain corresponding source for all statically linked media dependencies. The
+`resources/media-source-audit.json` status remains `pending`; do not change it to `complete`
+until the exact source revisions, notices, and packaged binaries have been reviewed.
 
 Keep application and component private keys outside source control. Embed their trusted public keys when building with UC_APP_PUBLIC_KEY and UC_COMPONENT_PUBLIC_KEY. Application updates use the Tauri updater verifier. Component feeds contain a signed manifest whose exact bytes identify architecture-specific ZIP artifacts and SHA-256 checksums.
 

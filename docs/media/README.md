@@ -1,37 +1,35 @@
 # README media
 
 These assets show the actual application and real exported footage. They are committed so the README
-works from a fresh checkout without relying on ignored `.cache` or `.data` files.
+works from a fresh checkout without relying on ignored cache or application-data files.
 
 ## Screenshots
 
-`studio.png` and `filters.png` were captured on 15 November 2026 from the extracted published
-preview.8 Windows ARM64 executable at 1920 × 1009. They show the separate Local editor demo
-in the owner's real podcast library, using Indonesian UI text. The hero shows its rendered hook
-and live captions; the filter capture shows five actual-source image recipes. Caption toggling
-restored the demo document, and frame capture preserved its revision. The owner's original clip
-was unchanged. Evidence: .cache/preview8-native-final.json and .cache/preview8-native-filters.json.
-Installer execution was not part of these checks.
+Eight README screenshots and one additional B-roll capture were taken on 16 November 2026 from an isolated
+Windows ARM64 desktop development build through its native WebView2 window at 1600 × 1000. The
+Tauri bridge was present. The source was the reviewed podcast export in docs/media/editor-demo.mp4,
+imported into a separate desktop library. Its matching editor-demo.srt phrases were added to the
+manual cut, then that cut was divided into two source scenes. This is a layout and interaction
+fixture, not a new automatic-selection or transcription result. The owner's existing library and
+the desktop instance on port 43179 were unchanged.
 
-The remaining screenshots were captured on 14 November 2026 from the browser studio at a
-1920 × 1080 viewport. Settings uses a
-1920 × 1503 full-page capture. The interface uses its English dictionary. A consistent SQLite
-snapshot and hard-linked managed footage provided an isolated copy of the actual library.
-Creating the manual demo changed only that copy. No competitor screenshots were substituted.
+- studio.png: compact top tools, two actual-source scene strips, and a waveform measured from the
+  source audio beneath them.
+- clips.png: the project clip list with one Edit clip action per card.
+- captions.png: caption looks populated by the matching subtitle sidecar.
+- broll-library.png: a decoded local B-roll preview with source details in the Studio inspector.
+- broll.png: a placed B-roll layer and its motion controls.
+- filters.png: video filter previews from the same source frame.
+- projects.png: the imported podcast MP4 and its actual source thumbnail.
+- settings.png: a fresh library with optional AI models missing and local media tools ready.
+- exports.png: a completed MP4 shown directly with native playback controls and download links.
 
-- `studio.png`: the real 16.26-second edited podcast preview with an Impact/Pop hook and captions.
-- `filters.png`: actual source-frame thumbnails with Warm selected and one themed scrollbar.
-- `captions.png`: an isolated 18-second, two-scene review with Word box and a selected word.
-- `projects.png`: two real imports of the 48-minute Matan podcast.
-- `settings.png`: actual installed models, download/import actions, and update controls.
-- `rating.png`: an actual Qwen transcript assessment of the manual review, scored 74/100.
-
-Podcast source: “Matan Finally Confronts Mike Majlak About Logan Paul,” already imported in the
-user library. This is a manual interface demonstration, not an AI-quality benchmark. The footage
-belongs to its original creator and does not imply endorsement. Capture evidence:
-`.cache/preview5-readme-validation.json`. Screenshots use the current graphite/amber palette;
-Noto Sans previews load the same bundled font as rendering. The Windah video examples below
-remain unchanged. Rating explanations describe transcript evidence rather than predicted views.
+The native check decoded a scene frame and measured 163 audio buckets with nonzero levels present.
+It exported the edited clip, loaded its video element, and advanced playback without page errors.
+Evidence:
+scripts/validate-native-layout.mjs and .cache/native-layout-validation.json. Installer execution
+and runtime behavior on other operating systems are separate validation tasks. The old rating.png
+is retained as historical browser evidence and is not referenced in the current README.
 
 ## Video examples
 

@@ -202,8 +202,8 @@ export function EditorialPanel() {
                 <p className={styles.hint}>{text.motionNoProposal}</p>
               )}
               {proposal.motion_review.anchors > 0 && (
-                <details>
-                  <summary>{text.motionProposal}</summary>
+                <section>
+                  <h3>{text.motionProposal}</h3>
                   <p className={styles.hint}>{text.motionProposalReviewHint}</p>
                   <ol className={styles.proposalList}>
                     {proposal.proposed_document.camera_motion?.map((key) => (
@@ -221,7 +221,7 @@ export function EditorialPanel() {
                       </li>
                     ))}
                   </ol>
-                </details>
+                </section>
               )}
             </div>
           )}

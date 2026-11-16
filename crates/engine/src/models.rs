@@ -364,6 +364,21 @@ impl VideoAdjustments {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct FilterLayer {
+    pub id: String,
+    pub start_ms: i64,
+    pub end_ms: i64,
+    pub adjustments: VideoAdjustments,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SceneTransition {
+    pub incoming_scene_id: String,
+    pub kind: String,
+    pub duration_ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Watermark {
     pub mode: String,
     pub text: String,
@@ -393,6 +408,10 @@ impl Default for Watermark {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct EditDocument {
     pub version: u32,
+    #[serde(default)]
+    pub filter_layers: Vec<FilterLayer>,
+    #[serde(default)]
+    pub scene_transitions: Vec<SceneTransition>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub camera_motion: Vec<crate::motion::CameraKeyframe>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -429,6 +448,8 @@ impl EditDocument {
         let crop_width = (project.height as f64 * 9.0 / 16.0 / project.width as f64).min(1.0);
         Self {
             version: 2,
+            filter_layers: Vec::new(),
+            scene_transitions: Vec::new(),
             camera_motion: Vec::new(),
             intro_card: None,
             outro_card: None,
@@ -481,7 +502,7 @@ impl EditDocument {
         for card in [&self.intro_card, &self.outro_card].into_iter().flatten() {
             card.validate()?;
         }
-        if ![1, 2, 3, 4].contains(&self.version)
+        if ![1, 2, 3, 4, 5].contains(&self.version)
             || self.start_ms < 0
             || self.end_ms <= self.start_ms
             || self.end_ms > source_duration
@@ -594,6 +615,47 @@ impl EditDocument {
             return Err("Invalid split ratio or watermark scale.".into());
         }
         self.video_adjustments.validate()?;
+        if self.version < 5
+            && (!self.filter_layers.is_empty() || !self.scene_transitions.is_empty())
+        {
+            return Err("Timed filters and scene transitions require document version 5.".into());
+        }
+        if self.filter_layers.len() > 32 || self.scene_transitions.len() > 31 {
+            return Err("This edit exceeds the filter or transition limit.".into());
+        }
+        let mut filter_end = 0;
+        let mut filter_ids = std::collections::HashSet::new();
+        for layer in &self.filter_layers {
+            layer.adjustments.validate()?;
+            if layer.id.is_empty()
+                || !filter_ids.insert(&layer.id)
+                || layer.start_ms < filter_end
+                || layer.end_ms <= layer.start_ms
+                || layer.end_ms > duration
+            {
+                return Err("Filter ranges must be ordered, unique, and non-overlapping.".into());
+            }
+            filter_end = layer.end_ms;
+        }
+        let scenes = self.source_segments();
+        let mut transition_ids = std::collections::HashSet::new();
+        for transition in &self.scene_transitions {
+            let incoming = scenes.iter().position(|scene| {
+                scene.id.as_deref() == Some(transition.incoming_scene_id.as_str())
+            });
+            let Some(index) = incoming.filter(|index| *index > 0) else {
+                return Err("A transition needs a following scene.".into());
+            };
+            let adjacent = (scenes[index - 1].end_ms - scenes[index - 1].start_ms)
+                .min(scenes[index].end_ms - scenes[index].start_ms);
+            if !transition_ids.insert(&transition.incoming_scene_id)
+                || transition.kind != "dip_black"
+                || !(100..=600).contains(&transition.duration_ms)
+                || transition.duration_ms > adjacent
+            {
+                return Err("Choose a valid scene transition duration.".into());
+            }
+        }
         Ok(())
     }
 }

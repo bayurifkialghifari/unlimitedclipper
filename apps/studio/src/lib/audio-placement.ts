@@ -2,6 +2,8 @@ import type { AudioAsset, AudioLayer } from '../types';
 import { useEditor } from './editor-store';
 import { outputDuration, sourceSegments } from './timeline';
 
+export const audioDragType = 'application/x-unlimitedclipper-audio';
+
 export function fitAudioFades(layer: AudioLayer) {
   const length = layer.end_ms - layer.start_ms;
   layer.fade_in_ms = Math.min(layer.fade_in_ms ?? 0, length);

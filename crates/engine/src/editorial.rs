@@ -203,7 +203,7 @@ fn propose_auto_motion(
             );
         }
     }
-    document.version = 4;
+    document.version = document.version.max(4);
     document.keyframes.clear();
     document.camera_motion = keys;
     review

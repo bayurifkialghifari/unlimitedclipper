@@ -53,7 +53,7 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
   await page.getByLabel('Show from (s)').fill('0.5');
   await page.getByLabel('Display duration (s)').fill('1.2');
   await page.getByLabel('Animation', { exact: true }).selectOption('fade');
-  await page.getByRole('tab', { name: 'Video filters', exact: true }).click();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   const naturalCard = page.getByRole('button', { name: 'Natural', exact: true });
   const monoCard = page.getByRole('button', { name: 'Monochrome', exact: true });
   await expect(naturalCard.locator('img')).toBeVisible();
@@ -68,6 +68,7 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
   await monoCard.focus();
   await page.keyboard.press('Space');
   await page.getByRole('button', { name: 'Monochrome', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply to whole clip', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Monochrome', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -112,7 +113,7 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
   await expect(page.getByLabel('Opening title')).toHaveValue('MAKE IT CLEAR\nKeep the context');
   await expect(page.getByLabel('Show from (s)')).toHaveValue('0.5');
   await expect(page.getByLabel('Animation', { exact: true })).toHaveValue('fade');
-  await page.getByRole('tab', { name: 'Video filters', exact: true }).click();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Monochrome', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',

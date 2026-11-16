@@ -44,8 +44,13 @@ test('language flags, editor layout, and project deletion work together', async 
   );
 
   await page.goto('/');
-  const project = page.getByRole('heading', { name: 'speech-face.mp4', exact: true }).first();
+  const matchingProjects = page.getByRole('heading', {
+    name: 'speech-face.mp4',
+    exact: true,
+  });
+  const project = matchingProjects.first();
   await expect(project).toBeVisible();
+  const countBeforeDelete = await matchingProjects.count();
   const spacing = await page.evaluate(() => {
     const form = document.querySelector('input[type="url"]')?.closest('form');
     const controls = form?.parentElement?.parentElement;
@@ -86,5 +91,5 @@ test('language flags, editor layout, and project deletion work together', async 
   await expect(project).toBeVisible();
   await page.unroute('**/api/v1/projects/*');
   await dialog.getByRole('button', { name: 'Ya, hapus proyek' }).click();
-  await expect(project).not.toBeVisible();
+  await expect(matchingProjects).toHaveCount(countBeforeDelete - 1);
 });

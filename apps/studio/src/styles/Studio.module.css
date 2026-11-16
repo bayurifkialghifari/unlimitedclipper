@@ -57,10 +57,38 @@
 }
 
 .previewActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.previewModes {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
+}
+
+.previewModes button {
+  min-width: 72px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.previewModes button[aria-pressed='true'] {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.previewRenderAction {
+  background: var(--surface);
+}
+
+.previewProgress {
+  grid-column: 1 / -1;
+  font-size: 11px;
 }
 
 .composedCanvas {
@@ -84,19 +112,17 @@
 }
 
 .activityCenter {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 50;
-  width: min(360px, calc(100vw - 32px));
+  width: 100%;
   display: grid;
-  justify-items: end;
+  justify-items: start;
   gap: 8px;
+  margin-bottom: 12px;
+  font-size: 12px;
 }
 
 .activityList {
   width: 100%;
-  max-height: min(480px, 60svh);
+  max-height: 160px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -163,6 +189,26 @@
   padding: 0;
   min-width: 0;
   border: 0;
+}
+
+.layerHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.layerHeading strong {
+  font-size: 13px;
+}
+
+.selectedFilter,
+.transitionRow {
+  display: grid;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .downloadLink {
@@ -357,7 +403,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 9px 14px;
   color: var(--muted);
   font-size: 11px;
 }
@@ -496,8 +542,8 @@
 
 .inspectorBody {
   display: grid;
-  gap: 19px;
-  padding: 20px;
+  gap: 16px;
+  padding: 18px;
   max-height: 690px;
   overflow-y: auto;
 }
@@ -511,7 +557,60 @@
 .twoColumns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
+  gap: 12px;
+}
+
+.timelineEditor {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.timelineEditor > h3 {
+  margin: 10px 0 0;
+  font-size: 15px;
+}
+
+.timelineEditor > h3:first-child {
+  margin-top: 0;
+}
+
+.sceneEditor {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-inset);
+}
+
+.sceneEditor legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sceneActions,
+.visualAddActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sceneActions > button,
+.visualAddActions > button {
+  padding-inline: 11px;
+  font-size: 12px;
+}
+
+.newScene {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
 .hint {
@@ -703,8 +802,8 @@
 .exportCard {
   min-width: 0;
   display: grid;
-  gap: 16px;
-  padding: 20px;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
@@ -717,19 +816,20 @@
   overflow-wrap: anywhere;
 }
 
-.exportPreviewToggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-}
-
 .exportVideo {
   width: 100%;
-  height: 240px;
+  height: clamp(220px, 27vw, 320px);
   object-fit: contain;
-  background: #080a07;
+  background: #0b1016;
   border-radius: 8px;
+}
+
+.exportCaptionError {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
 }
 
 .jobRow {
@@ -1601,6 +1701,7 @@
 }
 
 .audioLibrary,
+.brollLibrary,
 .sfxSection {
   display: grid;
   align-content: start;
@@ -1627,6 +1728,7 @@
 }
 
 .audioLibrary > h3,
+.brollLibrary > h3,
 .sfxSection > h3 {
   margin: 0;
   font-size: 16px;
@@ -1634,6 +1736,76 @@
 
 .audioLibrary > a {
   width: fit-content;
+}
+
+.audioAssetPreview {
+  display: grid;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.audioAssetPreview svg,
+.audioPreviewState {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-inset);
+}
+
+.audioPreviewState {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+}
+
+.audioAssetPreview > button {
+  justify-self: start;
+}
+
+.keyframeStrip {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 2px 2px 7px;
+}
+
+.keyframeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-height: 32px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-inset);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.keyframeChip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.keyframeChip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.keyframeDiamond {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--accent);
+  transform: rotate(45deg);
+}
+
+.keyframeChip[aria-pressed='true'] .keyframeDiamond {
+  background: var(--accent);
 }
 
 .sfxList {
@@ -1657,4 +1829,118 @@
 .sfxRow small {
   display: block;
   color: var(--muted);
+}
+
+.brollAssets {
+  display: grid;
+  gap: 5px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.brollAsset {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-inset);
+}
+
+.brollAsset[data-selected='true'] {
+  border-color: var(--accent);
+}
+
+.brollAsset > img,
+.brollSelect > img,
+.brollMissingFrame {
+  width: 64px;
+  height: 42px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.brollMissingFrame {
+  display: grid;
+  place-items: center;
+}
+
+.brollSelect {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: grab;
+}
+
+.brollSelect:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.brollAssetLabel {
+  display: grid;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.brollAssetLabel strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brollAssetLabel small {
+  color: var(--muted);
+}
+
+.brollAssetLabel a {
+  width: fit-content;
+}
+
+.brollPreview {
+  display: grid;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.brollPreview video {
+  width: 100%;
+  max-height: 180px;
+  aspect-ratio: 16 / 9;
+  background: #080a0c;
+}
+
+.brollPreview p {
+  margin: 0;
+}
+
+.brollSearch,
+.brollStatus {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.brollSearch > :first-child,
+.brollStatus > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.brollStatus progress {
+  width: 100%;
 }

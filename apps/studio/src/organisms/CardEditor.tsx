@@ -52,7 +52,10 @@ export function CardEditor({
   const heading = kind === 'intro_card' ? text.openingCard : text.closingCard;
   const words =
     kind === 'intro_card' ? draft.document.words.slice(0, 8) : draft.document.words.slice(-8);
-  const seed = draft.document.title.text.trim() || words.map((word) => word.text).join(' ');
+  const seed =
+    draft.document.title.text.trim() ||
+    draft.document.intro_card?.text.trim() ||
+    words.map((word) => word.text).join(' ');
   const job = proposal.data;
   const generated =
     job?.status === 'completed'
@@ -165,7 +168,7 @@ export function CardEditor({
           onClick={() => {
             change((document) => {
               document.segments = identifiedSegments(document);
-              document.version = 4;
+              document.version = Math.max(4, document.version);
               document[kind] = {
                 text: seed.slice(0, 300),
                 duration_ms: 2000,

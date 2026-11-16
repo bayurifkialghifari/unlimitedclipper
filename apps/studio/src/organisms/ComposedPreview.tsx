@@ -1,6 +1,7 @@
 import { useEffect, useState, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@unlimitedclipper/ui';
+import { FilmStripIcon } from '@phosphor-icons/react';
 import { api, assetUrl } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
 import { flushEditor } from '../lib/save';
@@ -93,19 +94,31 @@ export function ComposedPreview({
   return (
     <div className={styles.composedPreview}>
       <div className={styles.previewActions}>
-        <Button aria-pressed={!asset} onClick={() => setExact(false)}>
-          {text.livePreview}
-        </Button>
-        <Button disabled={!draft || busy} onClick={() => void render()}>
-          {text.renderPreview}
-        </Button>
-        {matches && payload?.preview_asset_id && job?.status === 'completed' && (
-          <Button aria-pressed={Boolean(asset)} onClick={() => setExact(true)}>
-            {text.editedPreview}
+        <div className={styles.previewModes} role="group" aria-label={text.previewVideo}>
+          <Button
+            aria-label={text.livePreview}
+            aria-pressed={!asset}
+            onClick={() => setExact(false)}
+          >
+            {text.livePreviewShort}
           </Button>
-        )}
+          {matches && payload?.preview_asset_id && job?.status === 'completed' && (
+            <Button aria-pressed={Boolean(asset)} onClick={() => setExact(true)}>
+              {text.editedPreview}
+            </Button>
+          )}
+        </div>
+        <Button
+          className={styles.previewRenderAction}
+          aria-label={text.renderPreview}
+          icon={<FilmStripIcon aria-hidden="true" />}
+          disabled={!draft || busy}
+          onClick={() => void render()}
+        >
+          {text.renderPreviewShort}
+        </Button>
         {busy && (
-          <span role="status">
+          <span className={styles.previewProgress} role="status">
             {text.running} · {Math.round((job?.progress ?? 0) * 100)}%
           </span>
         )}

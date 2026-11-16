@@ -16,7 +16,7 @@
   "app": {
     "windows": [],
     "security": {
-      "csp": "default-src 'self' http://127.0.0.1:*; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http://127.0.0.1:*; media-src 'self' blob: http://127.0.0.1:*; connect-src 'self' http://127.0.0.1:* ipc: http://ipc.localhost; worker-src 'self' blob:; font-src 'self' http://127.0.0.1:*"
+      "csp": "default-src 'self' http://127.0.0.1:*; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http://127.0.0.1:* https://upload.wikimedia.org; media-src 'self' blob: http://127.0.0.1:*; connect-src 'self' http://127.0.0.1:* ipc: http://ipc.localhost; worker-src 'self' blob:; font-src 'self' http://127.0.0.1:*"
     }
   },
   "bundle": {

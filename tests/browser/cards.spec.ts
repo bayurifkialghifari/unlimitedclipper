@@ -26,10 +26,9 @@ test('cards play on independent clocks and survive autosave, exact rendering and
   await createManualClip(page, 'Card clock fixture', 0, 2);
   await page.getByRole('tab', { name: 'Hook', exact: true }).click();
   await page.getByLabel('Opening title', { exact: true }).fill('Keep the context');
+  await page.getByRole('button', { name: 'Use as opening card', exact: true }).click();
   const opening = page.getByRole('region', { name: 'Opening card', exact: true });
   const closing = page.getByRole('region', { name: 'Closing card', exact: true });
-  await opening.getByRole('button', { name: 'Add card', exact: true }).focus();
-  await page.keyboard.press('Enter');
   await opening.getByLabel('Display duration (s)', { exact: true }).fill('1');
   await opening.getByLabel('Background', { exact: true }).fill('#d02020');
   await closing.getByRole('button', { name: 'Add card', exact: true }).click();
@@ -39,7 +38,9 @@ test('cards play on independent clocks and survive autosave, exact rendering and
   await expect.poll(async () => (await corner(page))[0]).toBeGreaterThan(180);
   const decoder = page.locator('video').first();
   await expect.poll(() => decoder.evaluate((video: HTMLVideoElement) => video.paused)).toBe(true);
-  const player = page.getByRole('slider', { name: 'Video playhead', exact: true });
+  const player = page
+    .getByRole('region', { name: 'Preview video', exact: true })
+    .getByRole('slider', { name: 'Video playhead', exact: true });
   await expect(player).toHaveAttribute('max', '4500');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect

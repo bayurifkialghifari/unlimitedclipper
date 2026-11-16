@@ -7,7 +7,6 @@ import {
   DownloadSimpleIcon,
   ArrowCounterClockwiseIcon,
   ArrowClockwiseIcon,
-  SidebarSimpleIcon,
 } from '@phosphor-icons/react';
 import { api } from '../lib/api';
 import { flushEditor } from '../lib/save';
@@ -52,8 +51,7 @@ export function Studio() {
   const sourceVideo = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [inspectorWidth, setInspectorWidth] = useState(440);
-  const [showInspector, setShowInspector] = useState(true);
+  const [inspectorWidth, setInspectorWidth] = useState(360);
 
   useEffect(() => {
     const saved = clip.data;
@@ -129,7 +127,9 @@ export function Studio() {
   const activeTool: StudioTool = editor.timelineSelection
     ? editor.timelineSelection.kind === 'audio'
       ? 'audio'
-      : 'timeline'
+      : editor.timelineSelection.kind === 'filter'
+        ? 'style'
+        : 'timeline'
     : isStudioTool(requestedTool)
       ? requestedTool
       : 'captions';
@@ -216,14 +216,6 @@ export function Studio() {
                 icon={<ArrowClockwiseIcon aria-hidden="true" />}
               />
               <Button
-                className={styles.iconAction}
-                aria-label={text.options}
-                title={text.options}
-                icon={<SidebarSimpleIcon aria-hidden="true" />}
-                aria-pressed={showInspector}
-                onClick={() => setShowInspector(!showInspector)}
-              />
-              <Button
                 variant="primary"
                 icon={<DownloadSimpleIcon />}
                 disabled={busy}
@@ -237,7 +229,6 @@ export function Studio() {
             active={activeTool}
             onSelect={(tool) => {
               useEditor.setState({ timelineSelection: null });
-              setShowInspector(true);
               setSearchParams(
                 (previous) => {
                   const next = new URLSearchParams(previous);
@@ -251,7 +242,6 @@ export function Studio() {
           <div
             className={styles.editorBody}
             style={{ '--inspector-width': inspectorWidth + 'px' } as React.CSSProperties}
-            data-inspector={showInspector}
           >
             <div className={styles.previewSlot}>
               <ComposedPreview key={clipId} project={source} sourceVideo={sourceVideo} />
@@ -263,20 +253,20 @@ export function Studio() {
               aria-label={text.inspectorWidth}
               aria-orientation="vertical"
               tabIndex={0}
-              aria-valuemin={400}
-              aria-valuemax={560}
+              aria-valuemin={320}
+              aria-valuemax={480}
               aria-valuenow={inspectorWidth}
               onKeyDown={(event) => {
                 if (event.key === 'Home' || event.key === 'End') {
                   event.preventDefault();
-                  setInspectorWidth(event.key === 'Home' ? 400 : 560);
+                  setInspectorWidth(event.key === 'Home' ? 320 : 480);
                 }
                 if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
                   event.preventDefault();
                   setInspectorWidth(
                     Math.max(
-                      400,
-                      Math.min(560, inspectorWidth + (event.key === 'ArrowLeft' ? 20 : -20)),
+                      320,
+                      Math.min(480, inspectorWidth + (event.key === 'ArrowLeft' ? 20 : -20)),
                     ),
                   );
                 }
@@ -287,7 +277,7 @@ export function Studio() {
               onPointerMove={(event) => {
                 if (event.currentTarget.hasPointerCapture(event.pointerId)) {
                   const bounds = event.currentTarget.parentElement!.getBoundingClientRect();
-                  setInspectorWidth(Math.max(400, Math.min(560, bounds.right - event.clientX)));
+                  setInspectorWidth(Math.max(320, Math.min(480, bounds.right - event.clientX)));
                 }
               }}
               onPointerUp={(event) => {
@@ -301,6 +291,7 @@ export function Studio() {
           <VisualTimeline
             key={clipId}
             sourceDuration={source?.duration_ms ?? editor.draft!.document.end_ms}
+            hasAudio={source?.has_audio ?? false}
           />
           {project.data && (
             <ClipRail detail={project.data} activeClipId={clipId!} disabled={busy} />

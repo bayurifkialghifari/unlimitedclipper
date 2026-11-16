@@ -86,8 +86,16 @@ export function drawRegion(
   context.restore();
 }
 
-export function colorFilter(document?: EditDocument) {
-  const values = document?.video_adjustments;
+export function videoAdjustmentsAt(document: EditDocument | undefined, positionMs: number) {
+  return (
+    document?.filter_layers?.find(
+      (layer) => layer.start_ms <= positionMs && layer.end_ms > positionMs,
+    )?.adjustments ?? document?.video_adjustments
+  );
+}
+
+export function colorFilter(document: EditDocument | undefined, positionMs = 0) {
+  const values = videoAdjustmentsAt(document, positionMs);
   if (!values) {
     return 'none';
   }

@@ -112,15 +112,12 @@ test('changes one clip style from its project card without changing a sibling cl
   const siblingBefore = await (await request.get('/api/v1/clips/' + secondId)).json();
   await page.getByRole('button', { name: 'Clips', exact: true }).click();
   const firstCard = page.locator('article').filter({ hasText: 'First style fixture' });
-  await firstCard.getByRole('button', { name: 'Change style' }).click();
-  await expect(page).toHaveURL(/panel=captions/);
-  await expect(page.getByRole('tab', { name: 'Captions', exact: true })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
+  await firstCard.getByRole('button', { name: 'Edit clip' }).click();
+  await page.getByRole('tab', { name: 'Captions', exact: true }).click();
   await page.getByRole('button', { name: 'Impact', exact: true }).click();
-  await page.getByRole('tab', { name: 'Video filters', exact: true }).click();
+  await page.getByRole('tab', { name: 'Effects', exact: true }).click();
   await page.getByRole('button', { name: 'Warm', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply to whole clip', exact: true }).click();
   await expect(page.getByText('Saved locally', { exact: true })).toBeVisible();
   const firstAfter = await (await request.get('/api/v1/clips/' + firstId)).json();
   const siblingAfter = await (await request.get('/api/v1/clips/' + secondId)).json();
@@ -152,8 +149,6 @@ test('supports English settings and a narrow studio without horizontal overflow'
     .first()
     .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
   await createManualClip(page, 'Narrow studio fixture');
-  await page.getByRole('button', { name: 'Clip options', exact: true }).click();
-  await expect(page.getByRole('tabpanel')).toBeHidden();
   await page.getByRole('tab', { name: 'Audio layers', exact: true }).click();
   await expect(page.getByRole('tabpanel', { name: 'Audio layers', exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/studio-mobile.png', fullPage: true });
@@ -195,12 +190,7 @@ test('edits source segments and local layers, then plays a composed preview', as
   await note.getByLabel('Size', { exact: true }).focus();
   await page.keyboard.press('ArrowRight');
   await note.getByLabel('Text color', { exact: true }).fill('#ffcc66');
-  for (const name of [
-    'Add punch-in',
-    'Add split composition',
-    'Add camera frame',
-    'Add local B-roll',
-  ]) {
+  for (const name of ['Add punch-in', 'Add split composition', 'Add camera frame']) {
     await timeline.getByRole('button', { name, exact: true }).click();
     const layer = timeline.getByRole('group', { name, exact: true });
     await layer.getByLabel('Enabled', { exact: true }).uncheck();
@@ -210,16 +200,20 @@ test('edits source segments and local layers, then plays a composed preview', as
     if (name === 'Add punch-in' || name === 'Add split composition') {
       await layer.getByLabel('Width (%)', { exact: true }).first().fill('40');
     }
-    if (name === 'Add local B-roll') {
-      await layer.getByLabel('Source offset (s)').fill('0.5');
-    }
   }
+  await timeline
+    .getByRole('region', { name: 'B-roll library' })
+    .getByRole('button', { name: /^Add at playhead/ })
+    .first()
+    .click();
+  const broll = timeline.getByRole('group', { name: 'Add local B-roll', exact: true });
+  await broll.getByLabel('Source offset (s)').fill('0.5');
   await page.getByRole('tab', { name: 'Audio layers', exact: true }).click();
   const audioPanel = page.getByRole('tabpanel', { name: 'Audio layers', exact: true });
   await audioPanel
     .getByLabel('Import local audio')
     .setInputFiles(path.resolve('.cache/fixtures/jfk.wav'));
-  await audioPanel.getByRole('button', { name: 'Add optional tap', exact: true }).click();
+  await audioPanel.getByRole('button', { name: 'Add at playhead jfk.wav' }).click();
   const audio = audioPanel
     .locator('fieldset')
     .filter({ has: page.getByRole('combobox', { name: 'Local source' }) });

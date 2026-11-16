@@ -330,6 +330,15 @@ pub async fn remove_unused_assets(
         .fetch_all(pool)
         .await?;
     referenced.extend(frames.into_iter().map(|(asset_id,)| asset_id));
+    let project_media: Vec<(String, Option<String>, Option<String>)> =
+        sqlx::query_as("SELECT asset_id, thumbnail_id, preview_asset_id FROM project_media")
+            .fetch_all(pool)
+            .await?;
+    for (asset_id, thumbnail_id, preview_asset_id) in project_media {
+        referenced.insert(asset_id);
+        referenced.extend(thumbnail_id);
+        referenced.extend(preview_asset_id);
+    }
     let canonical_root = tokio::fs::canonicalize(root).await?;
     let checkpoint_data: Vec<(String,)> =
         sqlx::query_as("SELECT data FROM jobs WHERE status != 'completed'")

@@ -4,7 +4,13 @@ import { Button } from '@unlimitedclipper/ui';
 import { PlayIcon, PauseIcon, FilmStripIcon } from '@phosphor-icons/react';
 import { api, assetUrl } from '../lib/api';
 import { AssRenderer } from '../lib/ass-renderer';
-import { cameraAt, colorFilter, drawRegion, motionValuesAt } from '../lib/preview-drawing';
+import {
+  cameraAt,
+  colorFilter,
+  drawRegion,
+  motionValuesAt,
+  videoAdjustmentsAt,
+} from '../lib/preview-drawing';
 import { sourceSegments, introDuration, finalDuration } from '../lib/timeline';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
@@ -66,6 +72,11 @@ export function VideoPreview({
     plan: PreviewPlan;
   } | null>(null);
   const fonts = useQuery({ queryKey: ['fonts'], queryFn: api.fonts, enabled: Boolean(draft) });
+  const brollAssets = useQuery({
+    queryKey: ['broll-assets', project?.id],
+    queryFn: () => api.brollAssets(project!.id),
+    enabled: Boolean(project?.id),
+  });
   const document = draft?.document;
   const signature = JSON.stringify(document);
   const activePlan =
@@ -108,6 +119,11 @@ export function VideoPreview({
           layer.end_ms > playhead,
       )
       .at(-1);
+  const rollSource =
+    roll && roll.asset_id
+      ? (brollAssets.data?.find((asset) => asset.asset_id === roll.asset_id)?.preview_asset_id ??
+        roll.asset_id)
+      : null;
 
   useEffect(() => {
     sceneIndex.current = 0;
@@ -354,7 +370,7 @@ export function VideoPreview({
       context!.filter = 'none';
       context!.fillStyle = card?.background ?? '#000000';
       context!.fillRect(0, 0, width, height);
-      context!.filter = exact ? 'none' : colorFilter(document);
+      context!.filter = exact ? 'none' : colorFilter(document, position);
       if (card) {
         context!.filter = 'none';
       } else if (exact || !document) {
@@ -383,9 +399,9 @@ export function VideoPreview({
           drawRegion(context!, video!, splitLayer.secondary_crop, 0, height / 2, width, height / 2);
         } else {
           if (layout === 'blur') {
-            context!.filter = colorFilter(document) + ' blur(18px)';
+            context!.filter = colorFilter(document, position) + ' blur(18px)';
             drawRegion(context!, video!, full, 0, 0, width, height);
-            context!.filter = colorFilter(document);
+            context!.filter = colorFilter(document, position);
           }
           drawRegion(
             context!,
@@ -421,8 +437,8 @@ export function VideoPreview({
         context!.restore();
       }
       context!.filter = 'none';
-      if (!exact && !card && document?.video_adjustments?.warmth) {
-        const warmth = document.video_adjustments.warmth;
+      const warmth = videoAdjustmentsAt(document, position)?.warmth ?? 0;
+      if (!exact && !card && warmth) {
         context!.fillStyle = warmth > 0 ? 'rgba(255, 146, 40, 0.10)' : 'rgba(30, 130, 255, 0.10)';
         context!.globalAlpha = Math.abs(warmth) / 100;
         context!.fillRect(0, 0, width, height);
@@ -454,6 +470,27 @@ export function VideoPreview({
       }
       if (!exact && subtitle.current) {
         context!.drawImage(subtitle.current, 0, 0, width, height);
+      }
+      if (!exact && !card && document?.scene_transitions?.length) {
+        let boundary = 0;
+        for (const [index, scene] of sourceSegments(document).entries()) {
+          if (index > 0) {
+            const transition = document.scene_transitions.find(
+              (item) => item.incoming_scene_id === scene.id,
+            );
+            if (transition) {
+              const distance = Math.abs(position - boundary);
+              const half = transition.duration_ms / 2;
+              if (distance < half) {
+                context!.globalAlpha = 1 - distance / half;
+                context!.fillStyle = '#000000';
+                context!.fillRect(0, 0, width, height);
+                context!.globalAlpha = 1;
+              }
+            }
+          }
+          boundary += scene.end_ms - scene.start_ms;
+        }
       }
       const current = renderer.current;
       const version = trackVersion.current;
@@ -557,7 +594,6 @@ export function VideoPreview({
     <section className={styles.previewPanel} aria-label={text.previewVideo}>
       <div className={styles.previewTop}>
         <span>{exact ? text.editedPreview : text.livePreview}</span>
-        <span>{exact ? text.editedPreview : text.livePreviewHint}</span>
       </div>
       <div ref={stage} className={styles.previewStage}>
         {!project ? (
@@ -636,11 +672,11 @@ export function VideoPreview({
                 <track kind="captions" />
               </audio>
             )}
-            {roll && roll.asset_id && (
+            {rollSource && (
               <video
-                key={roll.asset_id}
+                key={rollSource}
                 ref={broll}
-                src={assetUrl(roll.asset_id)}
+                src={assetUrl(rollSource)}
                 className={styles.previewDecoder}
                 muted
                 playsInline

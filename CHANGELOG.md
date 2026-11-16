@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+- Project clip cards now use one Edit clip action with an icon; the redundant Change style action
+  was removed from that list. Export cards still open the clip's caption controls.
+- The single project Clip options panel no longer repeats a tab above its heading. Closing cards
+  can reuse opening-card text when a manual cut has no transcript.
+- Filter placement now promotes older manual scenes with stable IDs before version 5 autosave.
+  The active preset indicator follows saved filter values after reopen, and browser interaction
+  checks cover dragging filters, B-roll, and imported audio onto timeline tracks.
+- Failed or cancelled B-roll thumbnail generation removes its temporary image before retry.
+- The per-project B-roll library now imports local video, searches Wikimedia Commons for CC0
+  stock, displays provenance, and creates browser-compatible preview proxies. Videos can be added
+  at the playhead or dragged onto a dedicated timeline track; referenced assets cannot be deleted.
+- Filter recipes can be placed as timed timeline blocks. Scene boundaries support Cut and Dip to
+  black without shifting caption timing. Live review and exact rendering follow version 5 edits.
+- Imported sounds can be dragged to audio tracks. Each registered audio layer shows a measured
+  waveform from its source offset, with a larger selected-layer review and retry feedback.
+- Camera, text, and B-roll motion inspectors now edit one selected diamond keyframe at a time.
+  A real-media fixture verifies B-roll import, preview proxy, waveform decoding, timed filters,
+  Dip rendering, and project asset cleanup.
+- The Studio uses a shorter desktop preview area so source scenes, caption blocks, and the new
+  measured source-audio waveform remain visible together. Scene controls, tool tabs, preview
+  actions, and shared buttons have tighter spacing while retaining keyboard focus and touch targets.
+- Source-audio waveforms are decoded once per project by a managed, cancellable FFmpeg job, cached
+  with the project, and remapped across scene reorder and trim. Loading, unavailable, failure, and
+  retry states appear in the timeline.
+- Export results show playable MP4s immediately, with an explicit subtitle-load retry. README
+  screenshots now come from the current Windows ARM64 desktop development build.
 - Studio tools now sit above the preview with named icons and keyboard tab movement. The phone
   layout uses four compact columns, smaller headings, a larger preview, and a scrollable scene
   timeline. Selecting a tool reopens the inspector when it was hidden.

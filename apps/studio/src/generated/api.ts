@@ -63,6 +63,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/assets/{id}/waveform': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['request_asset_waveform'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/caption-presets': {
     parameters: {
       query?: never;
@@ -655,6 +671,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/projects/{id}/broll-assets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['list_broll_assets'];
+    put?: never;
+    post: operations['upload_broll'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/projects/{id}/broll-assets/{asset_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['delete_broll_asset'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/projects/{id}/broll-stock': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['search_broll_stock'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/projects/{id}/broll-stock/import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['import_broll_stock'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/projects/{id}/clips': {
     parameters: {
       query?: never;
@@ -713,6 +793,22 @@ export interface paths {
     get?: never;
     put?: never;
     post: operations['request_storyboard'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/projects/{id}/waveform': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['request_waveform'];
     delete?: never;
     options?: never;
     head?: never;
@@ -887,6 +983,23 @@ export interface components {
       /** Format: int64 */
       revision: number;
     };
+    BrollAsset: {
+      asset_id: string;
+      creator?: string | null;
+      /** Format: int64 */
+      duration_ms: number;
+      /** Format: int32 */
+      height: number;
+      license?: string | null;
+      license_url?: string | null;
+      name: string;
+      origin: string;
+      preview_asset_id?: string | null;
+      source_url?: string | null;
+      thumbnail_id?: string | null;
+      /** Format: int32 */
+      width: number;
+    };
     CameraKeyframe: {
       easing?: components['schemas']['Easing'];
       /** Format: int64 */
@@ -1024,6 +1137,7 @@ export interface components {
       /** Format: int64 */
       end_ms: number;
       facecam_crop: components['schemas']['CropRect'];
+      filter_layers?: components['schemas']['FilterLayer'][];
       gameplay_crop: components['schemas']['CropRect'];
       intro_card?: null | components['schemas']['HeadingCard'];
       keyframes: components['schemas']['Keyframe'][];
@@ -1031,6 +1145,7 @@ export interface components {
       outro_card?: null | components['schemas']['HeadingCard'];
       /** Format: int32 */
       resolution: number;
+      scene_transitions?: components['schemas']['SceneTransition'][];
       segments?: components['schemas']['SourceSegment'][];
       /** Format: double */
       split_ratio: number;
@@ -1056,6 +1171,14 @@ export interface components {
       /** Format: int64 */
       revision: number;
       srt_asset_id: string;
+    };
+    FilterLayer: {
+      adjustments: components['schemas']['VideoAdjustments'];
+      /** Format: int64 */
+      end_ms: number;
+      id: string;
+      /** Format: int64 */
+      start_ms: number;
     };
     GenerateRequest: {
       clip_count: number;
@@ -1258,6 +1381,12 @@ export interface components {
       name: string;
       style: components['schemas']['CaptionStyle'];
     };
+    SceneTransition: {
+      /** Format: int64 */
+      duration_ms: number;
+      incoming_scene_id: string;
+      kind: string;
+    };
     SessionRequest: {
       token: string;
     };
@@ -1282,6 +1411,22 @@ export interface components {
       id?: string | null;
       /** Format: int64 */
       start_ms: number;
+    };
+    StockImportRequest: {
+      /** Format: int64 */
+      page_id: number;
+    };
+    StockVideo: {
+      creator?: string | null;
+      license: string;
+      license_url?: string | null;
+      /** Format: int64 */
+      page_id: number;
+      /** Format: int64 */
+      size_bytes: number;
+      source_url: string;
+      thumbnail_url?: string | null;
+      title: string;
     };
     StoryboardFrame: {
       asset_id?: string | null;
@@ -1403,6 +1548,16 @@ export interface components {
       /** Format: double */
       y: number;
     };
+    WaveformResponse: {
+      /** Format: int64 */
+      bucket_ms?: number | null;
+      error?: string | null;
+      job_id?: string | null;
+      peaks: number[];
+      status: components['schemas']['WaveformStatus'];
+    };
+    /** @enum {string} */
+    WaveformStatus: 'ready' | 'pending' | 'failed' | 'unavailable';
     Word: {
       color?: string | null;
       /** Format: double */
@@ -1529,6 +1684,27 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  request_asset_waveform: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WaveformResponse'];
+        };
       };
     };
   };
@@ -2546,6 +2722,114 @@ export interface operations {
       };
     };
   };
+  list_broll_assets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BrollAsset'][];
+        };
+      };
+    };
+  };
+  upload_broll: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
+      };
+    };
+  };
+  delete_broll_asset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        asset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  search_broll_stock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StockVideo'][];
+        };
+      };
+    };
+  };
+  import_broll_stock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StockImportRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Job'];
+        };
+      };
+    };
+  };
   create_clip: {
     parameters: {
       query?: never;
@@ -2638,6 +2922,27 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['StoryboardResponse'];
+        };
+      };
+    };
+  };
+  request_waveform: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WaveformResponse'];
         };
       };
     };

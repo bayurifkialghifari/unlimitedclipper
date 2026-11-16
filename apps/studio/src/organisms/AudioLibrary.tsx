@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Field } from '@unlimitedclipper/ui';
 import { PauseIcon, PlayIcon, PlusIcon } from '@phosphor-icons/react';
 import { api, assetUrl, uploadFile } from '../lib/api';
-import { placeManagedAudio } from '../lib/audio-placement';
+import { audioDragType, placeManagedAudio } from '../lib/audio-placement';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import type { AudioAsset } from '../types';
@@ -86,6 +86,7 @@ export function AudioLibrary({ disabled }: { disabled: boolean }) {
   return (
     <div className={styles.audioLibrary}>
       <h3>{text.importedAudio}</h3>
+      <p className={styles.hint}>{text.audioDragHint}</p>
       <Field
         label={text.searchAudio}
         type="search"
@@ -105,7 +106,15 @@ export function AudioLibrary({ disabled }: { disabled: boolean }) {
       {visibleAssets.length > 0 && (
         <div className={styles.sfxList}>
           {visibleAssets.map((asset) => (
-            <div className={styles.sfxRow} key={asset.asset_id}>
+            <div
+              className={styles.sfxRow}
+              key={asset.asset_id}
+              draggable={!disabled}
+              onDragStart={(event) => {
+                event.dataTransfer.setData(audioDragType, asset.asset_id);
+                event.dataTransfer.effectAllowed = 'copy';
+              }}
+            >
               <span>
                 {asset.name}
                 <small>{(asset.duration_ms / 1000).toFixed(1)} s</small>

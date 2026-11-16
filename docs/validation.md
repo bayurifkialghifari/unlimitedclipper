@@ -1,5 +1,52 @@
 # Validation evidence
 
+## Studio spacing, source audio, and desktop screenshots, 2026-11-16
+
+The current development Studio build was tested in an isolated Windows ARM64 Tauri/WebView2
+window. scripts/validate-native-layout.mjs imported the real 16.26-second podcast export in
+docs/media/editor-demo.mp4, applied its matching subtitle sidecar to a manual cut, divided that
+cut into two source scenes, and waited for decoded storyboard images. Its native bridge was
+present. The managed FFmpeg waveform job returned 163 measured source-audio buckets with audible
+values, and the Studio displayed them below the scene strip. The script exported that revision,
+confirmed the MP4 was visible on Export results without a reveal control, decoded the media,
+advanced playback, and observed no page errors. Evidence: .cache/native-layout-validation.json.
+The source is a previously reviewed export; this checks editor presentation and processing,
+not automatic moment selection or transcription accuracy.
+
+Nine native screenshots were captured from that WebView at 1600 by 1000; eight appear in the
+README. docs/media/clips.png shows one Edit clip action on each card, while
+docs/media/broll-library.png shows the decoded local preview and source. The other captures show
+the Studio, placed B-roll, caption looks, filters, project list, settings, and a playable export.
+The source library and existing desktop on port 43179 were not used. These are development
+desktop captures, not screenshots of the published preview.8 installer. Native geometry checks
+measured 28 pixels between import controls and the first project card, 14 pixels between the
+first scene input and its action row, and the waveform fully inside the initial 1000-pixel
+viewport. The selected audio layer displayed 163 measured waveform buckets, and a local B-roll
+proxy decoded and remained saved after placement.
+
+npm run check passed ESLint, Prettier, TypeScript, nine frontend unit tests, and the production
+Studio build. The engine's 64 Rust tests, workspace Rustfmt check, and workspace Clippy with
+warnings denied passed. The current browser suite covers real media export, scene edits, filter
+and B-roll placement, imported audio dragging, per-clip styles, and narrow widths. The native
+desktop run is separate from those browser checks. Final installed-package behavior on Windows
+x64, macOS, Linux, and Android remains pending. The release source audit still blocks a new
+public tag.
+
+The final isolated Chromium suite passed 19 of 21 scenarios. The Auto Motion and Hook proposal
+scenarios were skipped because their dedicated media fixture IDs were not configured; they are
+not counted as passed. A new drag test placed a Warm filter, project B-roll, and an imported WAV
+on separate tracks and observed each saved edit. Its first run exposed a version-5 autosave
+failure on a legacy manual clip with no stable scene IDs. Filter placement now assigns those IDs
+before promoting the document; the focused retry and full suite both passed. The native check
+ran again after the final frontend build and recorded no page errors.
+
+| Anti-slop During gate      | Status                  | Evidence and remaining scope                                                                                                                                                                     |
+| -------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Direction and real content | Pass                    | Existing graphite and amber palette, actual source frames and subtitle sidecar, measured audio, no fabricated project records.                                                                   |
+| Visual layout              | Pass for tested desktop | The native 1600 by 1000 capture shows the source waveform and scene controls without overlapping fields. Smaller widths have browser regression coverage.                                        |
+| Interactions               | Partial                 | Native export video decoded and played; browser tests exercised tabs, scene edits, and drag placement. A complete every-control audit remains pending.                                           |
+| States and accessibility   | Partial                 | Loading, unavailable, failed, and retry paths exist; the native run exercised success. Failure injection, assistive-technology review, contrast audit, and reduced-motion review remain pending. |
+
 ## Preview.11 Studio, audio, teaser, and release gate, 2026-11-16
 
 The Studio moved its tool tabs above the preview and added named icons, keyboard tab movement,
@@ -1289,3 +1336,27 @@ Evidence: .cache/preview6-cleanup-applied.json.
 The native geometry, ready-model list, and registered-asset checks passed again after cleanup;
 the published application remains open. Final storage measurements are in
 .cache/preview6-storage-final.json.
+
+## Preview.11 publication preflight, 2026-11-16
+
+The tagged workflow on `v*` builds platform packages and its `publish` job creates or updates
+a GitHub Release after verification. It does not create a tag. The preview.10 workflow
+[run 43786501506](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43786501506)
+completed its package jobs and staged 32 assets in a draft release. Preview.8 remains the latest
+public download. The draft is not an installable public release.
+
+`source-coverage-report.json` from preview.10 lists 61 missing entries for Windows ARM64,
+69 for Windows x64, 71 for Linux ARM64, 74 for Linux x64, 28 each for macOS ARM64 and x64,
+and four for Android ARM64. These total 335 platform/component entries and 78 distinct names.
+The staged snapshots include four pinned source archives, but the linked library sources have
+not been attached or checked against the actual builds. The platform source/notice audit is
+still `pending`. Publication preflight: **BLOCKED**. No new tag or public release has been
+created from this working tree.
+
+The current preview candidate passed `npm run check` (ESLint, Prettier, type checking, nine
+unit tests, and a production Studio build), 64 Rust tests using an isolated target directory,
+`cargo fmt --all -- --check`, and engine Clippy with warnings denied. The first Rust test
+attempt hit a Windows file lock because an older engine executable was running from the
+default target directory; rerunning in `.cache/target-preview11` passed. A native Windows
+ARM64 development window opened with the reviewed isolated media fixture on port 43191.
+This is a live desktop preview, not execution of a packaged installer.

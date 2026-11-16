@@ -114,11 +114,11 @@ export function ClipRatingPanel({
   const tier = scoreLabel();
 
   return (
-    <details className={styles.clipRating}>
-      <summary>
+    <section className={styles.clipRating}>
+      <h3>
         {text.clipPotential}
         {score !== undefined && !stale && <span>{score}/100</span>}
-      </summary>
+      </h3>
       <p className={styles.hint}>{text.ratingDetail}</p>
       <QueryState
         pending={rating.isPending}
@@ -183,6 +183,6 @@ export function ClipRatingPanel({
           {error || jobError}
         </p>
       )}
-    </details>
+    </section>
   );
 }

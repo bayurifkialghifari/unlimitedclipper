@@ -96,7 +96,6 @@ test('edits and reuses caption styles, then reviews rating states without losing
     'aria-pressed',
     'true',
   );
-  await page.locator('summary').filter({ hasText: 'Save this style' }).click();
   await page.getByLabel('Style name').fill('Interview browser style');
   await page.getByRole('button', { name: 'Save this style', exact: true }).click();
   await expect(
@@ -133,10 +132,7 @@ test('edits and reuses caption styles, then reviews rating states without losing
 
   await page.goto('/studio/' + first.id);
   await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
-  const panel = page
-    .locator('details')
-    .filter({ has: page.locator('summary').filter({ hasText: 'Clip potential' }) });
-  await panel.locator('summary').click();
+  const panel = page.getByRole('heading', { name: 'Clip potential' }).locator('..');
   await expect(panel.getByText('This edit has not been rated yet.')).toBeVisible();
   const rate = panel.getByRole('button', { name: 'Rate clip potential', exact: true });
   await rate.focus();
@@ -147,7 +143,6 @@ test('edits and reuses caption styles, then reviews rating states without losing
   await expect(rate).toBeEnabled();
   await page.reload();
   await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
-  await panel.locator('summary').click();
   await expect(panel.getByRole('meter')).toHaveCount(4);
   await expect(panel.getByRole('status', { name: 'Clip potential' })).toHaveText('80/100');
   await page.getByLabel('Clip name', { exact: true }).fill('Caption library edited fixture');
@@ -188,7 +183,6 @@ test('edits and reuses caption styles, then reviews rating states without losing
     .getByRole('button', { name: 'Close', exact: true })
     .click();
   await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
-  await panel.locator('summary').click();
   await expect(rate).toBeDisabled();
   await expect(panel.getByRole('alert')).toHaveText('Controlled worker failure');
   await expect(

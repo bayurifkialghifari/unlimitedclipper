@@ -30,6 +30,7 @@ export async function createManualClip(
   await page
     .getByRole('button', { name: language === 'en' ? 'Edit clip' : 'Edit klip', exact: true })
     .click();
+  await expect(page).toHaveURL(/\/studio\/[a-f0-9-]+(?:\?|$)/);
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
 }
 
@@ -37,10 +38,7 @@ export async function openTranscript(page: Page, language: 'en' | 'id' = 'en') {
   await page
     .getByRole('tab', { name: language === 'en' ? 'Captions' : 'Caption', exact: true })
     .click();
-  const summary = page
-    .locator('summary')
-    .filter({ hasText: language === 'en' ? 'Transcript' : 'Transkrip' });
-  if ((await summary.locator('..').getAttribute('open')) === null) {
-    await summary.click();
-  }
+  await expect(
+    page.getByRole('region', { name: language === 'en' ? 'Transcript' : 'Transkrip' }),
+  ).toBeVisible();
 }

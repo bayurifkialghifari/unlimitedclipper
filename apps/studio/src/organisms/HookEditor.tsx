@@ -71,7 +71,7 @@ export function HookEditor({
     }
     change((document) => {
       document.segments = identifiedSegments(document);
-      document.version = 4;
+      document.version = Math.max(4, document.version);
       document.title.text = '';
       document.intro_card = {
         text: openingText.slice(0, 300),
@@ -111,8 +111,8 @@ export function HookEditor({
         cardsSupported={cardsSupported}
         onGenerate={onGenerate}
       />
-      <details className={styles.teaserTools}>
-        <summary>{text.teaserMove}</summary>
+      <section className={styles.teaserTools}>
+        <h3>{text.teaserMove}</h3>
         <div className={styles.teaserFields}>
           <p className={styles.hint}>{text.teaserHint}</p>
           <div className={styles.twoColumns}>
@@ -143,7 +143,7 @@ export function HookEditor({
             {text.teaserApply}
           </Button>
         </div>
-      </details>
+      </section>
       <h3>{text.hookCurrent}</h3>
       <div className={styles.hookModeActions} role="group" aria-label={text.hookOpeningMode}>
         <Button aria-pressed={!openingCard} disabled={!openingCard} onClick={useOverlay}>

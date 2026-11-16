@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   min-height: calc(100svh - 48px);
-  gap: 16px;
+  gap: 12px;
 }
 
 .studio > header {
@@ -36,8 +36,8 @@
 }
 
 .iconAction {
-  width: 44px;
-  min-width: 44px;
+  width: 36px;
+  min-width: 36px;
   padding: 0;
 }
 
@@ -49,24 +49,24 @@
 
 .toolMenu {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   min-width: max-content;
-  padding: 2px 0 8px;
+  padding: 2px 0 4px;
 }
 
 .toolMenu button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -116,20 +116,18 @@
 
 .editorBody {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 8px var(--inspector-width, 440px);
-  height: clamp(440px, 54svh, 680px);
+  grid-template-columns: minmax(0, 1fr) 8px var(--inspector-width, 360px);
+  height: clamp(420px, 51svh, 620px);
   flex: none;
-  min-height: 440px;
+  min-height: 420px;
   gap: 8px;
 }
 
-.editorBody[data-inspector='false'] {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.editorBody[data-inspector='false'] .rightPanel,
-.editorBody[data-inspector='false'] .inspectorResize {
-  display: none;
+@media (pointer: coarse) {
+  .iconAction {
+    width: 44px;
+    min-width: 44px;
+  }
 }
 
 .inspectorResize {
@@ -439,6 +437,21 @@
   height: 62px;
 }
 
+.waveformTrack {
+  position: relative;
+  height: 48px;
+  background: var(--surface-inset);
+  border-bottom: 1px solid var(--border);
+}
+
+.waveformSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: var(--accent);
+  opacity: 0.8;
+}
+
 .motionTrack {
   position: relative;
   height: 36px;
@@ -506,9 +519,26 @@
   border-color: #6a7e96;
 }
 
+.track[data-kind='broll'] {
+  background: #222b32;
+}
+
+.track[data-kind='broll'][data-drag-over='true'] {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.track[data-kind='broll'] .timelineItem {
+  background: #304240;
+  border-color: #779b8f;
+}
+
 .track[data-kind='audio'] .timelineItem {
   background: #403527;
   border-color: #9b8359;
+}
+
+.track[data-kind='audio'][data-drag-over='true'] {
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .track[data-disabled='true'] .timelineItem {
@@ -545,6 +575,30 @@
   display: flex;
   overflow: hidden;
   pointer-events: none;
+}
+
+.timelineItemWaveform {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.timelineItemWaveform .waveformSvg {
+  fill: #e2bd83;
+  opacity: 0.78;
+}
+
+.timelineItemWaveformStatus {
+  position: absolute;
+  inset: 50% 0 auto;
+  border-top: 1px solid #c89c62;
+  opacity: 0.35;
+}
+
+.track[data-kind='audio'] .timelineItemLabel {
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: #1c1a18c9;
 }
 
 .timelineItemMedia img,

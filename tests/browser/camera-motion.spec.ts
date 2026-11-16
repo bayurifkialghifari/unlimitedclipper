@@ -34,7 +34,7 @@ test('camera keyframes update the live frame and persist through reopen', async 
   const errors: string[] = [];
   page.on('pageerror', (failure) => errors.push(failure.message));
   await page.goto('/studio/' + clip.id);
-  await page.getByRole('tab', { name: 'Crop', exact: true }).click();
+  await page.getByRole('tab', { name: 'Motion', exact: true }).click();
   const controls = page.getByRole('region', { name: 'Camera motion', exact: true });
   await expect(
     controls.getByRole('button', { name: 'Add camera keyframe at playhead' }),
@@ -76,7 +76,7 @@ test('camera keyframes update the live frame and persist through reopen', async 
   expect(migrated.document.keyframes).toEqual([]);
   expect(migrated.document.camera_motion).toHaveLength(1);
   await page.reload();
-  await page.getByRole('tab', { name: 'Crop', exact: true }).click();
+  await page.getByRole('tab', { name: 'Motion', exact: true }).click();
   await expect(controls.getByLabel('Zoom (%)', { exact: true })).toHaveValue('200');
   await expect(controls.getByLabel('Center X (%)', { exact: true })).toHaveValue('80');
   await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
@@ -107,7 +107,11 @@ test('camera keyframes update the live frame and persist through reopen', async 
     page.getByRole('region', { name: 'Text motion' }).getByLabel('Scale (%)'),
   ).toHaveValue('150');
   const beforeBroll = await sample();
-  await page.getByRole('button', { name: 'Add local B-roll', exact: true }).click();
+  await page
+    .getByRole('region', { name: 'B-roll library' })
+    .getByRole('button', { name: /^Add at playhead/ })
+    .first()
+    .click();
   const broll = page.getByRole('group', { name: 'Add local B-roll', exact: true });
   await expect.poll(async () => Math.abs((await sample()) - beforeBroll)).toBeGreaterThan(1000);
   const mediaMotion = broll.getByRole('region', { name: 'B-roll motion', exact: true });
@@ -137,7 +141,7 @@ test('camera keyframes update the live frame and persist through reopen', async 
   limited.document.layout = 'contain';
   limited = await (await request.put('/api/v1/clips/' + limited.id, { data: limited })).json();
   await page.goto('/studio/' + limited.id);
-  await page.getByRole('tab', { name: 'Crop', exact: true }).click();
+  await page.getByRole('tab', { name: 'Motion', exact: true }).click();
   await expect(
     page.getByRole('region', { name: 'Camera motion' }).getByRole('button', {
       name: 'Add camera keyframe at playhead',

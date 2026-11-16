@@ -13,6 +13,9 @@ import type {
   Project,
   ProjectDetail,
   StoryboardResponse,
+  WaveformResponse,
+  BrollAsset,
+  StockVideo,
   Settings,
   PackStatus,
   SourceSegment,
@@ -106,6 +109,30 @@ export const api = {
       body: JSON.stringify({ source_times_ms: sourceTimesMs }),
       signal,
     }),
+  waveform: (id: string, signal?: AbortSignal) =>
+    request<WaveformResponse>('/projects/' + id + '/waveform', {
+      method: 'POST',
+      signal,
+    }),
+  assetWaveform: (id: string, signal?: AbortSignal) =>
+    request<WaveformResponse>('/assets/' + encodeURIComponent(id) + '/waveform', {
+      method: 'POST',
+      signal,
+    }),
+  brollAssets: (projectId: string) =>
+    request<BrollAsset[]>('/projects/' + projectId + '/broll-assets'),
+  brollStock: (projectId: string, query: string) =>
+    request<StockVideo[]>('/projects/' + projectId + '/broll-stock?q=' + encodeURIComponent(query)),
+  importBrollStock: (projectId: string, pageId: number) =>
+    request<Job>('/projects/' + projectId + '/broll-stock/import', {
+      method: 'POST',
+      body: JSON.stringify({ page_id: pageId }),
+    }),
+  deleteBrollAsset: (projectId: string, assetId: string) =>
+    request<{ deleted: boolean }>(
+      '/projects/' + projectId + '/broll-assets/' + encodeURIComponent(assetId),
+      { method: 'DELETE' },
+    ),
   jobs: () => request<Job[]>('/jobs'),
   models: () => request<ModelStatus[]>('/models'),
   captionPresets: () => request<CaptionPreset[]>('/caption-presets'),

@@ -68,6 +68,23 @@
         "responses": { "200": { "description": "" } }
       }
     },
+    "/api/v1/assets/{id}/waveform": {
+      "post": {
+        "tags": [],
+        "operationId": "request_asset_waveform",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/WaveformResponse" } }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/caption-presets": {
       "get": {
         "tags": [],
@@ -813,6 +830,95 @@
         "responses": { "200": { "description": "" } }
       }
     },
+    "/api/v1/projects/{id}/broll-assets": {
+      "get": {
+        "tags": [],
+        "operationId": "list_broll_assets",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/BrollAsset" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "operationId": "upload_broll",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}/broll-assets/{asset_id}": {
+      "delete": {
+        "tags": [],
+        "operationId": "delete_broll_asset",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "asset_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "" } }
+      }
+    },
+    "/api/v1/projects/{id}/broll-stock": {
+      "get": {
+        "tags": [],
+        "operationId": "search_broll_stock",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/StockVideo" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}/broll-stock/import": {
+      "post": {
+        "tags": [],
+        "operationId": "import_broll_stock",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/StockImportRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{id}/clips": {
       "post": {
         "tags": [],
@@ -890,6 +996,23 @@
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/StoryboardResponse" }
               }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}/waveform": {
+      "post": {
+        "tags": [],
+        "operationId": "request_waveform",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/WaveformResponse" } }
             }
           }
         }
@@ -1050,6 +1173,24 @@
           "profile": { "type": "string" },
           "remove_silence": { "type": "boolean" },
           "revision": { "type": "integer", "format": "int64" }
+        }
+      },
+      "BrollAsset": {
+        "type": "object",
+        "required": ["asset_id", "name", "duration_ms", "width", "height", "origin"],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "creator": { "type": ["string", "null"] },
+          "duration_ms": { "type": "integer", "format": "int64" },
+          "height": { "type": "integer", "format": "int32", "minimum": 0 },
+          "license": { "type": ["string", "null"] },
+          "license_url": { "type": ["string", "null"] },
+          "name": { "type": "string" },
+          "origin": { "type": "string" },
+          "preview_asset_id": { "type": ["string", "null"] },
+          "source_url": { "type": ["string", "null"] },
+          "thumbnail_id": { "type": ["string", "null"] },
+          "width": { "type": "integer", "format": "int32", "minimum": 0 }
         }
       },
       "CameraKeyframe": {
@@ -1270,6 +1411,10 @@
           "crop": { "$ref": "#/components/schemas/CropRect" },
           "end_ms": { "type": "integer", "format": "int64" },
           "facecam_crop": { "$ref": "#/components/schemas/CropRect" },
+          "filter_layers": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/FilterLayer" }
+          },
           "gameplay_crop": { "$ref": "#/components/schemas/CropRect" },
           "intro_card": {
             "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/HeadingCard" }]
@@ -1280,6 +1425,10 @@
             "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/HeadingCard" }]
           },
           "resolution": { "type": "integer", "format": "int32", "minimum": 0 },
+          "scene_transitions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SceneTransition" }
+          },
           "segments": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/SourceSegment" }
@@ -1320,6 +1469,16 @@
           "project_id": { "type": "string" },
           "revision": { "type": "integer", "format": "int64" },
           "srt_asset_id": { "type": "string" }
+        }
+      },
+      "FilterLayer": {
+        "type": "object",
+        "required": ["id", "start_ms", "end_ms", "adjustments"],
+        "properties": {
+          "adjustments": { "$ref": "#/components/schemas/VideoAdjustments" },
+          "end_ms": { "type": "integer", "format": "int64" },
+          "id": { "type": "string" },
+          "start_ms": { "type": "integer", "format": "int64" }
         }
       },
       "GenerateRequest": {
@@ -1643,6 +1802,15 @@
           "style": { "$ref": "#/components/schemas/CaptionStyle" }
         }
       },
+      "SceneTransition": {
+        "type": "object",
+        "required": ["incoming_scene_id", "kind", "duration_ms"],
+        "properties": {
+          "duration_ms": { "type": "integer", "format": "int64" },
+          "incoming_scene_id": { "type": "string" },
+          "kind": { "type": "string" }
+        }
+      },
       "SessionRequest": {
         "type": "object",
         "required": ["token"],
@@ -1682,6 +1850,25 @@
           "end_ms": { "type": "integer", "format": "int64" },
           "id": { "type": ["string", "null"] },
           "start_ms": { "type": "integer", "format": "int64" }
+        }
+      },
+      "StockImportRequest": {
+        "type": "object",
+        "required": ["page_id"],
+        "properties": { "page_id": { "type": "integer", "format": "int64" } }
+      },
+      "StockVideo": {
+        "type": "object",
+        "required": ["page_id", "title", "source_url", "size_bytes", "license"],
+        "properties": {
+          "creator": { "type": ["string", "null"] },
+          "license": { "type": "string" },
+          "license_url": { "type": ["string", "null"] },
+          "page_id": { "type": "integer", "format": "int64" },
+          "size_bytes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "source_url": { "type": "string" },
+          "thumbnail_url": { "type": ["string", "null"] },
+          "title": { "type": "string" }
         }
       },
       "StoryboardFrame": {
@@ -1830,6 +2017,21 @@
           "y": { "type": "number", "format": "double" }
         }
       },
+      "WaveformResponse": {
+        "type": "object",
+        "required": ["status", "peaks"],
+        "properties": {
+          "bucket_ms": { "type": ["integer", "null"], "format": "int64" },
+          "error": { "type": ["string", "null"] },
+          "job_id": { "type": ["string", "null"] },
+          "peaks": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int32", "minimum": 0 }
+          },
+          "status": { "$ref": "#/components/schemas/WaveformStatus" }
+        }
+      },
+      "WaveformStatus": { "type": "string", "enum": ["ready", "pending", "failed", "unavailable"] },
       "Word": {
         "type": "object",
         "required": ["id", "text", "start_ms", "end_ms"],

@@ -88,9 +88,7 @@ test('shows submission, download, clip stages, cancellation, and terminal alerts
     updated_at: Date.now(),
   };
   await expect(clip.getByRole('alert')).toHaveText('Controlled processing failure');
-  await popup.getByRole('button', { name: /Minimize/ }).click();
-  await expect(clip).toHaveCount(0);
-  await popup.getByRole('button', { name: /Show progress/ }).click();
+  await expect(popup.getByRole('button', { name: /Minimize|Show progress/ })).toHaveCount(0);
   await expect(clip).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);

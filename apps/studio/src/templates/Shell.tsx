@@ -66,9 +66,9 @@ export function Shell({ children }: { children: ReactNode }) {
         ) : (
           <UpdateNotice />
         )}
+        <ActivityCenter />
         {children}
       </main>
-      <ActivityCenter />
     </div>
   );
 }

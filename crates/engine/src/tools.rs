@@ -38,12 +38,12 @@ pub fn require_native_job(state: &AppState, kind: &str) -> Result<()> {
         return Ok(());
     };
     let required: &[&str] = match kind {
-        "import" | "export" | "preview" => &["ffmpeg", "ffprobe"],
+        "import" | "export" | "preview" | "broll_import" => &["ffmpeg", "ffprobe"],
         "generate" => &["ffmpeg", "whisper-cli", "llama-completion"],
         "captions" => &["ffmpeg", "whisper-cli"],
         "title" | "assess" => &["llama-completion"],
         "youtube" => &["yt-dlp", "deno", "ffmpeg", "ffprobe"],
-        "storyboard" | "track" | "model" | "narration_pack" | "card_narration"
+        "storyboard" | "waveform" | "track" | "model" | "narration_pack" | "card_narration"
         | "component_update" | "auto_edit" | "hook_proposals" => {
             bail!("This operation is unavailable in the current Android build.");
         }
@@ -203,6 +203,8 @@ pub async fn ffmpeg_progress(
                                     let index = job.payload["render_index"].as_u64().unwrap_or(0) as f64;
                                     let batch_progress = 0.03 + (index + progress) / count * 0.95;
                                     state.progress(job, "render", batch_progress, "Rendering the saved clip revision.").await?;
+                                } else if job.kind == "broll_import" {
+                                    state.progress(job, "proxy", 0.7 + progress * 0.25, "Preparing a browser-compatible B-roll preview.").await?;
                                 } else {
                                     state.progress(job, "proxy", 0.5 + progress * 0.45, "Preparing a browser-compatible video preview.").await?;
                                 }
@@ -438,6 +440,8 @@ async fn native_ffmpeg_progress(
                     let count = job.payload["snapshots"].as_array().map_or(1, Vec::len).max(1) as f64;
                     let index = job.payload["render_index"].as_u64().unwrap_or(0) as f64;
                     state.progress(job, "render", 0.03 + (index + progress) / count * 0.95, "Rendering the saved clip revision.").await
+                } else if job.kind == "broll_import" {
+                    state.progress(job, "proxy", 0.7 + progress * 0.25, "Preparing a browser-compatible B-roll preview.").await
                 } else {
                     state.progress(job, "proxy", 0.5 + progress * 0.45, "Preparing a browser-compatible video preview.").await
                 };

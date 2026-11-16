@@ -11,7 +11,7 @@ type EditorState = {
   error: string | null;
   selectedWords: string[];
   timelinePending: boolean;
-  timelineSelection: { kind: 'scene' | 'visual' | 'audio'; id: string } | null;
+  timelineSelection: { kind: 'scene' | 'visual' | 'audio' | 'filter'; id: string } | null;
   playhead: number;
   seekRequest: {
     clipId: string | null;

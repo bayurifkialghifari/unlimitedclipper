@@ -53,6 +53,11 @@ pub async fn run(state: AppState) -> Result<()> {
             "export" => pipeline::render_batch(&state, &mut job, &cancellation).await,
             "preview" => crate::render::preview_job(&state, &mut job, &cancellation).await,
             "storyboard" => crate::storyboard::generate(&state, &mut job, &cancellation).await,
+            "waveform" => crate::waveform::generate(&state, &mut job, &cancellation).await,
+            "asset_waveform" => {
+                crate::waveform::generate_asset(&state, &mut job, &cancellation).await
+            }
+            "broll_import" => crate::broll::import(&state, &mut job, &cancellation).await,
             "auto_edit" => crate::editorial::auto_edit(&state, &mut job, &cancellation).await,
             _ => Err(anyhow::anyhow!("Unknown job type.")),
         };

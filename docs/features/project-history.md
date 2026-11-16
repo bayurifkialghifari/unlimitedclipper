@@ -27,10 +27,10 @@ page with seconds and playhead setters. Direct studio links restore the matching
 New imports refresh the project list without selecting a different clip in an active editor.
 Gallery thumbnails currently reuse each project's source thumbnail.
 
-Each saved clip card also opens its own Captions panel through Change style. The same action on
-an export card opens the current clip while preserving the export's original revision and files.
-The editor saves style changes per clip with revision checks. A new MP4 requires another export;
-the earlier MP4 is never changed in place. Video filters remain one inspector tab away.
+Each saved clip card has one Edit clip action. Captions and video effects are available from the
+editor tools. Change style on an export card opens the current clip while preserving the export's
+original revision and files. The editor saves style changes per clip with revision checks. A new
+MP4 requires another export; the earlier MP4 is never changed in place.
 
 GET /api/v1/projects; GET /api/v1/projects/{id}; GET /api/v1/exports
 

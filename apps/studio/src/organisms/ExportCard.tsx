@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlayIcon } from '@phosphor-icons/react';
 import { Button } from '@unlimitedclipper/ui';
 import { assetUrl } from '../lib/api';
 import { useText } from '../lib/i18n';
@@ -12,12 +11,13 @@ import styles from '../styles/Studio.module.css';
 export function ExportCard({ item }: { item: Export }) {
   const text = useText();
   const navigate = useNavigate();
-  const [opened, setOpened] = useState(false);
+  const [played, setPlayed] = useState(false);
   const [error, setError] = useState(false);
   const [captionError, setCaptionError] = useState(false);
   const [captions, setCaptions] = useState<string>();
+  const [captionAttempt, setCaptionAttempt] = useState(0);
   useEffect(() => {
-    if (!opened) {
+    if (!played) {
       return;
     }
     const controller = new AbortController();
@@ -48,41 +48,40 @@ export function ExportCard({ item }: { item: Export }) {
         URL.revokeObjectURL(url);
       }
     };
-  }, [opened, item.srt_asset_id, text.previewError]);
+  }, [played, item.srt_asset_id, text.previewError, captionAttempt]);
   return (
     <article className={styles.exportCard}>
+      <video
+        className={styles.exportVideo}
+        src={assetUrl(item.asset_id)}
+        controls
+        playsInline
+        preload="metadata"
+        aria-label={item.name}
+        onPlay={() => setPlayed(true)}
+        onError={() => setError(true)}
+        onLoadedMetadata={() => setError(false)}
+      >
+        <track kind="captions" src={captions} />
+      </video>
       <h2>{item.name}</h2>
       <p className={styles.hint}>
         {date(item.created_at)} · rev. {item.revision}
       </p>
-      <details
-        onToggle={(event) => {
-          setOpened(event.currentTarget.open);
-          setCaptionError(false);
-          setCaptions(undefined);
-        }}
-      >
-        <summary className={styles.exportPreviewToggle}>
-          <PlayIcon aria-hidden="true" size={20} />
-          {text.previewVideo}
-        </summary>
-        {opened && (
-          <video
-            className={styles.exportVideo}
-            src={assetUrl(item.asset_id)}
-            controls
-            playsInline
-            preload="metadata"
-            aria-label={item.name}
-            onError={() => setError(true)}
-            onLoadedMetadata={() => setError(false)}
+      {error && <p role="alert">{text.exportPreviewError}</p>}
+      {captionError && (
+        <div className={styles.exportCaptionError} role="alert">
+          <span>{text.previewError}</span>
+          <Button
+            onClick={() => {
+              setCaptionError(false);
+              setCaptionAttempt((attempt) => attempt + 1);
+            }}
           >
-            <track kind="captions" src={captions} />
-          </video>
-        )}
-        {error && <p role="alert">{text.exportPreviewError}</p>}
-        {captionError && <p role="alert">{text.previewError}</p>}
-      </details>
+            {text.retry}
+          </Button>
+        </div>
+      )}
       <div className={styles.headerActions}>
         <Button onClick={() => navigate('/studio/' + item.clip_id + '?panel=captions')}>
           {text.changeClipStyle}

@@ -1,4 +1,4 @@
-import { useRef, type PointerEvent } from 'react';
+import { useRef, type PointerEvent, type ReactNode } from 'react';
 import { useText } from '../lib/i18n';
 import styles from '../styles/Editor.module.css';
 
@@ -13,6 +13,7 @@ export function TimelineItem({
   disabled,
   frames,
   sourceRange,
+  waveform,
   onSelect,
   onPreview,
   onCommit,
@@ -25,6 +26,7 @@ export function TimelineItem({
   disabled?: boolean;
   frames?: { sourceTimeMs: number; url?: string }[];
   sourceRange?: string;
+  waveform?: ReactNode;
   onSelect: () => void;
   onPreview: (mode: TimelineGesture, delta: number | null) => void;
   onCommit: (mode: TimelineGesture, delta: number) => void;
@@ -110,6 +112,7 @@ export function TimelineItem({
                 )}
               </span>
             )}
+            {waveform}
             <span className={styles.timelineItemLabel}>{label}</span>
           </>
         ) : (

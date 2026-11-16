@@ -90,8 +90,8 @@ export function CaptionPresetLibrary({
           ) : (
             <p className={styles.hint}>{text.captionNoSavedStyles}</p>
           )}
-          <details className={styles.captionSaveStyle}>
-            <summary>{text.captionSaveStyle}</summary>
+          <section className={styles.captionSaveStyle}>
+            <h3>{text.captionSaveStyle}</h3>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -118,7 +118,7 @@ export function CaptionPresetLibrary({
                 {pending ? text.running : text.captionSaveStyle}
               </Button>
             </form>
-          </details>
+          </section>
         </>
       )}
       {error && (

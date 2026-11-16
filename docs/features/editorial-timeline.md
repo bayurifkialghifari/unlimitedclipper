@@ -53,17 +53,26 @@ The proposal is revision-bound, inspectable by time/value, and applied through U
 
 Visual layers include text notes, punch-ins, split framing, camera corners, and local B-roll.
 Each has an enabled state and output-relative timing. Text has position, size, and color controls;
-framing layers expose normalized source crops. B-roll selects a registered project video and a
-source offset, fills the output, and retains the original soundtrack. No footage is downloaded
-automatically or fabricated. Maximum: 64 visual layers.
+framing layers expose normalized source crops. B-roll can use the project's source, a local import,
+or a CC0 stock video selected through the project media library. A browser-compatible proxy is
+used for review; the original registered file is used for export. The B-roll source offset and
+output range remain editable. Stock search and import require internet access. Maximum: 64 visual
+layers.
 
 Audio layers select registered video audio, imported WAV/MP3/M4A/AAC/OGG/FLAC/Opus, or a synthesized
 short tap. The library stores filenames, IDs, and durations in SQLite, with media kept separately.
 Timing, source offset, gain, fades, optional normalization, and source-audio ducking are editable.
-Fades are clamped after trims or scene remaps. Taps start disabled and remain at most 500 ms.
+Fades are clamped after trims or scene remaps. Legacy taps remain at most 500 ms; the current
+interface adds registered sounds instead of creating new optional taps.
 Audio mixing preserves the original track and uses a limiter. Maximum: 16 audio layers.
 Imports wait for heavy jobs to finish. Exports reject missing assets and offsets beyond media
 duration. The current library has no standalone audio-deletion UI.
+
+The visual timeline displays a separate measured waveform for the source soundtrack beneath
+the scene strip. Its cached peaks use source time; the Studio maps them into the current output
+order as scenes are reordered or trimmed. Registered audio layers also show per-asset waveforms
+from their source offsets. These rows represent input audio, not the final mix of imported layers
+or optional card narration. Review the exact render for the final mix.
 
 ## Automatic proposals
 
@@ -107,6 +116,12 @@ immutable saved revision.
 - POST /api/v1/clips/{id}/auto-edit
 - POST /api/v1/clips/{id}/preview-render
 - POST /api/v1/clips/{id}/preview-plan
+- POST /api/v1/projects/{id}/waveform
+- POST /api/v1/assets/{id}/waveform
+- GET and POST /api/v1/projects/{id}/broll-assets
+- GET /api/v1/projects/{id}/broll-stock
+- POST /api/v1/projects/{id}/broll-stock/import
+- DELETE /api/v1/projects/{id}/broll-assets/{asset_id}
 - GET and POST /api/v1/assets/audio
 - GET /api/v1/clips/{id}/subtitles?format=vtt&timeline=output
 

@@ -16,6 +16,11 @@ provides drag, numeric offsets, source offset, trimming, gain, enable/disable, a
 Imported copies remain in the library when their layer is deleted. Maximum: 16 audio layers.
 
 The Audio panel also lists imported sounds with search, individual playback, and Add at playhead.
+Imported sounds can also be dragged onto an audio track at the desired output time. An audio
+layer shows the measured waveform for the section starting at its source offset, and the selected
+layer has a larger waveform with explicit retry on decode failure. Click and keyboard placement
+remain available when drag is unsuitable. The waveform is a source preview and does not include
+the final gain, fades, normalization, or ducking.
 The SFX collection has category and text filters. An external soundboard link opens in the
 browser; sounds from that site are not bundled or imported automatically. Imported audio stays
 registered as a managed asset, so the editor can reuse it in another clip.

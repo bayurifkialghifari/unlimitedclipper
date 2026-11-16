@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Field, Toggle, Select } from '@unlimitedclipper/ui';
 import { useQuery } from '@tanstack/react-query';
+import { TrashIcon } from '@phosphor-icons/react';
 import { api } from '../lib/api';
 import { fitAudioFades } from '../lib/audio-placement';
 import { useEditor } from '../lib/editor-store';
@@ -9,7 +10,9 @@ import { outputDuration, sourceSegments, identifiedSegments } from '../lib/timel
 import { SegmentFields } from '../molecules/SegmentFields';
 import { LayerCropFields } from '../molecules/LayerCropFields';
 import { LayerTimingFields } from '../molecules/LayerTimingFields';
+import { AudioAssetPreview } from '../molecules/AudioAssetPreview';
 import { AudioLibrary } from './AudioLibrary';
+import { BrollLibrary } from './BrollLibrary';
 import { LayerMotionEditor } from './LayerMotionEditor';
 import { useTimelineRemap } from '../hooks/use-timeline-remap';
 import { retimeLayerMotion } from '../lib/layer-motion';
@@ -26,6 +29,11 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const sources = useQuery({ queryKey: ['projects'], queryFn: api.projects });
+  const broll = useQuery({
+    queryKey: ['broll-assets', draft?.project_id],
+    queryFn: () => api.brollAssets(draft!.project_id),
+    enabled: Boolean(draft?.project_id),
+  });
   const audio = useQuery({ queryKey: ['audio-assets'], queryFn: api.audioAssets });
   const health = useQuery({ queryKey: ['health'], queryFn: api.health });
   const jobs = useQuery({ queryKey: ['jobs'], queryFn: api.jobs, refetchInterval: 3000 });
@@ -36,6 +44,12 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
   const duration = outputDuration(document);
   const mixingSupported = Boolean(health.data?.editor_features.includes('audio_mixing'));
   const segments = identifiedSegments(document);
+  const brollChoices = [
+    ...(broll.data ?? []),
+    ...(sources.data ?? []).filter(
+      (source) => !(broll.data ?? []).some((asset) => asset.asset_id === source.asset_id),
+    ),
+  ];
   const names: Record<string, string> = {
     note: text.addNote,
     text: text.addNote,
@@ -78,10 +92,6 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
       if (kind === 'split') {
         layer.secondary_crop = structuredClone(document.gameplay_crop);
       }
-      if (kind === 'broll') {
-        layer.asset_id = sources.data?.[0]?.asset_id ?? null;
-        layer.end_ms = Math.min(layer.end_ms, start + (sources.data?.[0]?.duration_ms ?? 0));
-      }
       document.visual_layers = [...(document.visual_layers ?? []), layer];
     });
   }
@@ -104,8 +114,17 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
     });
   }
 
+  function removeAudio(id: string) {
+    change((document) => {
+      document.audio_layers = document.audio_layers?.filter((layer) => layer.id !== id);
+    });
+    if (selection?.kind === 'audio' && selection.id === id) {
+      useEditor.setState({ timelineSelection: null });
+    }
+  }
+
   return (
-    <section aria-label={text.timelineSegments}>
+    <section className={styles.timelineEditor} aria-label={text.timelineSegments}>
       {mode !== 'audio' && (!selection || selection.kind === 'scene') && (
         <>
           <h3>{text.timelineSegments}</h3>
@@ -116,6 +135,7 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
               <SegmentFields
                 key={segment.id + ':' + segment.start_ms + ':' + segment.end_ms}
                 segment={segment}
+                index={index}
                 busy={pending || !supported}
                 removable={segments.length > 1}
                 onApply={(updated) =>
@@ -128,59 +148,66 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
                 onRemove={() => void remap(segments.filter((_, position) => position !== index))}
               />
             ))}
-          <div className={styles.twoColumns}>
-            <Field
-              label={text.start + ' (s)'}
-              type="number"
-              value={start}
-              onChange={(event) => setStart(event.target.value)}
-            />
-            <Field
-              label={text.end + ' (s)'}
-              type="number"
-              value={end}
-              onChange={(event) => setEnd(event.target.value)}
-            />
+          <div className={styles.newScene}>
+            <div className={styles.twoColumns}>
+              <Field
+                label={text.start + ' (s)'}
+                type="number"
+                value={start}
+                onChange={(event) => setStart(event.target.value)}
+              />
+              <Field
+                label={text.end + ' (s)'}
+                type="number"
+                value={end}
+                onChange={(event) => setEnd(event.target.value)}
+              />
+            </div>
+            <Button
+              disabled={
+                pending ||
+                !supported ||
+                segments.length >= 32 ||
+                !start ||
+                Number(end) <= Number(start)
+              }
+              onClick={() =>
+                void remap([
+                  ...segments,
+                  {
+                    id: crypto.randomUUID(),
+                    start_ms: Math.round(Number(start) * 1000),
+                    end_ms: Math.round(Number(end) * 1000),
+                  },
+                ])
+              }
+            >
+              {text.addSegment}
+            </Button>
           </div>
-          <Button
-            disabled={
-              pending ||
-              !supported ||
-              segments.length >= 32 ||
-              !start ||
-              Number(end) <= Number(start)
-            }
-            onClick={() =>
-              void remap([
-                ...segments,
-                {
-                  id: crypto.randomUUID(),
-                  start_ms: Math.round(Number(start) * 1000),
-                  end_ms: Math.round(Number(end) * 1000),
-                },
-              ])
-            }
-          >
-            {text.addSegment}
-          </Button>
         </>
       )}
       {mode !== 'audio' && (!selection || selection.kind === 'visual') && (
         <>
           <h3>{text.visualLayers}</h3>
-          {['note', 'punch_in', 'split', 'camera_frame', 'broll'].map((kind) => (
-            <Button
-              key={kind}
-              onClick={() => addVisual(kind)}
-              disabled={
-                pending ||
-                (document.visual_layers?.length ?? 0) >= 64 ||
-                (kind === 'broll' && !sources.data?.length)
-              }
-            >
-              {names[kind]}
-            </Button>
-          ))}
+          <div className={styles.visualAddActions}>
+            {['note', 'punch_in', 'split', 'camera_frame'].map((kind) => (
+              <Button
+                key={kind}
+                onClick={() => addVisual(kind)}
+                disabled={pending || (document.visual_layers?.length ?? 0) >= 64}
+              >
+                {names[kind]}
+              </Button>
+            ))}
+          </div>
+          {!selection && (
+            <BrollLibrary
+              projectId={draft.project_id}
+              disabled={pending || (document.visual_layers?.length ?? 0) >= 64}
+            />
+          )}
+          {broll.isError && <p role="alert">{broll.error.message}</p>}
           {(document.visual_layers ?? [])
             .filter((layer) => selection?.kind !== 'visual' || selection.id === layer.id)
             .map((layer) => (
@@ -206,14 +233,17 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
                         layer.end_ms = Math.min(
                           layer.end_ms,
                           layer.start_ms +
-                            (sources.data?.find((source) => source.asset_id === value)
+                            (brollChoices.find((source) => source.asset_id === value)
                               ?.duration_ms ?? 1),
                         );
                       })
                     }
                   >
-                    {sources.data?.map((source) => (
-                      <option key={source.id} value={source.asset_id}>
+                    <option value="" disabled>
+                      {text.sourceAsset}
+                    </option>
+                    {brollChoices.map((source) => (
+                      <option key={source.asset_id} value={source.asset_id}>
                         {source.name}
                       </option>
                     ))}
@@ -245,7 +275,7 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
                   maximumLength={layer.motion?.length ? 120_000 : undefined}
                   sourceDuration={
                     layer.kind === 'broll'
-                      ? sources.data?.find((source) => source.asset_id === layer.asset_id)
+                      ? brollChoices.find((source) => source.asset_id === layer.asset_id)
                           ?.duration_ms
                       : undefined
                   }
@@ -344,34 +374,21 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
               {(audio.error ?? sources.error)?.message}
             </p>
           )}
-          <Button
-            disabled={(document.audio_layers?.length ?? 0) >= 16}
-            onClick={() =>
-              change((document) => {
-                document.version = Math.max(2, document.version);
-                document.segments = sourceSegments(document);
-                const start = Math.max(0, Math.min(Math.round(playhead), duration - 100));
-                document.audio_layers = [
-                  ...(document.audio_layers ?? []),
-                  {
-                    id: crypto.randomUUID(),
-                    enabled: false,
-                    start_ms: start,
-                    end_ms: Math.min(duration, start + 180),
-                    asset_id: null,
-                    source_start_ms: 0,
-                    gain: 0.12,
-                  },
-                ];
-              })
-            }
-          >
-            {text.addTap}
-          </Button>
           {(document.audio_layers ?? [])
             .filter((layer) => selection?.kind !== 'audio' || selection.id === layer.id)
             .map((layer) => (
               <fieldset key={layer.id} className={styles.disabledGroup}>
+                <div className={styles.layerHeading}>
+                  <strong>{text.audioLayers}</strong>
+                  <Button
+                    variant="danger"
+                    icon={<TrashIcon aria-hidden="true" />}
+                    aria-label={text.delete + ' ' + text.audioLayers}
+                    onClick={() => removeAudio(layer.id)}
+                  >
+                    {text.delete}
+                  </Button>
+                </div>
                 <Toggle
                   label={text.visible}
                   checked={layer.enabled}
@@ -416,6 +433,17 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
                     </option>
                   ))}
                 </Select>
+                {layer.asset_id && selection?.kind === 'audio' && selection.id === layer.id && (
+                  <AudioAssetPreview
+                    assetId={layer.asset_id}
+                    durationMs={
+                      audio.data?.find((asset) => asset.asset_id === layer.asset_id)?.duration_ms ??
+                      sources.data?.find((source) => source.asset_id === layer.asset_id)
+                        ?.duration_ms ??
+                      layer.end_ms - layer.start_ms
+                    }
+                  />
+                )}
                 <LayerTimingFields
                   layer={layer}
                   duration={duration}
@@ -505,17 +533,6 @@ export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'au
                     />
                   )}
                 </fieldset>
-                <Button
-                  onClick={() =>
-                    change((document) => {
-                      document.audio_layers = document.audio_layers?.filter(
-                        (item) => item.id !== layer.id,
-                      );
-                    })
-                  }
-                >
-                  {text.delete}
-                </Button>
               </fieldset>
             ))}
         </>

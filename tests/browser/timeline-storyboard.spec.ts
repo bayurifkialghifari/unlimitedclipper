@@ -129,7 +129,7 @@ test('shows source frames, switches clips, and exposes the gaming split layout',
   await page.setViewportSize({ width: 390, height: 844 });
   const timelineTop = (await timeline.boundingBox())!.y;
   const inspectorTop = (await page.getByRole('tablist').boundingBox())!.y;
-  expect(timelineTop).toBeLessThan(inspectorTop);
+  expect(inspectorTop).toBeLessThan(timelineTop);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: 'test-results/timeline-narrow.png', fullPage: true });
   expect(errors).toEqual([]);

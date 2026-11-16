@@ -123,10 +123,10 @@ export function ModelSetup() {
               {text.repair}
             </Button>
           )}
-          <details>
-            <summary>
+          <section>
+            <h3>
               <UploadSimpleIcon aria-hidden="true" size={18} /> {text.manualModelImport}
-            </summary>
+            </h3>
             {jobs.data?.some((job) => ['queued', 'running', 'cancelling'].includes(job.status)) && (
               <p className={styles.hint}>{text.manualModelBusy}</p>
             )}
@@ -146,7 +146,7 @@ export function ModelSetup() {
                 }
               }}
             />
-          </details>
+          </section>
         </>
       )}
       {isAndroidHost() && <p className={styles.hint}>{text.androidUnavailable}</p>}

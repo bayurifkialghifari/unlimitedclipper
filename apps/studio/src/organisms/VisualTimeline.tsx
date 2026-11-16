@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, Toggle } from '@unlimitedclipper/ui';
 import {
   ScissorsIcon,
@@ -16,18 +16,29 @@ import { time } from '../lib/format';
 import { identifiedSegments, outputDuration } from '../lib/timeline';
 import { useTimelineRemap } from '../hooks/use-timeline-remap';
 import { useStoryboardFrames } from '../hooks/use-storyboard-frames';
+import { useWaveform } from '../hooks/use-waveform';
 import { TimelineItem, type TimelineGesture } from '../molecules/TimelineItem';
+import { SourceWaveform } from '../molecules/SourceWaveform';
+import { AssetWaveform } from '../molecules/AssetWaveform';
 import { api, assetUrl } from '../lib/api';
-import { fitAudioFades } from '../lib/audio-placement';
+import { audioDragType, fitAudioFades, placeManagedAudio } from '../lib/audio-placement';
+import { brollDragType, placeBroll } from '../lib/broll-placement';
+import { filterDragType, placeFilter } from '../lib/filter-placement';
 import { retimeLayerMotion } from '../lib/layer-motion';
 import { sceneFrameTimes, timelineTicks, timelineTime } from '../lib/timeline-presentation';
-import type { SourceSegment } from '../types';
+import type { SourceSegment, VideoAdjustments } from '../types';
 import styles from '../styles/Editor.module.css';
 
-type Kind = 'scene' | 'visual' | 'audio';
+type Kind = 'scene' | 'visual' | 'audio' | 'filter';
 type Gesture = { kind: Kind; id: string; mode: TimelineGesture; delta: number; snapshot: string };
 
-export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
+export function VisualTimeline({
+  sourceDuration,
+  hasAudio,
+}: {
+  sourceDuration: number;
+  hasAudio: boolean;
+}) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
   const playhead = useEditor((state) => state.playhead);
@@ -38,15 +49,24 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
   const [snapping, setSnapping] = useState(true);
   const [gesture, setGesture] = useState<Gesture | null>(null);
   const [frameError, setFrameError] = useState<string | null>(null);
+  const [waveformError, setWaveformError] = useState<string | null>(null);
+  const [brollDragOver, setBrollDragOver] = useState(false);
+  const [audioDragOver, setAudioDragOver] = useState<string | null>(null);
   const gestureRef = useRef<Gesture | null>(null);
   const wordAnchor = useRef<string | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const projects = useQuery({ queryKey: ['projects'], queryFn: api.projects });
+  const broll = useQuery({
+    queryKey: ['broll-assets', draft?.project_id],
+    queryFn: () => api.brollAssets(draft!.project_id),
+    enabled: Boolean(draft?.project_id),
+  });
   const audio = useQuery({ queryKey: ['audio-assets'], queryFn: api.audioAssets });
   const sampleGroups = draft ? sceneFrameTimes(draft.document) : new Map<string, number[]>();
   const sourceTimes = [...sampleGroups.values()].flat();
   const storyboard = useStoryboardFrames(draft?.project_id, sourceTimes);
+  const waveform = useWaveform(draft?.project_id, hasAudio);
 
   useEffect(() => {
     const element = viewport.current;
@@ -164,6 +184,9 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
   }
 
   function layerCandidate(current: Gesture) {
+    if (current.kind === 'filter') {
+      return null;
+    }
     const layer =
       current.kind === 'visual'
         ? document.visual_layers?.find((item) => item.id === current.id)
@@ -173,6 +196,7 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
     }
     const next = { ...layer };
     const media =
+      broll.data?.find((item) => item.asset_id === layer.asset_id)?.duration_ms ??
       projects.data?.find((item) => item.asset_id === layer.asset_id)?.duration_ms ??
       audio.data?.find((item) => item.asset_id === layer.asset_id)?.duration_ms;
     const sourceTimed = current.kind === 'audio' || ('kind' in layer && layer.kind === 'broll');
@@ -211,6 +235,35 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
     return next;
   }
 
+  function filterCandidate(current: Gesture) {
+    const layers = document.filter_layers ?? [];
+    const index = layers.findIndex((layer) => layer.id === current.id);
+    if (index < 0) {
+      return null;
+    }
+    const layer = layers[index];
+    const lower = layers[index - 1]?.end_ms ?? 0;
+    const upper = layers[index + 1]?.start_ms ?? duration;
+    const length = layer.end_ms - layer.start_ms;
+    if (current.mode === 'move') {
+      const start_ms = Math.max(
+        lower,
+        Math.min(upper - length, snap(layer.start_ms + current.delta)),
+      );
+      return { ...layer, start_ms, end_ms: start_ms + length };
+    }
+    if (current.mode === 'start') {
+      return {
+        ...layer,
+        start_ms: Math.max(lower, Math.min(layer.end_ms - 1, snap(layer.start_ms + current.delta))),
+      };
+    }
+    return {
+      ...layer,
+      end_ms: Math.max(layer.start_ms + 1, Math.min(upper, snap(layer.end_ms + current.delta))),
+    };
+  }
+
   function preview(kind: Kind, id: string, mode: TimelineGesture, delta: number | null) {
     if (delta === null) {
       setGesture(null);
@@ -240,6 +293,17 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
     const current = { kind, id, mode, delta, snapshot: snapshot ?? '' };
     if (kind === 'scene') {
       void remap(sceneCandidate(current));
+    } else if (kind === 'filter') {
+      const next = filterCandidate(current);
+      if (next) {
+        useEditor.getState().change((edit) => {
+          const layer = edit.filter_layers?.find((item) => item.id === id);
+          if (layer) {
+            Object.assign(layer, next);
+            edit.filter_layers?.sort((left, right) => left.start_ms - right.start_ms);
+          }
+        });
+      }
     } else {
       const next = layerCandidate(current);
       if (next) {
@@ -300,11 +364,14 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
     end: number,
     frames?: { sourceTimeMs: number; url?: string }[],
     sourceRange?: string,
+    itemWaveform?: ReactNode,
   ) {
     const candidate =
-      gesture?.kind === kind && gesture.id === id && kind !== 'scene'
-        ? layerCandidate(gesture)
-        : null;
+      gesture?.kind === kind && gesture.id === id && kind === 'filter'
+        ? filterCandidate(gesture)
+        : gesture?.kind === kind && gesture.id === id && kind !== 'scene'
+          ? layerCandidate(gesture)
+          : null;
     return (
       <TimelineItem
         key={id}
@@ -315,6 +382,7 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
         selected={selected?.kind === kind && selected.id === id}
         frames={frames}
         sourceRange={sourceRange}
+        waveform={itemWaveform}
         disabled={pending || (kind === 'scene' && !supported)}
         onSelect={() => useEditor.setState({ timelineSelection: { kind, id } })}
         onPreview={(mode, delta) => preview(kind, id, mode, delta)}
@@ -326,6 +394,76 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
   function seekOnRuler(clientX: number, element: HTMLDivElement) {
     const position = Math.round((clientX - element.getBoundingClientRect().left) / scale);
     useEditor.getState().seekTo(Math.max(0, Math.min(duration, position)));
+  }
+
+  function dropFilter(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const raw = event.dataTransfer.getData(filterDragType);
+    if (!raw) {
+      return;
+    }
+    const values = JSON.parse(raw) as VideoAdjustments;
+    const position = snap(
+      (event.clientX - event.currentTarget.getBoundingClientRect().left) / scale,
+    );
+    try {
+      let id = '';
+      useEditor.getState().change((edit) => {
+        id = placeFilter(edit, values, position);
+      });
+      useEditor.setState({ timelineSelection: { kind: 'filter', id } });
+    } catch {
+      useEditor.setState({ error: text.filterTrackFull });
+    }
+  }
+
+  function dropBroll(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setBrollDragOver(false);
+    const assetId = event.dataTransfer.getData(brollDragType);
+    const asset = broll.data?.find((item) => item.asset_id === assetId);
+    const clipId = useEditor.getState().draft?.id;
+    if (!asset || !clipId || pending) {
+      return;
+    }
+    const position = snap(
+      (event.clientX - event.currentTarget.getBoundingClientRect().left) / scale,
+    );
+    try {
+      placeBroll(asset, clipId, position);
+    } catch {
+      useEditor.setState({ error: text.brollPlacementError });
+    }
+  }
+
+  function dropAudio(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setAudioDragOver(null);
+    const assetId = event.dataTransfer.getData(audioDragType);
+    const asset = audio.data?.find((item) => item.asset_id === assetId);
+    const clipId = useEditor.getState().draft?.id;
+    if (!asset || !clipId || pending) {
+      return;
+    }
+    const position = snap(
+      (event.clientX - event.currentTarget.getBoundingClientRect().left) / scale,
+    );
+    try {
+      placeManagedAudio(asset, clipId, position, 0.35, {
+        clipChanged: text.sfxClipChanged,
+        placementError: text.sfxPlacementError,
+      });
+    } catch {
+      useEditor.setState({ error: text.sfxPlacementError });
+    }
+  }
+
+  function allowAudioDrop(event: React.DragEvent<HTMLDivElement>, id: string) {
+    if (event.dataTransfer.types.includes(audioDragType) && !pending) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      setAudioDragOver(id);
+    }
   }
 
   const displayed = gesture?.kind === 'scene' ? sceneCandidate(gesture) : scenes;
@@ -426,6 +564,32 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
           <span>{storyboard.error.message}</span>
           <Button onClick={() => void storyboard.refetch()}>{text.retry}</Button>
         </div>
+      )}
+      {waveform.data?.status === 'failed' && (
+        <div className={styles.timelineNotice} role="alert">
+          <span>{waveform.data.error ?? text.waveformFailed}</span>
+          <Button
+            onClick={() => {
+              setWaveformError(null);
+              void waveform.retryFailed().catch((failure: Error) => {
+                setWaveformError(failure.message);
+              });
+            }}
+          >
+            {text.retry}
+          </Button>
+        </div>
+      )}
+      {waveform.error && (
+        <div className={styles.timelineNotice} role="alert">
+          <span>{waveform.error.message}</span>
+          <Button onClick={() => void waveform.refetch()}>{text.retry}</Button>
+        </div>
+      )}
+      {waveformError && (
+        <p className={styles.timelineNotice} role="alert">
+          {waveformError}
+        </p>
       )}
       <div className={styles.trackViewport} ref={viewport}>
         <div
@@ -531,6 +695,31 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
               );
             })}
           </div>
+          <div className={styles.trackLabel}>
+            <strong>{text.sourceAudio}</strong>
+          </div>
+          <div className={styles.waveformTrack} role="group" aria-label={text.sourceAudioWaveform}>
+            {waveform.data?.bucket_ms && waveform.data.peaks.length > 0 ? (
+              <SourceWaveform
+                peaks={waveform.data.peaks}
+                bucketMs={waveform.data.bucket_ms}
+                scenes={displayed}
+                trackWidth={trackWidth}
+              />
+            ) : (
+              <span className={styles.emptyTrack} role="status">
+                {!hasAudio
+                  ? text.waveformNoAudio
+                  : waveform.loading || waveform.data?.status === 'pending'
+                    ? text.waveformPreparing
+                    : !waveform.supported || waveform.data?.status === 'unavailable'
+                      ? text.waveformUnavailable
+                      : waveform.data?.status === 'failed'
+                        ? text.waveformFailed
+                        : text.waveformPreparing}
+              </span>
+            )}
+          </div>
           {Boolean(document.camera_motion?.length) && (
             <Fragment>
               <div className={styles.trackLabel}>{text.cameraMotion}</div>
@@ -586,7 +775,71 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
               </button>
             ))}
           </div>
-          {!document.visual_layers?.length && (
+          <div className={styles.trackLabel}>
+            <strong>{text.filterTrack}</strong>
+            <small>{document.filter_layers?.length ?? 0}</small>
+          </div>
+          <div
+            className={styles.track}
+            data-kind="filter"
+            aria-label={text.filterTrack}
+            onDragOver={(event) => {
+              if (event.dataTransfer.types.includes(filterDragType)) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'copy';
+              }
+            }}
+            onDrop={dropFilter}
+          >
+            {!document.filter_layers?.length && (
+              <span className={styles.emptyTrack}>{text.filterAddAtPlayhead}</span>
+            )}
+            {document.filter_layers?.map((layer) =>
+              item('filter', layer.id, text.videoFilters, layer.start_ms, layer.end_ms),
+            )}
+          </div>
+          <div className={styles.trackLabel}>
+            <strong>{text.addBroll}</strong>
+            <small>
+              {document.visual_layers?.filter((layer) => layer.kind === 'broll').length ?? 0}
+            </small>
+          </div>
+          <div
+            className={styles.track}
+            data-kind="broll"
+            data-drag-over={brollDragOver}
+            aria-label={text.addBroll}
+            onDragOver={(event) => {
+              if (event.dataTransfer.types.includes(brollDragType) && !pending) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'copy';
+                setBrollDragOver(true);
+              }
+            }}
+            onDragLeave={() => setBrollDragOver(false)}
+            onDrop={dropBroll}
+          >
+            {!document.visual_layers?.some((layer) => layer.kind === 'broll') && (
+              <span className={styles.emptyTrack}>{text.brollDropHere}</span>
+            )}
+            {document.visual_layers
+              ?.filter((layer) => layer.kind === 'broll')
+              .map((layer) => {
+                const asset = broll.data?.find((item) => item.asset_id === layer.asset_id);
+                const frames = asset?.thumbnail_id
+                  ? [{ sourceTimeMs: 0, url: assetUrl(asset.thumbnail_id) }]
+                  : undefined;
+                return item(
+                  'visual',
+                  layer.id,
+                  asset?.name ?? text.addBroll,
+                  layer.start_ms,
+                  layer.end_ms,
+                  frames,
+                );
+              })}
+          </div>
+          {!document.visual_layers?.some((layer) => layer.kind !== 'broll') && (
             <>
               <div className={styles.trackLabel}>{text.visualLayers}</div>
               <div className={styles.track} data-kind="visual">
@@ -594,65 +847,74 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
               </div>
             </>
           )}
-          {(document.visual_layers ?? []).map((layer, index) => (
-            <Fragment key={layer.id}>
-              <div className={styles.trackLabel}>
-                {text.visualLayers} {index + 1}
-              </div>
-              <div
-                className={styles.track}
-                data-kind="visual"
-                aria-label={text.visualLayers}
-                data-disabled={!layer.enabled}
-              >
-                {item(
-                  'visual',
-                  layer.id,
-                  layer.text || text.visualLayers,
-                  layer.start_ms,
-                  layer.end_ms,
+          {(document.visual_layers ?? [])
+            .filter((layer) => layer.kind !== 'broll')
+            .map((layer, index) => (
+              <Fragment key={layer.id}>
+                <div className={styles.trackLabel}>
+                  {text.visualLayers} {index + 1}
+                </div>
+                <div
+                  className={styles.track}
+                  data-kind="visual"
+                  aria-label={text.visualLayers}
+                  data-disabled={!layer.enabled}
+                >
+                  {item(
+                    'visual',
+                    layer.id,
+                    layer.text || text.visualLayers,
+                    layer.start_ms,
+                    layer.end_ms,
+                  )}
+                </div>
+                {Boolean(layer.motion?.length) && (
+                  <>
+                    <div className={styles.trackLabel}>
+                      {layer.kind === 'broll' ? text.mediaMotion : text.textMotion}
+                    </div>
+                    <div
+                      className={styles.motionTrack}
+                      aria-label={layer.kind === 'broll' ? text.mediaMotion : text.textMotion}
+                    >
+                      {layer.motion?.map((key) => (
+                        <button
+                          key={key.time_ms}
+                          type="button"
+                          className={styles.motionMarker}
+                          style={{
+                            left: Math.max(22, Math.min(trackWidth - 22, key.time_ms * scale)),
+                          }}
+                          aria-label={
+                            (layer.kind === 'broll' ? text.mediaMotion : text.textMotion) +
+                            ' ' +
+                            time(key.time_ms)
+                          }
+                          title={time(key.time_ms)}
+                          onClick={() => {
+                            useEditor.setState({
+                              timelineSelection: { kind: 'visual', id: layer.id },
+                            });
+                            useEditor.getState().seekTo(key.time_ms);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
-              </div>
-              {Boolean(layer.motion?.length) && (
-                <>
-                  <div className={styles.trackLabel}>
-                    {layer.kind === 'broll' ? text.mediaMotion : text.textMotion}
-                  </div>
-                  <div
-                    className={styles.motionTrack}
-                    aria-label={layer.kind === 'broll' ? text.mediaMotion : text.textMotion}
-                  >
-                    {layer.motion?.map((key) => (
-                      <button
-                        key={key.time_ms}
-                        type="button"
-                        className={styles.motionMarker}
-                        style={{
-                          left: Math.max(22, Math.min(trackWidth - 22, key.time_ms * scale)),
-                        }}
-                        aria-label={
-                          (layer.kind === 'broll' ? text.mediaMotion : text.textMotion) +
-                          ' ' +
-                          time(key.time_ms)
-                        }
-                        title={time(key.time_ms)}
-                        onClick={() => {
-                          useEditor.setState({
-                            timelineSelection: { kind: 'visual', id: layer.id },
-                          });
-                          useEditor.getState().seekTo(key.time_ms);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </Fragment>
-          ))}
+              </Fragment>
+            ))}
           {!document.audio_layers?.length && (
             <>
               <div className={styles.trackLabel}>{text.audioLayers}</div>
-              <div className={styles.track} data-kind="audio">
+              <div
+                className={styles.track}
+                data-kind="audio"
+                data-drag-over={audioDragOver === 'empty'}
+                onDragOver={(event) => allowAudioDrop(event, 'empty')}
+                onDragLeave={() => setAudioDragOver(null)}
+                onDrop={dropAudio}
+              >
                 <span className={styles.emptyTrack}>{text.timelineEmptyAudio}</span>
               </div>
             </>
@@ -667,8 +929,30 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
                 data-kind="audio"
                 aria-label={text.audioLayers}
                 data-disabled={!layer.enabled}
+                data-drag-over={audioDragOver === layer.id}
+                onDragOver={(event) => allowAudioDrop(event, layer.id)}
+                onDragLeave={() => setAudioDragOver(null)}
+                onDrop={dropAudio}
               >
-                {item('audio', layer.id, text.audioLayers, layer.start_ms, layer.end_ms)}
+                {item(
+                  'audio',
+                  layer.id,
+                  audio.data?.find((asset) => asset.asset_id === layer.asset_id)?.name ??
+                    projects.data?.find((source) => source.asset_id === layer.asset_id)?.name ??
+                    text.audioLayers,
+                  layer.start_ms,
+                  layer.end_ms,
+                  undefined,
+                  undefined,
+                  layer.asset_id ? (
+                    <AssetWaveform
+                      assetId={layer.asset_id}
+                      sourceStartMs={layer.source_start_ms ?? 0}
+                      durationMs={layer.end_ms - layer.start_ms}
+                      width={(layer.end_ms - layer.start_ms) * scale}
+                    />
+                  ) : undefined,
+                )}
               </div>
             </Fragment>
           ))}

@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@unlimitedclipper/ui';
-import { ArrowLeftIcon, ScissorsIcon, DownloadSimpleIcon } from '@phosphor-icons/react';
+import {
+  ArrowLeftIcon,
+  ScissorsIcon,
+  DownloadSimpleIcon,
+  PencilSimpleIcon,
+} from '@phosphor-icons/react';
 import { api, assetUrl } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
 import { flushEditor } from '../lib/save';
@@ -117,17 +122,12 @@ export function ProjectDetail() {
                     </p>
                     <div className={styles.clipCardActions}>
                       <Button
+                        icon={<PencilSimpleIcon aria-hidden="true" />}
                         variant="primary"
                         disabled={Boolean(error)}
                         onClick={() => navigate('/studio/' + clip.id)}
                       >
                         {text.editClip}
-                      </Button>
-                      <Button
-                        disabled={Boolean(error)}
-                        onClick={() => navigate('/studio/' + clip.id + '?panel=captions')}
-                      >
-                        {text.changeClipStyle}
                       </Button>
                     </div>
                   </div>
