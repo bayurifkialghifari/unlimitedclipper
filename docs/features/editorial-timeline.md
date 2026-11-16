@@ -59,7 +59,8 @@ automatically or fabricated. Maximum: 64 visual layers.
 
 Audio layers select registered video audio, imported WAV/MP3/M4A/AAC/OGG/FLAC/Opus, or a synthesized
 short tap. The library stores filenames, IDs, and durations in SQLite, with media kept separately.
-Timing, source offset, and gain are editable. Taps start disabled and remain at most 500 ms.
+Timing, source offset, gain, fades, optional normalization, and source-audio ducking are editable.
+Fades are clamped after trims or scene remaps. Taps start disabled and remain at most 500 ms.
 Audio mixing preserves the original track and uses a limiter. Maximum: 16 audio layers.
 Imports wait for heavy jobs to finish. Exports reject missing assets and offsets beyond media
 duration. The current library has no standalone audio-deletion UI.
@@ -102,6 +103,7 @@ immutable saved revision.
 ## API
 
 - POST /api/v1/clips/{id}/timeline-preview
+- POST /api/v1/clips/{id}/teaser-preview
 - POST /api/v1/clips/{id}/auto-edit
 - POST /api/v1/clips/{id}/preview-render
 - POST /api/v1/clips/{id}/preview-plan

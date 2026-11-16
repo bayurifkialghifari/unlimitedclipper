@@ -25,6 +25,11 @@ The clip gallery and export history link directly to /studio/:clipId?panel=capti
 The inspector's selected panel follows this route and updates its link when tabs change. Caption
 and video filter edits belong to the current clip and autosave without running clip discovery.
 
+Studio tools sit above the player as compact icon and text tabs. Arrow keys, Home, and End move
+between tabs. Selecting a tool opens its inspector if it was hidden. Undo, Redo, and inspector
+visibility use labeled icon buttons. The phone layout uses four tool columns and keeps the
+timeline horizontally scrollable for precise scene selection.
+
 The desktop inspector starts at 440 pixels and supports pointer or keyboard resizing from
 400 to 560 pixels on wide windows. Smaller screens stack the player and settings. The inspector
 toggle keeps its contents mounted so hiding it does not discard field values. Transcript range

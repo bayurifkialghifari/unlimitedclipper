@@ -14,7 +14,7 @@ test('reviews a saved motion proposal, applies it, and preserves undo and redo',
     errors.push(failure.message);
   });
   await page.goto('/studio/' + clipId);
-  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
+  await page.getByRole('tab', { name: 'Motion', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Automatic editing', exact: true });
   const saved = await (await request.get('/api/v1/clips/' + clipId + '/auto-edit')).json();
   const expected = saved.payload.motion_review.anchors;
@@ -47,7 +47,7 @@ test('reviews a saved motion proposal, applies it, and preserves undo and redo',
     })
     .toBe(expected);
   await page.reload();
-  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
+  await page.getByRole('tab', { name: 'Motion', exact: true }).click();
   await expect(panel).toContainText('Camera keyframes: ' + expected);
   await expect(panel.getByRole('button', { name: 'Apply proposal', exact: true })).toBeDisabled();
   await expect(

@@ -203,6 +203,12 @@ impl EditDocument {
                 || layer.source_start_ms < 0
                 || !layer.gain.is_finite()
                 || !(0.0..=1.0).contains(&layer.gain)
+                || layer.fade_in_ms < 0
+                || layer.fade_out_ms.is_some_and(|fade| fade < 0)
+                || layer
+                    .fade_in_ms
+                    .saturating_add(layer.fade_out_ms.unwrap_or(0))
+                    > layer.end_ms - layer.start_ms
                 || (layer.asset_id.is_none() && layer.end_ms - layer.start_ms > 500)
             {
                 return Err(
@@ -361,17 +367,83 @@ impl EditDocument {
             .flat_map(|layer| {
                 self.remap_ranges(layer.start_ms, layer.end_ms, &mapping)
                     .into_iter()
-                    .map(|(start, end, old_start)| AudioLayer {
-                        id: fragment_id(&layer.id, layer.start_ms, old_start),
-                        start_ms: start,
-                        end_ms: end,
-                        source_start_ms: layer.source_start_ms + old_start - layer.start_ms,
-                        ..layer.clone()
+                    .map(|(start, end, old_start)| {
+                        let length = end - start;
+                        let offset = old_start - layer.start_ms;
+                        let tail = layer.end_ms - old_start - length;
+                        let fade_in_ms = (layer.fade_in_ms - offset).clamp(0, length);
+                        let fade_out_ms = layer
+                            .fade_out_ms
+                            .map(|fade| (fade - tail).clamp(0, length - fade_in_ms));
+                        AudioLayer {
+                            id: fragment_id(&layer.id, layer.start_ms, old_start),
+                            start_ms: start,
+                            end_ms: end,
+                            source_start_ms: layer.source_start_ms + offset,
+                            fade_in_ms,
+                            fade_out_ms,
+                            ..layer.clone()
+                        }
                     })
                     .collect::<Vec<_>>()
             })
             .collect();
         result
+    }
+
+    pub fn teaser_segments(
+        &self,
+        start_ms: i64,
+        end_ms: i64,
+    ) -> Result<Vec<SourceSegment>, String> {
+        if start_ms < 0
+            || end_ms > self.duration_ms()
+            || end_ms - start_ms < 300
+            || end_ms - start_ms > 5000
+        {
+            return Err("Choose a teaser between 0.3 and 5 seconds inside this clip.".into());
+        }
+        let mut opening = Vec::new();
+        let mut remainder = Vec::new();
+        let mut offset = 0;
+        for mut segment in self.source_segments() {
+            if segment.id.is_none() {
+                segment.id = Some(
+                    uuid::Uuid::new_v5(
+                        &uuid::Uuid::NAMESPACE_URL,
+                        format!("uc-scene:{}:{}", segment.start_ms, segment.end_ms).as_bytes(),
+                    )
+                    .to_string(),
+                );
+            }
+            let content_end = offset + segment.end_ms - segment.start_ms;
+            let from = start_ms.max(offset).min(content_end);
+            let to = end_ms.max(offset).min(content_end);
+            if from < to {
+                if from > offset {
+                    remainder
+                        .push(segment.section(segment.start_ms, segment.start_ms + from - offset));
+                }
+                opening.push(segment.section(
+                    segment.start_ms + from - offset,
+                    segment.start_ms + to - offset,
+                ));
+                if to < content_end {
+                    remainder.push(segment.section(segment.start_ms + to - offset, segment.end_ms));
+                }
+            } else {
+                remainder.push(segment);
+            }
+            offset = content_end;
+        }
+        if opening.is_empty() {
+            return Err("The teaser range does not contain source footage.".into());
+        }
+        opening.extend(remainder);
+        if opening.len() > 32 {
+            return Err("This teaser would exceed the 32-scene limit.".into());
+        }
+        Ok(opening)
     }
 
     pub fn segment_envelope(&self, segments: Vec<SourceSegment>) -> Self {

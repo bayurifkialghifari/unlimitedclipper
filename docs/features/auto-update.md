@@ -23,8 +23,10 @@ paths relative to the Tauri project. The Cargo SDK cache may live on a different
 Tagged CI now stages Linux x64/ARM64 AppImages and macOS Intel/ARM disk images alongside Windows
 installers. The application update manifest still lists only Windows installers. Unix packages
 are manual preview downloads until their updater artifact and installation behavior are tested.
-The tagged workflow creates a draft after validating artifacts, source snapshots, and checksums.
-Publish the draft only after inspecting the packages and their notices.
+The tagged workflow verifies pinned corresponding-source coverage and a recorded platform notice
+audit before creating a draft, uploading artifacts, and making that tag public. The current audit
+remains pending, so a new tag is blocked before release creation. Rerunning the same tag can
+resume a draft, while an already published tag must match the staged artifacts.
 Tagged version preparation changes version values in place so the Android source checks see
 Prettier-formatted configuration files.
 

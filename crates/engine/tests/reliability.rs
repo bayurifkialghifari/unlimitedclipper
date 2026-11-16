@@ -122,6 +122,10 @@ fn timeline_remapping_preserves_manual_words_and_audio_source_offsets() {
         asset_id: Some("managed-audio".into()),
         source_start_ms: 100,
         gain: 0.1,
+        fade_in_ms: 0,
+        fade_out_ms: None,
+        normalize: false,
+        ducking: false,
     });
     let result = document.replace_segments(vec![
         SourceSegment {

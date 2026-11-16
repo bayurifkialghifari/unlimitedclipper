@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Studio tools now sit above the preview with named icons and keyboard tab movement. The phone
+  layout uses four compact columns, smaller headings, a larger preview, and a scrollable scene
+  timeline. Selecting a tool reopens the inspector when it was hidden.
+- Imported audio can be searched, auditioned, and placed at the playhead. The sound-effects
+  library has category and text filters, plus an external soundboard link. Audio layers gain
+  editable fades, optional loudness normalization, and source-audio ducking in exact renders.
+- The Hook editor can move a selected 0.3-to-5-second source moment to the beginning without
+  repeating footage or extending the clip. Captions, layers, motion, Undo/Redo, and revision-aware
+  autosave follow the remapped content.
+- Tagged release staging now records each Windows FFmpeg build configuration and checks pinned
+  corresponding-source coverage before release creation. The platform source and notice audit
+  is still pending, so the workflow cannot publish a new tag yet.
 - Tagged version preparation now preserves JSON formatting, allowing the Android release job
   to run its source checks after the preview version is applied.
 - Project clip cards and export history now open the selected clip's caption style controls.
@@ -14,8 +26,8 @@
   still depends on successful hosted builds and platform-specific validation evidence.
 - Unix package staging now retains upstream license texts, FFmpeg build configuration, and a
   native-source provenance map. Release staging also verifies notice archives and four pinned
-  media source/build-script snapshots before uploading checksums. Tagged CI creates a draft for
-  artifact inspection before public availability.
+  media source/build-script snapshots before uploading checksums. Tagged CI blocks new release
+  creation while source and notice coverage remain incomplete.
 - The Android preview release bundle now retains its inspected native AAR, build evidence,
   license, and source snapshot beside the debug APK.
 - macOS staging now mounts each produced disk image to inspect its embedded executable after
@@ -55,7 +67,7 @@
   independent opening card. Applying an idea uses the normal undo and revision-aware autosave.
 - The Hook inspector keeps failed and stale proposal states visible. An older revision cannot
   apply its ideas to a newer edit, and generating ideas does not change the clip.
-- Undo and Redo are visible text controls in the Studio toolbar, with Ctrl+Z, Ctrl+Shift+Z,
+- Undo and Redo use labeled icon controls in the Studio toolbar, with Ctrl+Z, Ctrl+Shift+Z,
   and Ctrl+Y shortcuts outside editable fields.
 - Project cards now sit 24 pixels below the import controls in the Projects view.
 - Manual camera center/zoom and text/note position/scale/opacity keyframes now share engine

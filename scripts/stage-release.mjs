@@ -117,6 +117,9 @@ if (process.argv.includes('--publish')) {
   execFileSync(process.execPath, [path.join(root, 'scripts/stage-source-archives.mjs')], {
     stdio: 'inherit',
   });
+  execFileSync(process.execPath, [path.join(root, 'scripts/verify-source-coverage.mjs')], {
+    stdio: 'inherit',
+  });
   await writeFile(
     path.join(directory, 'application.json'),
     JSON.stringify({ version, pub_date: new Date().toISOString(), platforms }, null, 2) + '\n',
@@ -133,23 +136,80 @@ if (process.argv.includes('--publish')) {
     () => path.join(root, 'CHANGELOG.md'),
   );
   const files = [...names, 'SHA256SUMS'].map((name) => path.join(directory, name));
-  execFileSync(
-    'gh',
-    [
-      'release',
-      'create',
-      process.env.GITHUB_REF_NAME,
-      ...files,
-      '--verify-tag',
-      '--title',
-      'UnlimitedClipper ' + version,
-      '--notes-file',
-      notesFile,
-      ...(/-/.test(version) ? ['--prerelease'] : []),
-      ...(process.env.UC_RELEASE_DRAFT === '1' ? ['--draft'] : []),
-    ],
-    { stdio: 'inherit' },
+  const tag = process.env.GITHUB_REF_NAME;
+  const repository = process.env.GITHUB_REPOSITORY;
+  const token = process.env.GH_TOKEN;
+  if (!repository || !token) {
+    throw new Error('The release repository and GitHub token are required.');
+  }
+  const response = await fetch(
+    'https://api.github.com/repos/' + repository + '/releases/tags/' + encodeURIComponent(tag),
+    {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: 'Bearer ' + token,
+        'User-Agent': 'UnlimitedClipper-Release',
+      },
+    },
   );
+  if (response.status !== 404 && !response.ok) {
+    throw new Error('Could not inspect the tagged release: HTTP ' + response.status);
+  }
+  const existing = response.ok ? await response.json() : null;
+  if (existing && existing.tag_name !== tag) {
+    throw new Error('The existing release belongs to another tag.');
+  }
+  if (existing && !existing.draft) {
+    const assets = new Map(existing.assets.map((asset) => [asset.name, asset]));
+    for (const file of files) {
+      const asset = assets.get(path.basename(file));
+      if (
+        !asset ||
+        asset.size !== (await stat(file)).size ||
+        (asset.digest && asset.digest !== 'sha256:' + (await sha256(file)))
+      ) {
+        throw new Error('A published release asset does not match this tagged build.');
+      }
+    }
+    process.stdout.write('The matching tagged release is already public.\n');
+  } else {
+    if (!existing) {
+      execFileSync(
+        'gh',
+        [
+          'release',
+          'create',
+          tag,
+          '--verify-tag',
+          '--draft',
+          '--title',
+          'UnlimitedClipper ' + version,
+          '--notes-file',
+          notesFile,
+          '--prerelease=' + String(/-/.test(version)),
+        ],
+        { stdio: 'inherit' },
+      );
+    }
+    execFileSync('gh', ['release', 'upload', tag, ...files, '--clobber'], {
+      stdio: 'inherit',
+    });
+    execFileSync(
+      'gh',
+      [
+        'release',
+        'edit',
+        tag,
+        '--title',
+        'UnlimitedClipper ' + version,
+        '--notes-file',
+        notesFile,
+        '--prerelease=' + String(/-/.test(version)),
+        '--draft=false',
+      ],
+      { stdio: 'inherit' },
+    );
+  }
 } else {
   const architecture = process.env.UC_RELEASE_ARCH;
   const target = process.env.CARGO_BUILD_TARGET;

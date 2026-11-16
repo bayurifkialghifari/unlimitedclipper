@@ -146,11 +146,16 @@ test('supports English settings and a narrow studio without horizontal overflow'
   await secondContext.close();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('link', { name: 'Projects', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
   await page
     .locator('input[type="file"]')
     .first()
     .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
   await createManualClip(page, 'Narrow studio fixture');
+  await page.getByRole('button', { name: 'Clip options', exact: true }).click();
+  await expect(page.getByRole('tabpanel')).toBeHidden();
+  await page.getByRole('tab', { name: 'Audio layers', exact: true }).click();
+  await expect(page.getByRole('tabpanel', { name: 'Audio layers', exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/studio-mobile.png', fullPage: true });
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
@@ -209,14 +214,15 @@ test('edits source segments and local layers, then plays a composed preview', as
       await layer.getByLabel('Source offset (s)').fill('0.5');
     }
   }
-  await timeline
+  await page.getByRole('tab', { name: 'Audio layers', exact: true }).click();
+  const audioPanel = page.getByRole('tabpanel', { name: 'Audio layers', exact: true });
+  await audioPanel
     .getByLabel('Import local audio')
     .setInputFiles(path.resolve('.cache/fixtures/jfk.wav'));
-  await timeline.getByRole('button', { name: 'Add optional tap', exact: true }).click();
-  const audio = timeline
+  await audioPanel.getByRole('button', { name: 'Add optional tap', exact: true }).click();
+  const audio = audioPanel
     .locator('fieldset')
-    .filter({ has: page.getByRole('combobox', { name: 'Local source' }) })
-    .filter({ hasNot: page.locator('legend') });
+    .filter({ has: page.getByRole('combobox', { name: 'Local source' }) });
   await expect(audio.getByRole('combobox').getByRole('option', { name: 'jfk.wav' })).toHaveCount(1);
   await audio.getByRole('combobox').selectOption({ label: 'jfk.wav' });
   await audio.getByLabel('Enabled', { exact: true }).check();
@@ -239,6 +245,7 @@ test('edits source segments and local layers, then plays a composed preview', as
     .poll(() => composed.locator('video').evaluate((video: HTMLVideoElement) => video.currentTime))
     .toBeGreaterThan(0.1);
   await composed.locator('video').evaluate((video: HTMLVideoElement) => video.pause());
+  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
   await note.getByLabel('Text', { exact: true }).fill('Updated note');
   await expect(
     page.getByText('Video edits changed. Refresh the preview to review the current edit.'),

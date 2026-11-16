@@ -15,7 +15,16 @@ creates an enabled audio layer at 35% gain, clipped to the output endpoint. The 
 provides drag, numeric offsets, source offset, trimming, gain, enable/disable, and deletion.
 Imported copies remain in the library when their layer is deleted. Maximum: 16 audio layers.
 
+The Audio panel also lists imported sounds with search, individual playback, and Add at playhead.
+The SFX collection has category and text filters. An external soundboard link opens in the
+browser; sounds from that site are not bundled or imported automatically. Imported audio stays
+registered as a managed asset, so the editor can reuse it in another clip.
+
 Import waits for heavy processing to finish. A clip change during import preserves the library
 asset and reports that placement needs repeating. Integrity or missing-file failures give
 reinstallation guidance. Missing assets fail export explicitly. Original audio is retained
-and a limiter protects the mix; this is not automatic loudness mastering or music ducking.
+and a limiter protects the mix. The updated desktop engine offers editable fade in/out,
+optional single-pass loudness normalization for a layer, and sidechain ducking of a layer
+against source audio. These settings affect exact preview and export; live playback is an
+editing approximation. Older engines disable the mixing controls. This is not a guarantee
+of a target integrated loudness for the finished clip.

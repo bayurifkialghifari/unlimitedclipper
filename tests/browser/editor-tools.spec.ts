@@ -72,7 +72,7 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
     'aria-pressed',
     'true',
   );
-  await page.getByRole('tab', { name: 'Source segments', exact: true }).click();
+  await page.getByRole('tab', { name: 'Audio layers', exact: true }).click();
   await page.getByRole('button', { name: 'Play Whoosh 1', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause Whoosh 1', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Pause Whoosh 1', exact: true }).click();
@@ -123,4 +123,47 @@ test('manual ranges, hook timing, filters and offline sounds survive composed pl
     'true',
   );
   expect(errors).toEqual([]);
+});
+
+test('moves teaser footage through the Hook panel and restores it with Undo', async ({
+  page,
+  request,
+}) => {
+  const settings = await (await request.get('/api/v1/settings')).json();
+  await request.put('/api/v1/settings', {
+    data: { ...settings, language: 'en', auto_update: false },
+  });
+  await page.goto('/');
+  await page
+    .locator('input[type="file"]')
+    .first()
+    .setInputFiles(path.resolve('.cache/fixtures/speech-face.mp4'));
+  await createManualClip(page, 'Teaser browser fixture', 0, 8);
+  const clipId = new URL(page.url()).pathname.split('/').at(-1)!;
+  const before = await (await request.get('/api/v1/clips/' + clipId)).json();
+  await page.getByRole('tab', { name: 'Hook', exact: true }).click();
+  await page.getByText('Move a teaser to the start', { exact: true }).click();
+  await page.getByLabel('Start in clip (s)').fill('2');
+  await page.getByLabel('Length (s)').fill('1');
+  await page.getByRole('button', { name: 'Move to opening', exact: true }).click();
+  await expect
+    .poll(async () => {
+      const saved = await (await request.get('/api/v1/clips/' + clipId)).json();
+      return saved.document.segments.map((segment: { start_ms: number; end_ms: number }) => [
+        segment.start_ms,
+        segment.end_ms,
+      ]);
+    })
+    .toEqual([
+      [2000, 3000],
+      [0, 2000],
+      [3000, 8000],
+    ]);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect
+    .poll(async () => {
+      const saved = await (await request.get('/api/v1/clips/' + clipId)).json();
+      return saved.document.segments;
+    })
+    .toEqual(before.document.segments);
 });

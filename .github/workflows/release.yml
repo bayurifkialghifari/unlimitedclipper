@@ -65,6 +65,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.APP_UPDATE_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.APP_UPDATE_KEY_PASSWORD }}
         run: node scripts/stage-release.mjs
+      - name: Record packaged FFmpeg configuration
+        run: node scripts/stage-ffmpeg-config.mjs --platform=windows-${{ matrix.arch }}
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: windows-${{ matrix.arch }}
@@ -117,7 +119,17 @@ jobs:
         with:
           name: android-native-media-arm64
           path: .cache/android-native-tools
+      - name: Stage pinned media source archives
+        run: node scripts/stage-source-archives.mjs
+      - name: Verify linked media source coverage
+        run: node scripts/verify-source-coverage.mjs
       - run: node scripts/stage-release.mjs --publish
         env:
-          UC_RELEASE_DRAFT: '1'
           GH_TOKEN: ${{ github.token }}
+      - name: Retain source coverage diagnostics
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: release-source-coverage
+          path: .cache/release-files/source-coverage-report.json
+          if-no-files-found: ignore

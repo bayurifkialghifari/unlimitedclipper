@@ -441,6 +441,29 @@
         }
       }
     },
+    "/api/v1/clips/{id}/teaser-preview": {
+      "post": {
+        "tags": [],
+        "operationId": "teaser_preview",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/TeaserRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/EditDocument" } }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/clips/{id}/timeline-preview": {
       "post": {
         "tags": [],
@@ -1007,10 +1030,14 @@
         "required": ["id", "enabled", "start_ms", "end_ms", "source_start_ms", "gain"],
         "properties": {
           "asset_id": { "type": ["string", "null"] },
+          "ducking": { "type": "boolean" },
           "enabled": { "type": "boolean" },
           "end_ms": { "type": "integer", "format": "int64" },
+          "fade_in_ms": { "type": "integer", "format": "int64" },
+          "fade_out_ms": { "type": ["integer", "null"], "format": "int64" },
           "gain": { "type": "number", "format": "double" },
           "id": { "type": "string" },
+          "normalize": { "type": "boolean" },
           "source_start_ms": { "type": "integer", "format": "int64" },
           "start_ms": { "type": "integer", "format": "int64" }
         }
@@ -1684,6 +1711,15 @@
         "required": ["frames"],
         "properties": {
           "frames": { "type": "array", "items": { "$ref": "#/components/schemas/StoryboardFrame" } }
+        }
+      },
+      "TeaserRequest": {
+        "type": "object",
+        "required": ["document", "start_ms", "end_ms"],
+        "properties": {
+          "document": { "$ref": "#/components/schemas/EditDocument" },
+          "end_ms": { "type": "integer", "format": "int64" },
+          "start_ms": { "type": "integer", "format": "int64" }
         }
       },
       "TimelineRequest": {

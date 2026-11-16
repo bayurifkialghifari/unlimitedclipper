@@ -9,6 +9,15 @@
   margin-bottom: 0;
 }
 
+.studio > header h1 {
+  font-size: clamp(19px, 1.8vw, 25px);
+  line-height: 1.25;
+}
+
+.studio > header > div:first-child {
+  font-size: 12px;
+}
+
 .editorToolbar,
 .timelineToolbar {
   display: flex;
@@ -24,6 +33,68 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.iconAction {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+}
+
+.toolMenuScroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-color: var(--muted) var(--surface);
+}
+
+.toolMenu {
+  display: flex;
+  gap: 6px;
+  min-width: max-content;
+  padding: 2px 0 8px;
+}
+
+.toolMenu button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toolMenu button svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.toolMenu button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.toolMenu button:active {
+  background: var(--surface-inset);
+}
+
+.toolMenu button[aria-selected='true'] {
+  border-color: var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.toolMenu button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .editorLayoutSelect {
@@ -46,9 +117,9 @@
 .editorBody {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 8px var(--inspector-width, 440px);
-  height: clamp(380px, 48svh, 620px);
+  height: clamp(440px, 54svh, 680px);
   flex: none;
-  min-height: 380px;
+  min-height: 440px;
   gap: 8px;
 }
 
@@ -276,7 +347,7 @@
 .tracks {
   position: relative;
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: var(--track-label-width, 132px) minmax(0, 1fr);
   min-width: 100%;
 }
 
@@ -756,5 +827,45 @@
   }
   .studio > .hint {
     order: 5;
+  }
+}
+
+@media (max-width: 650px) {
+  .studio {
+    gap: 12px;
+  }
+
+  .toolMenuScroll {
+    overflow-x: visible;
+  }
+
+  .toolMenu {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-width: 0;
+    gap: 4px;
+    padding: 0;
+  }
+
+  .toolMenu button {
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    min-height: 58px;
+    padding: 4px 2px;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .toolLabel {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .previewSlot {
+    height: min(62svh, 540px);
+    min-height: 420px;
   }
 }

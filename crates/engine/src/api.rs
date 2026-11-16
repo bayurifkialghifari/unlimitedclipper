@@ -96,6 +96,13 @@ pub struct TimelineRequest {
 }
 
 #[derive(Deserialize, ToSchema)]
+pub struct TeaserRequest {
+    pub document: EditDocument,
+    pub start_ms: i64,
+    pub end_ms: i64,
+}
+
+#[derive(Deserialize, ToSchema)]
 pub struct PreviewPlanRequest {
     pub revision: i64,
     pub document: EditDocument,
@@ -191,6 +198,7 @@ pub struct Health {
         preview_plan,
         preview_render,
         timeline_preview,
+        teaser_preview,
         get_auto_edit_proposal,
         auto_edit,
         quality_pack_status,
@@ -235,6 +243,7 @@ pub struct Health {
         CardNarrationRequest,
         AutoEditRequest,
         TimelineRequest,
+        TeaserRequest,
         PreviewPlanRequest,
         PreviewPlan,
         crate::quality_pack::PackStatus,
@@ -379,6 +388,7 @@ pub fn router(state: AppState) -> Router {
         .route("/clips/{id}/preview-plan", post(preview_plan))
         .route("/clips/{id}/preview-render", post(preview_render))
         .route("/clips/{id}/timeline-preview", post(timeline_preview))
+        .route("/clips/{id}/teaser-preview", post(teaser_preview))
         .route(
             "/clips/{id}/auto-edit",
             get(get_auto_edit_proposal).post(auto_edit),
@@ -503,6 +513,8 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Health>> {
     ];
     if state.native_tools.is_none() && crate::tools::available(&state, "ffmpeg", "ffmpeg") {
         editor_features.push("storyboard_frames".into());
+        editor_features.push("audio_mixing".into());
+        editor_features.push("teaser_move".into());
     }
     Ok(Json(Health {
         editor_features,
@@ -1961,6 +1973,30 @@ async fn timeline_preview(
         .map_err(ApiError::bad_request)?;
     let mut result = request.document.replace_segments(request.segments);
     result.hydrate_added_words(&request.document, &project.words);
+    result
+        .validate(project.duration_ms)
+        .map_err(ApiError::bad_request)?;
+    Ok(Json(result))
+}
+
+#[utoipa::path(post, path = "/api/v1/clips/{id}/teaser-preview", request_body = TeaserRequest,
+    responses((status = 200, body = EditDocument)))]
+async fn teaser_preview(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<TeaserRequest>,
+) -> ApiResult<Json<EditDocument>> {
+    let clip = db::clip(&state.db, &id).await?;
+    let project = db::project(&state.db, &clip.project_id).await?;
+    request
+        .document
+        .validate(project.duration_ms)
+        .map_err(ApiError::bad_request)?;
+    let segments = request
+        .document
+        .teaser_segments(request.start_ms, request.end_ms)
+        .map_err(ApiError::bad_request)?;
+    let result = request.document.replace_segments(segments);
     result
         .validate(project.duration_ms)
         .map_err(ApiError::bad_request)?;

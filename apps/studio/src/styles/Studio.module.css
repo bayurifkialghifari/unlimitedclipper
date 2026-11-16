@@ -1599,8 +1599,45 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+.audioLibrary,
+.sfxSection {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.teaserTools {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.teaserTools summary {
+  cursor: pointer;
+  min-height: 32px;
+  font-weight: 600;
+}
+
+.teaserFields {
+  display: grid;
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.audioLibrary > h3,
+.sfxSection > h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.audioLibrary > a {
+  width: fit-content;
+}
+
 .sfxList {
-  margin: 12px 0;
+  margin: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
 }

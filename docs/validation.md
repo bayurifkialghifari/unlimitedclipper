@@ -1,5 +1,52 @@
 # Validation evidence
 
+## Preview.11 Studio, audio, teaser, and release gate, 2026-11-16
+
+The Studio moved its tool tabs above the preview and added named icons, keyboard tab movement,
+smaller headings, and four columns at 390 pixels. Browser tests exercised tab changes, the
+hidden-inspector recovery path, a real clip import and export, audio placement, composed
+playback, and no document overflow on the phone viewport. Five existing scenarios were run;
+four passed initially. The phone test first used the old accessible button name, then selected
+a Settings file input before route navigation had finished. After updating the locator and
+waiting for the Projects heading, its focused rerun passed. A separate new Hook scenario moved
+footage through the panel, observed the saved scene order, and restored the previous document
+with Undo. The completed runs cover six distinct browser scenarios. Earlier inspected
+screenshots: .cache/preview11-studio-1440.png and .cache/preview11-studio-390.png. These are
+browser screenshots from the isolated engine; the user's desktop on port 43179 was not restarted.
+
+scripts/validate-editor-tools.mjs rendered a real 720 by 1280 MP4 and exact preview with audio
+fades, normalization, ducking, timed Hook, and video filters. Both files decoded fully, and an
+audio comparison measured a mean sample difference of 38.04. The export retained immutable
+revision 3 after revision 4 was saved. Evidence: .cache/editor-tools-media-validation.json.
+scripts/validate-teaser.mjs marked an eight-second source fixture with distinguishable color
+sections, moved source 2,000-3,000 ms to the opening, exported and fully decoded the MP4, and
+confirmed that its first sampled frame matches the later source moment exactly rather than the
+original opening. The output stayed eight seconds. Evidence:
+.cache/preview11-teaser-validation.json. The color marker makes this a timing and source-order
+test; it does not assess editorial quality.
+
+npm run check passed ESLint, Prettier, TypeScript, six frontend unit tests, and the Studio build
+after the documentation and browser-test edits. The engine's 62 Rust tests passed, as did
+workspace Rustfmt and engine/desktop Clippy with warnings denied. The local browser preview on
+port 43192 returned HTTP 200 and advertised teaser_move and audio_mixing; the original desktop
+on port 43179 remained running.
+
+The release audit read seven target configurations and found 335 uncovered linked-source
+entries: Windows ARM64 61, Windows x64 69, Linux ARM64 71, Linux x64 74, macOS ARM64 28,
+macOS x64 28, and Android ARM64 4. resources/media-source-audit.json remains pending. The new
+tagged workflow verifies source coverage before creating a draft and publishes only after
+that audit passes. No preview.11 tag or public binary has been created. Package signing,
+runtime checks on other operating systems, contrast auditing, and complete source/notice
+coverage remain pending.
+
+| Anti-slop During gate | Status  | Interaction evidence and remaining scope                                                                                                          |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direction and content | Pass    | Existing graphite/amber design, real imported media and saved clip records, named icons.                                                          |
+| Hard gate             | Partial | Tabs, Undo, inspector recovery, audio controls, browser errors, and phone overflow passed; full every-control and contrast audits remain pending. |
+| Purpose               | Pass    | Teaser rearranges footage; audio controls change exact renders; each tool opens its inspector.                                                    |
+| Liveliness            | Partial | Desktop and phone screenshots were inspected; reduced-motion and native visual review are pending.                                                |
+| Craftsmanship         | Partial | Rust, browser, and decoded media checks passed; corresponding source, packaged release, and other-platform runtime remain pending.                |
+
 ## Preview.10 tagged version preparation, 2026-11-16
 
 The preview.9 tagged run

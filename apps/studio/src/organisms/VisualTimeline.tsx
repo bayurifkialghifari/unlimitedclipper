@@ -18,6 +18,7 @@ import { useTimelineRemap } from '../hooks/use-timeline-remap';
 import { useStoryboardFrames } from '../hooks/use-storyboard-frames';
 import { TimelineItem, type TimelineGesture } from '../molecules/TimelineItem';
 import { api, assetUrl } from '../lib/api';
+import { fitAudioFades } from '../lib/audio-placement';
 import { retimeLayerMotion } from '../lib/layer-motion';
 import { sceneFrameTimes, timelineTicks, timelineTime } from '../lib/timeline-presentation';
 import type { SourceSegment } from '../types';
@@ -80,8 +81,9 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
   const document = draft.document;
   const scenes = identifiedSegments(document);
   const duration = outputDuration(document);
-  const contentWidth = Math.max(100, width - 132);
-  const trackWidth = contentWidth * zoom;
+  const labelWidth = width < 600 ? 104 : 132;
+  const contentWidth = Math.max(100, width - labelWidth);
+  const trackWidth = Math.max(width < 600 ? 520 : 100, contentWidth * zoom);
   const scale = Math.max(0.001, trackWidth / duration);
   const ruler = timelineTicks(duration, trackWidth);
   const selectedIndex =
@@ -251,6 +253,9 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
               retimeLayerMotion(layer, next.start_ms, next.end_ms, mode === 'move');
             }
             Object.assign(layer, next);
+            if (kind === 'audio' && 'gain' in layer) {
+              fitAudioFades(layer);
+            }
           }
         });
       }
@@ -423,7 +428,15 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
         </div>
       )}
       <div className={styles.trackViewport} ref={viewport}>
-        <div className={styles.tracks} style={{ width: 132 + trackWidth }}>
+        <div
+          className={styles.tracks}
+          style={
+            {
+              width: labelWidth + trackWidth,
+              '--track-label-width': labelWidth + 'px',
+            } as React.CSSProperties
+          }
+        >
           <div className={styles.trackLabel} data-ruler="true">
             {text.timecode}
           </div>
@@ -663,13 +676,13 @@ export function VisualTimeline({ sourceDuration }: { sourceDuration: number }) {
             <div
               key={tick}
               className={styles.timelineGridLine}
-              style={{ left: 132 + tick * scale }}
+              style={{ left: labelWidth + tick * scale }}
               aria-hidden="true"
             />
           ))}
           <div
             className={styles.playhead}
-            style={{ left: 132 + Math.min(duration, Math.max(0, playhead)) * scale }}
+            style={{ left: labelWidth + Math.min(duration, Math.max(0, playhead)) * scale }}
             aria-hidden="true"
           />
         </div>

@@ -21,6 +21,12 @@ signature retain the previous revision guard. Manual controls can switch the cur
 between an overlay and a card without generating another idea. Preview hook seeks the current
 overlay start; opening cards retain their own preview action.
 
+Move a teaser to the start selects 0.3 to 5 seconds of existing clip footage and moves that
+range before the other scenes. It does not duplicate the source moment or extend the clip.
+The Rust preview endpoint remaps captions, layers, audio offsets, and motion to the new order.
+The action enters normal Undo/Redo history and revision-aware autosave. A saved Hook proposal
+becomes stale when its source order changes.
+
 Generated titles use the saved clip transcript and an expected revision. A concurrent edit causes a conflict rather than being overwritten. Manual text, presets, font, size, color, vertical position, and timed display share the preview/export document. Real local title inference and native manual title editing passed.
 
 Title generation and face tracking share an admission guard per clip. The interface disables those actions while a queued, running, or cancelling edit job exists. A retry reads the current revision before admission. The title prompt names the detected language explicitly; model output still requires review for language and factual accuracy.

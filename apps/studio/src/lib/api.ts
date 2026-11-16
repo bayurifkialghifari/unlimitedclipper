@@ -92,6 +92,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ document, segments }),
     }),
+  teaserPreview: (id: string, document: EditDocument, startMs: number, endMs: number) =>
+    request<EditDocument>('/clips/' + id + '/teaser-preview', {
+      method: 'POST',
+      body: JSON.stringify({ document, start_ms: startMs, end_ms: endMs }),
+    }),
   health: () => request<Health>('/health'),
   projects: () => request<Project[]>('/projects'),
   project: (id: string) => request<ProjectDetail>('/projects/' + id),

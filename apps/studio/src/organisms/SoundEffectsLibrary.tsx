@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button } from '@unlimitedclipper/ui';
+import { Button, Field, Select } from '@unlimitedclipper/ui';
 import { PlayIcon, PauseIcon, PlusIcon } from '@phosphor-icons/react';
 import manifest from '../../../../resources/sfx.json';
 import { uploadFile } from '../lib/api';
+import { placeManagedAudio } from '../lib/audio-placement';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
-import { outputDuration, sourceSegments } from '../lib/timeline';
 import type { AudioAsset } from '../types';
 import styles from '../styles/Studio.module.css';
 
@@ -19,9 +19,16 @@ export function SoundEffectsLibrary({ disabled }: { disabled: boolean }) {
   const [playing, setPlaying] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('all');
   const limit = (draft?.document.audio_layers?.length ?? 0) >= 16;
   const names = { whoosh: text.sfxWhoosh, click: text.sfxClick, switch: text.sfxSwitch };
   const currentSound = manifest.sounds.find((sound) => sound.id === playing);
+  const visibleSounds = manifest.sounds.filter((sound) => {
+    const matchesCategory = category === 'all' || sound.group === category;
+    const matchesSearch = name(sound).toLowerCase().includes(search.trim().toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
   const caption = currentSound
     ? 'WEBVTT\n\n00:00:00.000 --> 00:00:' +
       (currentSound.duration_ms / 1000).toFixed(3).padStart(6, '0') +
@@ -82,34 +89,10 @@ export function SoundEffectsLibrary({ disabled }: { disabled: boolean }) {
         imported.current.set(sound.id, asset);
         await client.invalidateQueries({ queryKey: ['audio-assets'] });
       }
-      const current = useEditor.getState();
-      if (current.draft?.id !== clipId) {
-        throw new Error(text.sfxClipChanged);
-      }
-      const duration = outputDuration(current.draft.document);
-      if (start >= duration || (current.draft.document.audio_layers?.length ?? 0) >= 16) {
-        throw new Error(text.sfxPlacementError);
-      }
-      const assetId = asset.asset_id;
-      const end = Math.min(duration, start + asset.duration_ms);
-      const id = crypto.randomUUID();
-      current.change((document) => {
-        document.version = Math.max(2, document.version);
-        document.segments = sourceSegments(document);
-        document.audio_layers = [
-          ...(document.audio_layers ?? []),
-          {
-            id,
-            enabled: true,
-            start_ms: start,
-            end_ms: end,
-            asset_id: assetId,
-            source_start_ms: 0,
-            gain: 0.35,
-          },
-        ];
+      placeManagedAudio(asset, clipId, start, 0.35, {
+        clipChanged: text.sfxClipChanged,
+        placementError: text.sfxPlacementError,
       });
-      useEditor.setState({ timelineSelection: { kind: 'audio', id } });
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -117,7 +100,7 @@ export function SoundEffectsLibrary({ disabled }: { disabled: boolean }) {
     }
   }
   return (
-    <section aria-label={text.soundEffects}>
+    <section className={styles.sfxSection} aria-label={text.soundEffects}>
       <h3>{text.soundEffects}</h3>
       <p className={styles.hint}>{text.sfxHint}</p>
       <audio
@@ -142,8 +125,23 @@ export function SoundEffectsLibrary({ disabled }: { disabled: boolean }) {
           {text.sfxPlacementError}
         </p>
       )}
+      <div className={styles.twoColumns}>
+        <Field
+          label={text.searchSounds}
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <Select label={text.soundCategory} value={category} onChange={setCategory}>
+          <option value="all">{text.allSounds}</option>
+          <option value="whoosh">{text.sfxWhoosh}</option>
+          <option value="click">{text.sfxClick}</option>
+          <option value="switch">{text.sfxSwitch}</option>
+        </Select>
+      </div>
+      {visibleSounds.length === 0 && <p role="status">{text.noSoundsFound}</p>}
       <div className={styles.sfxList}>
-        {manifest.sounds.map((sound) => (
+        {visibleSounds.map((sound) => (
           <div key={sound.id} className={styles.sfxRow}>
             <span>
               {name(sound)}

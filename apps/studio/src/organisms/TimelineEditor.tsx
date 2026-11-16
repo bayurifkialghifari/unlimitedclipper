@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Field, Toggle, Select } from '@unlimitedclipper/ui';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { fitAudioFades } from '../lib/audio-placement';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { outputDuration, sourceSegments, identifiedSegments } from '../lib/timeline';
@@ -15,7 +16,7 @@ import { retimeLayerMotion } from '../lib/layer-motion';
 import type { AudioLayer, VisualLayer } from '../types';
 import styles from '../styles/Studio.module.css';
 
-export function TimelineEditor() {
+export function TimelineEditor({ mode = 'all' }: { mode?: 'all' | 'visual' | 'audio' }) {
   const text = useText();
   const draft = useEditor((state) => state.draft);
   const playhead = useEditor((state) => state.playhead);
@@ -26,12 +27,14 @@ export function TimelineEditor() {
   const [end, setEnd] = useState('');
   const sources = useQuery({ queryKey: ['projects'], queryFn: api.projects });
   const audio = useQuery({ queryKey: ['audio-assets'], queryFn: api.audioAssets });
+  const health = useQuery({ queryKey: ['health'], queryFn: api.health });
   const jobs = useQuery({ queryKey: ['jobs'], queryFn: api.jobs, refetchInterval: 3000 });
   if (!draft) {
     return <p>{text.selectClip}</p>;
   }
   const document = draft.document;
   const duration = outputDuration(document);
+  const mixingSupported = Boolean(health.data?.editor_features.includes('audio_mixing'));
   const segments = identifiedSegments(document);
   const names: Record<string, string> = {
     note: text.addNote,
@@ -103,7 +106,7 @@ export function TimelineEditor() {
 
   return (
     <section aria-label={text.timelineSegments}>
-      {(!selection || selection.kind === 'scene') && (
+      {mode !== 'audio' && (!selection || selection.kind === 'scene') && (
         <>
           <h3>{text.timelineSegments}</h3>
           {segments
@@ -162,7 +165,7 @@ export function TimelineEditor() {
           </Button>
         </>
       )}
-      {(!selection || selection.kind === 'visual') && (
+      {mode !== 'audio' && (!selection || selection.kind === 'visual') && (
         <>
           <h3>{text.visualLayers}</h3>
           {['note', 'punch_in', 'split', 'camera_frame', 'broll'].map((kind) => (
@@ -326,7 +329,7 @@ export function TimelineEditor() {
             ))}
         </>
       )}
-      {(!selection || selection.kind === 'audio') && (
+      {mode !== 'visual' && (!selection || selection.kind === 'audio') && (
         <>
           <h3>{text.audioLayers}</h3>
           {!selection && (
@@ -386,6 +389,10 @@ export function TimelineEditor() {
                     editAudio(layer.id, (layer) => {
                       layer.asset_id = value || null;
                       layer.source_start_ms = 0;
+                      if (!value) {
+                        layer.ducking = false;
+                        layer.normalize = false;
+                      }
                       const length = value
                         ? (audio.data?.find((asset) => asset.asset_id === value)?.duration_ms ??
                           sources.data?.find((source) => source.asset_id === value)?.duration_ms ??
@@ -418,7 +425,10 @@ export function TimelineEditor() {
                   }
                   maximumLength={layer.asset_id ? undefined : 500}
                   onChange={(timing) =>
-                    editAudio(layer.id, (layer) => Object.assign(layer, timing))
+                    editAudio(layer.id, (current) => {
+                      Object.assign(current, timing);
+                      fitAudioFades(current);
+                    })
                   }
                 />
                 <Field
@@ -434,6 +444,67 @@ export function TimelineEditor() {
                     })
                   }
                 />
+                <output>{Math.round(layer.gain * 100)}%</output>
+                {!mixingSupported && <p className={styles.hint}>{text.audioMixUnavailable}</p>}
+                <fieldset className={styles.disabledGroup} disabled={!mixingSupported}>
+                  <legend>{text.audioMixControls}</legend>
+                  <div className={styles.twoColumns}>
+                    <Field
+                      label={text.audioFadeIn}
+                      type="number"
+                      min={0}
+                      max={(layer.end_ms - layer.start_ms - (layer.fade_out_ms ?? 0)) / 1000}
+                      step={0.01}
+                      value={((layer.fade_in_ms ?? 0) / 1000).toFixed(2)}
+                      onChange={(event) =>
+                        editAudio(layer.id, (current) => {
+                          current.fade_in_ms = Math.min(
+                            Math.max(0, Math.round(Number(event.target.value) * 1000)),
+                            current.end_ms - current.start_ms - (current.fade_out_ms ?? 0),
+                          );
+                        })
+                      }
+                    />
+                    <Field
+                      label={text.audioFadeOut}
+                      type="number"
+                      min={0}
+                      max={(layer.end_ms - layer.start_ms - (layer.fade_in_ms ?? 0)) / 1000}
+                      step={0.01}
+                      value={(
+                        Math.min(layer.fade_out_ms ?? 80, layer.end_ms - layer.start_ms) / 1000
+                      ).toFixed(2)}
+                      onChange={(event) =>
+                        editAudio(layer.id, (current) => {
+                          current.fade_out_ms = Math.min(
+                            Math.max(0, Math.round(Number(event.target.value) * 1000)),
+                            current.end_ms - current.start_ms - (current.fade_in_ms ?? 0),
+                          );
+                        })
+                      }
+                    />
+                  </div>
+                  <Toggle
+                    label={text.audioNormalize}
+                    checked={layer.normalize ?? false}
+                    onChange={(normalize) =>
+                      editAudio(layer.id, (current) => {
+                        current.normalize = normalize;
+                      })
+                    }
+                  />
+                  {layer.asset_id && (
+                    <Toggle
+                      label={text.audioDucking}
+                      checked={layer.ducking ?? false}
+                      onChange={(ducking) =>
+                        editAudio(layer.id, (current) => {
+                          current.ducking = ducking;
+                        })
+                      }
+                    />
+                  )}
+                </fieldset>
                 <Button
                   onClick={() =>
                     change((document) => {

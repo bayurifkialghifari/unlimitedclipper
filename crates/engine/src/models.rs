@@ -100,6 +100,14 @@ pub struct AudioLayer {
     pub asset_id: Option<String>,
     pub source_start_ms: i64,
     pub gain: f64,
+    #[serde(default)]
+    pub fade_in_ms: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fade_out_ms: Option<i64>,
+    #[serde(default)]
+    pub normalize: bool,
+    #[serde(default)]
+    pub ducking: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

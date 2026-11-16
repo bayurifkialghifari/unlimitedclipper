@@ -68,6 +68,27 @@ fn card(text: &str, duration_ms: i64) -> HeadingCard {
 }
 
 #[test]
+fn teaser_moves_existing_source_without_repeating_or_changing_content_length() {
+    let original = document();
+    let segments = original.teaser_segments(2300, 2800).unwrap();
+    let moved = original.replace_segments(segments);
+    assert_eq!(moved.duration_ms(), original.duration_ms());
+    assert_eq!(moved.output_to_source(0), Some(3300));
+    assert_eq!(moved.output_to_source(499), Some(3799));
+    assert_eq!(moved.output_to_source(500), Some(0));
+    assert!(moved.validate(project().duration_ms).is_ok());
+    let mut source = moved.source_segments();
+    source.sort_by_key(|segment| segment.start_ms);
+    assert!(
+        source
+            .windows(2)
+            .all(|pair| pair[0].end_ms <= pair[1].start_ms)
+    );
+    assert!(original.teaser_segments(2300, 2400).is_err());
+    assert!(original.teaser_segments(2300, 4300).is_err());
+}
+
+#[test]
 fn independent_cards_keep_source_provenance_and_content_tracks_after_reorder() {
     let mut original = document();
     original.version = 4;
@@ -403,6 +424,10 @@ fn reordered_scenes_keep_source_anchors_and_layer_audio_offsets() {
         asset_id: Some("registered-audio".into()),
         source_start_ms: 100,
         gain: 0.5,
+        fade_in_ms: 0,
+        fade_out_ms: None,
+        normalize: false,
+        ducking: false,
     });
     let reordered = original.replace_segments(vec![
         scene("c", 5000, 6000),
@@ -468,6 +493,10 @@ fn splitting_and_reordering_preserve_asset_content_and_fragment_identity() {
         asset_id: Some("registered-audio".into()),
         source_start_ms: 1000,
         gain: 0.5,
+        fade_in_ms: 0,
+        fade_out_ms: None,
+        normalize: false,
+        ducking: false,
     });
     let reordered = original.replace_segments(vec![
         scene("b", 3000, 4000),

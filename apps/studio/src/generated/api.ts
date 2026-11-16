@@ -271,6 +271,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clips/{id}/teaser-preview': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['teaser_preview'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clips/{id}/timeline-preview': {
     parameters: {
       query?: never;
@@ -847,12 +863,18 @@ export interface components {
     };
     AudioLayer: {
       asset_id?: string | null;
+      ducking?: boolean;
       enabled: boolean;
       /** Format: int64 */
       end_ms: number;
+      /** Format: int64 */
+      fade_in_ms?: number;
+      /** Format: int64 */
+      fade_out_ms?: number | null;
       /** Format: double */
       gain: number;
       id: string;
+      normalize?: boolean;
       /** Format: int64 */
       source_start_ms: number;
       /** Format: int64 */
@@ -1276,6 +1298,13 @@ export interface components {
     };
     StoryboardResponse: {
       frames: components['schemas']['StoryboardFrame'][];
+    };
+    TeaserRequest: {
+      document: components['schemas']['EditDocument'];
+      /** Format: int64 */
+      end_ms: number;
+      /** Format: int64 */
+      start_ms: number;
     };
     TimelineRequest: {
       document: components['schemas']['EditDocument'];
@@ -1989,6 +2018,31 @@ export interface operations {
         };
         content: {
           'text/plain': string;
+        };
+      };
+    };
+  };
+  teaser_preview: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TeaserRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EditDocument'];
         };
       };
     };

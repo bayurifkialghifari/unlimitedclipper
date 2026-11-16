@@ -534,8 +534,25 @@ pub async fn render_media(
         next_input += 1;
         video_label = "branded".into();
     }
-    let mut audio_labels = String::from("[soundtrack]");
+    let ducked_layers = document
+        .audio_layers
+        .iter()
+        .filter(|layer| layer.enabled && layer.ducking)
+        .count();
+    if ducked_layers > 0 {
+        filter.push_str(&format!(";[soundtrack]asplit={}", ducked_layers + 1));
+        filter.push_str("[soundtrack-main]");
+        for index in 0..ducked_layers {
+            filter.push_str(&format!("[duck-reference-{index}]"));
+        }
+    }
+    let mut audio_labels = if ducked_layers > 0 {
+        String::from("[soundtrack-main]")
+    } else {
+        String::from("[soundtrack]")
+    };
     let mut audio_count = 1;
+    let mut duck_index = 0;
     for layer in document.audio_layers.iter().filter(|layer| layer.enabled) {
         let length = (layer.end_ms - layer.start_ms) as f64 / 1000.0;
         if let Some(asset) = &layer.asset_id {
@@ -563,8 +580,46 @@ pub async fn render_media(
                 format!("sine=frequency=720:sample_rate=48000:duration={length:.3}"),
             ]);
         }
-        filter.push_str(&format!(";[{next_input}:a]atrim=duration={length:.3},asetpts=PTS-STARTPTS,volume={},afade=t=out:st={:.3}:d=0.08,adelay={}:all=1[effect{audio_count}]",
-            layer.gain, (length - 0.08).max(0.0), layer.start_ms));
+        filter.push_str(&format!(
+            ";[{next_input}:a]atrim=duration={length:.3},asetpts=PTS-STARTPTS"
+        ));
+        if layer.normalize {
+            filter.push_str(",loudnorm=I=-16:TP=-1.5:LRA=11");
+        }
+        filter.push_str(&format!(",volume={}", layer.gain));
+        if layer.fade_in_ms > 0 {
+            filter.push_str(&format!(
+                ",afade=t=in:st=0:d={:.3}",
+                layer.fade_in_ms as f64 / 1000.0
+            ));
+        }
+        let fade_out_ms = layer
+            .fade_out_ms
+            .unwrap_or(80)
+            .min(layer.end_ms - layer.start_ms);
+        if fade_out_ms > 0 {
+            filter.push_str(&format!(
+                ",afade=t=out:st={:.3}:d={:.3}",
+                (length - fade_out_ms as f64 / 1000.0).max(0.0),
+                fade_out_ms as f64 / 1000.0
+            ));
+        }
+        filter.push_str(&format!(
+            ",adelay={}:all=1,apad=whole_dur={:.3},atrim=duration={:.3}[effect-raw-{audio_count}]",
+            layer.start_ms,
+            document.duration_ms() as f64 / 1000.0,
+            document.duration_ms() as f64 / 1000.0
+        ));
+        if layer.ducking {
+            filter.push_str(&format!(
+                ";[effect-raw-{audio_count}][duck-reference-{duck_index}]sidechaincompress=threshold=0.015:ratio=8:attack=15:release=250[effect{audio_count}]"
+            ));
+            duck_index += 1;
+        } else {
+            filter.push_str(&format!(
+                ";[effect-raw-{audio_count}]anull[effect{audio_count}]"
+            ));
+        }
         audio_labels.push_str(&format!("[effect{audio_count}]"));
         next_input += 1;
         audio_count += 1;

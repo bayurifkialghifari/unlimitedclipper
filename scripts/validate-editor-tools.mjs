@@ -102,6 +102,26 @@ try {
   });
   assert.equal(uploaded.status, 200);
   const asset = await uploaded.json();
+  const toneFile = path.join(engine.directory, 'background-tone.wav');
+  execFileSync(ffmpeg, [
+    '-v',
+    'error',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=220:duration=6',
+    '-c:a',
+    'pcm_s16le',
+    toneFile,
+  ]);
+  const toneForm = new FormData();
+  toneForm.append('file', new Blob([await readFile(toneFile)]), 'background-tone.wav');
+  const toneResponse = await fetch(engine.origin + '/api/v1/assets/audio', {
+    method: 'POST',
+    body: toneForm,
+  });
+  assert.equal(toneResponse.status, 200);
+  const tone = await toneResponse.json();
   clip.document.title = {
     ...clip.document.title,
     text: 'KEEP THE CONTEXT',
@@ -120,6 +140,23 @@ try {
       asset_id: asset.asset_id,
       source_start_ms: 0,
       gain: 0.35,
+      fade_in_ms: Math.min(80, Math.floor(asset.duration_ms / 3)),
+      fade_out_ms: Math.min(80, Math.floor(asset.duration_ms / 3)),
+      normalize: true,
+      ducking: false,
+    },
+    {
+      id: 'background',
+      enabled: true,
+      start_ms: 0,
+      end_ms: 6000,
+      asset_id: tone.asset_id,
+      source_start_ms: 0,
+      gain: 0.12,
+      fade_in_ms: 200,
+      fade_out_ms: 200,
+      normalize: false,
+      ducking: true,
     },
   ];
   clip = await engine.api('/clips/' + clip.id, clip, 'PUT');
@@ -181,7 +218,7 @@ try {
     full_decode: true,
     filtered_preview_and_export: true,
     timed_hook_color: true,
-    whoosh_mix: true,
+    audio_mix_with_fades_normalization_and_ducking: true,
     immutable_revision: revision,
     later_saved_revision: clip.revision,
   });

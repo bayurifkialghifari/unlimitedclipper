@@ -40,13 +40,21 @@ export function Inspector({
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('panel');
   const linkedTab =
-    focused && requestedTab && ['captions', 'style', 'title'].includes(requestedTab)
+    focused &&
+    requestedTab &&
+    ['captions', 'crop', 'title', 'style', 'branding', 'timeline', 'motion', 'audio'].includes(
+      requestedTab,
+    )
       ? requestedTab
       : null;
   const [chosenTab, setChosenTab] = useState(focused ? 'captions' : 'options');
   const selection = useEditor((state) => state.timelineSelection);
   const inspectorBody = useRef<HTMLDivElement>(null);
-  const tab = selection ? 'timeline' : (linkedTab ?? chosenTab);
+  const tab = selection
+    ? selection.kind === 'audio'
+      ? 'audio'
+      : 'timeline'
+    : (linkedTab ?? chosenTab);
   useEffect(() => {
     if (inspectorBody.current) {
       inspectorBody.current.scrollTop = 0;
@@ -134,9 +142,11 @@ export function Inspector({
     ['captions', text.captions],
     ['crop', text.crop],
     ['title', text.title],
+    ['motion', text.autoMotion],
+    ['audio', text.audioLayers],
     ['style', text.videoFilters],
     ['branding', text.branding],
-    ['timeline', text.timelineSegments],
+    ['timeline', focused ? text.sourceTools : text.timelineSegments],
   ].filter(([value]) => (document ? !focused || value !== 'options' : value === 'options'));
 
   async function action(operation: () => Promise<unknown>) {
@@ -261,30 +271,32 @@ export function Inspector({
   const selectedWord = document?.words.find((word) => selected.includes(word.id));
   return (
     <aside className={styles.inspector}>
-      <div className={styles.inspectorTabs} role="tablist" aria-label={text.options}>
-        {tabs.map(([value, label], index) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={tab === value}
-            aria-controls={'panel-' + value}
-            id={'tab-' + value}
-            className={styles.inspectorTab}
-            onClick={() => setTab(value)}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-                const next =
-                  (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-                setTab(tabs[next][0]);
-                window.document.getElementById('tab-' + tabs[next][0])?.focus();
-              }
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {!focused && (
+        <div className={styles.inspectorTabs} role="tablist" aria-label={text.options}>
+          {tabs.map(([value, label], index) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={tab === value}
+              aria-controls={'panel-' + value}
+              id={'tab-' + value}
+              className={styles.inspectorTab}
+              onClick={() => setTab(value)}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                  const next =
+                    (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                  setTab(tabs[next][0]);
+                  window.document.getElementById('tab-' + tabs[next][0])?.focus();
+                }
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <div
         ref={inspectorBody}
         className={styles.inspectorBody}
@@ -941,7 +953,7 @@ export function Inspector({
                 </Button>
               </>
             )}
-            <CameraMotionEditor />
+            {!focused && <CameraMotionEditor />}
           </>
         )}
         {tab === 'title' && document && (
@@ -964,6 +976,13 @@ export function Inspector({
         {tab === 'style' && document && (
           <VideoStyleEditor project={project} sourceVideo={sourceVideo} />
         )}
+        {tab === 'motion' && document && (
+          <>
+            <EditorialPanel key={draft!.id} />
+            <CameraMotionEditor />
+          </>
+        )}
+        {tab === 'audio' && document && <TimelineEditor key={draft!.id} mode="audio" />}
         {tab === 'branding' && document && (
           <>
             <h2>{text.branding}</h2>
@@ -1110,10 +1129,9 @@ export function Inspector({
                   dirty={dirty}
                   saving={saving}
                 />
-                <EditorialPanel key={draft!.id} />
               </>
             )}
-            <TimelineEditor key={draft!.id} />
+            <TimelineEditor key={draft!.id} mode={focused ? 'visual' : 'all'} />
           </>
         )}
       </div>

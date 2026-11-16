@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Select } from '@unlimitedclipper/ui';
 import {
   ArrowLeftIcon,
   DownloadSimpleIcon,
   ArrowCounterClockwiseIcon,
   ArrowClockwiseIcon,
+  SidebarSimpleIcon,
 } from '@phosphor-icons/react';
 import { api } from '../lib/api';
 import { flushEditor } from '../lib/save';
@@ -16,6 +17,7 @@ import { time } from '../lib/format';
 import { applyLayout } from '../lib/editor-layout';
 import { QueryState } from '../molecules/QueryState';
 import { PageHeader } from '../molecules/PageHeader';
+import { isStudioTool, StudioToolMenu, type StudioTool } from '../molecules/StudioToolMenu';
 import { ComposedPreview } from '../organisms/ComposedPreview';
 import { Inspector } from '../organisms/Inspector';
 import { VisualTimeline } from '../organisms/VisualTimeline';
@@ -35,6 +37,7 @@ export function Studio() {
   const text = useText();
   const { clipId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const editor = useEditor();
   const clip = useQuery({
     queryKey: ['clip', clipId],
@@ -122,6 +125,14 @@ export function Studio() {
   const source = project.data?.project;
   const ready = editor.draft?.id === clipId;
   const busy = pending || editor.timelinePending;
+  const requestedTool = searchParams.get('panel');
+  const activeTool: StudioTool = editor.timelineSelection
+    ? editor.timelineSelection.kind === 'audio'
+      ? 'audio'
+      : 'timeline'
+    : isStudioTool(requestedTool)
+      ? requestedTool
+      : 'captions';
   return (
     <div className={styles.studio}>
       <PageHeader title={ready ? editor.draft!.name : text.studio} detail={source?.name}>
@@ -189,26 +200,29 @@ export function Studio() {
             </div>
             <div className={styles.actions}>
               <Button
+                className={styles.iconAction}
                 aria-label={text.undo}
                 aria-keyshortcuts="Control+Z Meta+Z"
                 disabled={!editor.history.length || busy}
                 onClick={editor.undo}
                 icon={<ArrowCounterClockwiseIcon aria-hidden="true" />}
-              >
-                {text.undo}
-              </Button>
+              />
               <Button
+                className={styles.iconAction}
                 aria-label={text.redo}
                 aria-keyshortcuts="Control+Shift+Z Control+Y Meta+Shift+Z"
                 disabled={!editor.future.length || busy}
                 onClick={editor.redo}
                 icon={<ArrowClockwiseIcon aria-hidden="true" />}
-              >
-                {text.redo}
-              </Button>
-              <Button aria-pressed={showInspector} onClick={() => setShowInspector(!showInspector)}>
-                {text.options}
-              </Button>
+              />
+              <Button
+                className={styles.iconAction}
+                aria-label={text.options}
+                title={text.options}
+                icon={<SidebarSimpleIcon aria-hidden="true" />}
+                aria-pressed={showInspector}
+                onClick={() => setShowInspector(!showInspector)}
+              />
               <Button
                 variant="primary"
                 icon={<DownloadSimpleIcon />}
@@ -219,6 +233,21 @@ export function Studio() {
               </Button>
             </div>
           </div>
+          <StudioToolMenu
+            active={activeTool}
+            onSelect={(tool) => {
+              useEditor.setState({ timelineSelection: null });
+              setShowInspector(true);
+              setSearchParams(
+                (previous) => {
+                  const next = new URLSearchParams(previous);
+                  next.set('panel', tool);
+                  return next;
+                },
+                { replace: true },
+              );
+            }}
+          />
           <div
             className={styles.editorBody}
             style={{ '--inspector-width': inspectorWidth + 'px' } as React.CSSProperties}

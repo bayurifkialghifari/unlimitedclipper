@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Field, Select } from '@unlimitedclipper/ui';
 import { PlayIcon, TextTIcon } from '@phosphor-icons/react';
@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { useEditor } from '../lib/editor-store';
 import { useText } from '../lib/i18n';
 import { identifiedSegments, outputDuration } from '../lib/timeline';
+import { useTimelineRemap } from '../hooks/use-timeline-remap';
 import { CardEditor } from './CardEditor';
 import { HookProposals } from './HookProposals';
 import styles from '../styles/Studio.module.css';
@@ -31,6 +32,9 @@ export function HookEditor({
   const change = useEditor((state) => state.change);
   const playhead = useEditor((state) => state.playhead);
   const seekTo = useEditor((state) => state.seekTo);
+  const [teaserStart, setTeaserStart] = useState<string | null>(null);
+  const [teaserLength, setTeaserLength] = useState('2.00');
+  const { remapTeaser, pending: teaserPending, teaserSupported } = useTimelineRemap();
   const health = useQuery({ queryKey: ['health'], queryFn: api.health });
   const supported = health.data?.editor_features?.includes('timed_hooks') ?? false;
   const proposalsSupported = health.data?.editor_features?.includes('hook_proposals') ?? false;
@@ -42,6 +46,15 @@ export function HookEditor({
   const title = draft.document.title;
   const openingCard = draft.document.intro_card;
   const duration = outputDuration(draft.document);
+  const teaserStartMs = Math.round(Number(teaserStart ?? (playhead / 1000).toFixed(2)) * 1000);
+  const teaserLengthMs = Math.round(Number(teaserLength) * 1000);
+  const validTeaser =
+    Number.isFinite(teaserStartMs) &&
+    Number.isFinite(teaserLengthMs) &&
+    teaserStartMs >= 0 &&
+    teaserLengthMs >= 300 &&
+    teaserLengthMs <= 5000 &&
+    teaserStartMs + teaserLengthMs <= duration;
   const start = title.start_ms ?? 0;
   const animation = title.animation ?? 'none';
   const openingText =
@@ -98,6 +111,39 @@ export function HookEditor({
         cardsSupported={cardsSupported}
         onGenerate={onGenerate}
       />
+      <details className={styles.teaserTools}>
+        <summary>{text.teaserMove}</summary>
+        <div className={styles.teaserFields}>
+          <p className={styles.hint}>{text.teaserHint}</p>
+          <div className={styles.twoColumns}>
+            <Field
+              label={text.teaserStart}
+              type="number"
+              min={0}
+              max={Math.max(0, (duration - 300) / 1000)}
+              step={0.01}
+              value={teaserStart ?? (playhead / 1000).toFixed(2)}
+              onChange={(event) => setTeaserStart(event.target.value)}
+            />
+            <Field
+              label={text.teaserLength}
+              type="number"
+              min={0.3}
+              max={5}
+              step={0.01}
+              value={teaserLength}
+              onChange={(event) => setTeaserLength(event.target.value)}
+            />
+          </div>
+          {!teaserSupported && <p className={styles.hint}>{text.teaserUnavailable}</p>}
+          <Button
+            disabled={!validTeaser || !teaserSupported || teaserPending}
+            onClick={() => void remapTeaser(teaserStartMs, teaserStartMs + teaserLengthMs)}
+          >
+            {text.teaserApply}
+          </Button>
+        </div>
+      </details>
       <h3>{text.hookCurrent}</h3>
       <div className={styles.hookModeActions} role="group" aria-label={text.hookOpeningMode}>
         <Button aria-pressed={!openingCard} disabled={!openingCard} onClick={useOverlay}>
