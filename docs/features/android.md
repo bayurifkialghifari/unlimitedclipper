@@ -83,6 +83,9 @@ to the same release as desktop packages. APK signing remains debug-only and
 may change between CI runs. The APK is labeled experimental; on-device import and export are
 still unverified.
 
+The preview.10 tagged workflow passed APK packaging and staged it in a draft release. This APK
+supports media-only manual clipping; native AI and downloader adapters remain pending.
+
 ## Sources
 
 - [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).

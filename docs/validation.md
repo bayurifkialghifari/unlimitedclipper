@@ -12,13 +12,49 @@ JSON file. In an isolated worktree,
 the exact preview.9 transformation reproduced the formatting failure; the preview.10
 transformation passed Prettier for the script and all five changed JSON files. The tagged
 preview.10 worktree also passed npm run check: ESLint, Prettier, TypeScript, six frontend tests,
-and the production Studio build. Hosted package and release evidence remains pending.
+and the production Studio build. Tagged package evidence appears below.
 
 The initial local Rust test attempt in this isolated worktree could not link because it lacked
 the main workspace's ARM64 compiler. After connecting that compiler, all engine Rust tests,
 workspace Rustfmt, and engine/desktop Clippy with warnings denied passed for the transformed
 preview.10 version. The linked-library corresponding-source audit remains open; no draft binary
 should be published publicly before it is complete.
+
+[Branch quality run 43786321665](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43786321665)
+passed all five jobs for the version-preparation change. The
+[preview.10 tagged run 43786501506](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43786501506)
+passed all five validation jobs, both Windows installers, both Linux packages, the Android
+native media build, and the Android APK job. Tagged Android version preparation and npm run
+check passed before the APK build. The APK inspection log reports 149,598,387 bytes and SHA-256
+542011a0c713503e756c2b02246ac0ae9d49616040b1b491a35c8bb3a0a45427, with ARM64
+libraries, SDK 29 minimum, debug signing, and no runtime test. A separate download from the
+draft matched that size and SHA-256; archive inspection found eleven libraries under arm64-v8a.
+
+The first macOS ARM package attempt failed while creating the disk image because hdiutil
+reported Resource busy. Rerunning the failed job on the same tag passed; macOS Intel also passed.
+Attempt 2 completed the workflow and created a 32-asset draft release. CI checked AppImage ELF
+architecture and the executable Mach-O architecture inside each disk image. Linux/macOS
+installed runtime, Windows installer/update behavior, system signing/notarization, and Android
+device behavior remain untested.
+
+The draft contains six desktop packages, one APK, the inspected Android media AAR, Windows
+signature files and updater manifests, four Unix notice archives, four media source snapshots,
+and their metadata. All 31 entries in SHA256SUMS match the GitHub asset digests; the downloaded
+checksum file matches its own asset digest. Eighteen downloaded files, including the Windows
+ARM64 installer, APK, AAR, metadata, signatures, and notice archives, also matched SHA256SUMS
+locally.
+
+Both Windows updater manifest entries have the expected tag URLs and the same version-bound
+signature text as their installer .sig assets. Cryptographic updater verification and
+installation remain pending. Four Unix package manifests match asset sizes, SHA-256 hashes,
+expected architecture values, and notice hashes. Each downloaded notice archive
+contains native provenance, FFmpeg build configuration and GPL text, and ONNX third-party notices.
+The downloaded Android AAR matches its build evidence hash and contains the expected ARM64 JNI
+libraries and license entries. The four source snapshot hashes match source-archives.json.
+
+The source snapshots omit at least the pinned x264 and libass trees used by the desktop FFmpeg
+builds; docs/third-party-notices.md records their revisions. Corresponding-source and notice
+coverage still requires a full linked-library audit before the draft binaries become public.
 
 ## Per-clip styling, Hook review, and release preparation, 2026-11-16
 

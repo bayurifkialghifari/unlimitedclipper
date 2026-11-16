@@ -98,6 +98,15 @@ its private project library. Stable signing and Android automatic updates remain
 
 ## Current evidence
 
+The [tagged preview.10 run](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43786501506)
+passed Android native media and APK packaging from source commit
+654288a91a36afab67ff412a511edeb16beab84d. The inspected APK is in the
+[draft preview.10 release](https://github.com/bayurifkialghifari/unlimitedclipper/releases/tag/v0.1.0-preview.10).
+It is 149,598,387 bytes, and a separate download matched SHA-256
+542011a0c713503e756c2b02246ac0ae9d49616040b1b491a35c8bb3a0a45427. The APK contains
+eleven ARM64 native libraries and requires API 29 or later. It remains debug-signed and
+untested on a device. The release is a draft while linked-library source and notices are audited.
+
 The Rust engine cross-compiled for `aarch64-linux-android` with NDK r28c on the Windows ARM64
 development machine. That artifact is an engine build, not an installable Android application.
 The Android Rust application and native bridge also passed target-specific Clippy with warnings

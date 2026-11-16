@@ -32,6 +32,13 @@ and [source revision 7250de8](https://github.com/jellyfin/jellyfin-ffmpeg/tree/7
 The tagged workflow attaches checksum-verified archives of those FFmpeg source trees and the
 Linux build scripts alongside the packages. Linked dependency sources are referenced by the
 build scripts; they are not included in those three desktop source archives.
+For example, the pinned Linux scripts reference x264 at
+0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee and libass at
+f61db567e6593df3470e91594bcd4ad2d0473aff. The pinned macOS scripts reference the same
+x264 revision and libass at 4a05d8127f525943ebf45fdc6497c9e665947f0d. Those library
+source trees are absent from the staged FFmpeg source snapshots. Additional linked
+dependencies still require audit.
+
 The final distributable must provide corresponding source for the exact binaries and linked
 libraries. Audit the complete source set and availability before publication; source pointers
 alone do not establish that obligation.
