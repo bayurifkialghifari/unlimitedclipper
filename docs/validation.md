@@ -31,7 +31,9 @@ The previous native-media CI run 43871994089 failed five browser scenarios befor
 The runner generated only one video fixture and omitted ONNX Runtime, while three tests still
 looked for B-roll in its former inspector location and one read a route before navigation
 finished. The workflow now prepares those dependencies and the tests target the separate B-roll
-tab. A new hosted run is pending; these local fixes are not recorded as a CI pass yet.
+tab. The follow-up [native media run 43879412452](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43879412452)
+passed on Windows ARM64. Its gallery check and all processing checks passed; the full browser
+suite recorded 19 passed and two skipped optional fixture scenarios.
 
 The isolated browser suite used the matching engine binary from .cache/target-preview11 after
 the Studio build. Nineteen scenarios passed; the Auto Motion and Hook proposal scenarios were
@@ -42,6 +44,9 @@ teaser/B-roll endpoints, so its initial local failures were not used as current-
 The focused gallery check also passed the injected 503, retry, Enter/Escape, and Indonesian-label
 paths. The Windows ARM64 native gallery check passed separately. npm run check, Rust tests,
 Rustfmt check, and engine Clippy with warnings denied passed on this source.
+[Quality run 43879412405](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43879412405)
+also passed Studio and Rust checks on Windows, Ubuntu, Intel macOS, and Apple Silicon macOS.
+These hosted checks did not execute packaged installers.
 
 ## Native B-roll suggestion and Studio layout, 2026-11-16
 
