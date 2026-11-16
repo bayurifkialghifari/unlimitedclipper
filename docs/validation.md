@@ -22,6 +22,13 @@ A separate headless Chromium session without the Tauri bridge searched the same 
 results. Its first three visible thumbnails also decoded at 330 pixels wide with no page errors.
 Evidence: .cache/stock-thumbnails-browser.json and .cache/stock-thumbnails-browser.png.
 
+Source commit 3875e29 passed
+[quality run 43884964243](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43884964243)
+on Windows, Ubuntu, Intel macOS, and Apple Silicon macOS, and
+[native media run 43884964223](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43884964223)
+on Windows ARM64. The hosted media suite checks existing editor workflows; the live Commons
+thumbnail search above was exercised locally in native WebView2 and headless Chromium.
+
 | Anti-slop During gate      | Status  | Evidence and remaining scope                                                        |
 | -------------------------- | ------- | ----------------------------------------------------------------------------------- |
 | Direction and real content | Pass    | Native stock frames use the existing graphite workspace and actual Commons results. |
