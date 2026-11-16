@@ -2,9 +2,13 @@
 
 ## Preview.10 tagged version preparation, 2026-11-16
 
-The preview.9 tagged run reproduced an Android APK failure before packaging: its version script
-expanded compact JSON fields in the Tauri configuration and Prettier rejected the result. The
-script now changes only the top-level version entry in each JSON file. In an isolated worktree,
+The preview.9 tagged run
+[43776906521](https://github.com/bayurifkialghifari/unlimitedclipper/actions/runs/43776906521)
+passed all five quality jobs, both Windows installer jobs, all four Unix package jobs, and
+the Android native media job. Its Android APK failed before packaging: the version script
+expanded compact JSON fields in the Tauri configuration and Prettier rejected the result.
+The publish job was skipped. The script now changes only the top-level version entry in each
+JSON file. In an isolated worktree,
 the exact preview.9 transformation reproduced the formatting failure; the preview.10
 transformation passed Prettier for the script and all five changed JSON files. The tagged
 preview.10 worktree also passed npm run check: ESLint, Prettier, TypeScript, six frontend tests,
